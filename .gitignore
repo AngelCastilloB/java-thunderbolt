@@ -14,10 +14,6 @@
 .idea/**/sqlDataSources.xml
 .idea/**/dynamic.xml
 .idea/**/uiDesigner.xml
-.idea/.name
-.idea/encodings.xml
-.idea/misc.xml
-.idea/vcs.xml
 
 # Gradle
 .idea/**/gradle.xml
