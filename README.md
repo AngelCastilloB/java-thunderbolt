@@ -18,5 +18,5 @@ To build manually, create the executable with:
 License
 -------
 
-Thunderbolt is released under the terms of the MIT license. See [COPYING](COPYING) for more
+Thunderbolt is released under the terms of the MIT license. See [LICENSE](LICENSE) for more
 information or see https://opensource.org/licenses/MIT.
