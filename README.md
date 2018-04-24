@@ -1,7 +1,7 @@
 Thunderbolt
 -----------
 
-Thunderbolt is a peer-to-peer trustless digital currency implemented from scratch in Java. The project is inspired by Bitcoin
+Thunderbolt is a peer-to-peer trustless digital currency implemented from scratch in Java. The project is inspired by
 [Bitcoin](https://github.com/bitcoin/bitcoin) and was created as a learning tool for understanding the blockchain technology.
 
 Build
@@ -18,5 +18,5 @@ To build manually, create the executable with:
 License
 -------
 
-Thunderbolt is released under the terms of the MIT license. See [COPYING](COPYING) for more
+Thunderbolt is released under the terms of the MIT license. See [LICENSE](LICENSE) for more
 information or see https://opensource.org/licenses/MIT.
