@@ -21,36 +21,56 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+package com.thunderbolt.security;
 
-package com.thunderbolt;
+/* IMPORTS *******************************************************************/
+
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 /* IMPLEMENTATION ************************************************************/
 
-import com.thunderbolt.security.EllipticCurveKeyPair;
-import com.thunderbolt.security.EllipticCurveProvider;
-import com.thunderbolt.security.Sha256Digester;
-
-import java.math.BigInteger;
-
 /**
- * Application main class.
+ * Digester class for the SHA-256 hashing algorithm.
  */
-public class Main
+public class Sha256Digester
 {
     /**
-     * Application entry point.
+     * Gets the hash of the given data.
      *
-     * @param args Arguments.
+     * @param data The data to get the hash from.
+     *
+     * @return The hash.
      */
-    public static void main(String[] args)
+    public static byte[] digest(byte[] data)
     {
-        byte[]               content      = new byte[] { 0x01, 0x02 };
-        byte[]               contentsHash = Sha256Digester.doubleDigest(content);
-        EllipticCurveKeyPair keyPair      = new EllipticCurveKeyPair();
+        MessageDigest md = null;
 
-        BigInteger[] signature        = EllipticCurveProvider.sign(contentsHash, keyPair.getPrivateKey());
-        boolean      signatureIsValid = EllipticCurveProvider.verify(contentsHash, signature, keyPair.getPublicKey());
+        try
+        {
+            md = MessageDigest.getInstance("SHA-256");
+        }
+        catch(NoSuchAlgorithmException e)
+        {
+            return null;
+        }
 
-        System.out.println(String.format("Signature valid: %b", signatureIsValid));
+        md.update(data);
+
+        return md.digest();
+    }
+
+    /**
+     * Gets the double hash of the given data.
+     *
+     * @param data The data to get the double hash from.
+     *
+     * @return The double hash.
+     */
+    public static byte[] doubleDigest(byte[] data)
+    {
+        byte[] digest = digest(data);
+
+        return digest(digest);
     }
 }
