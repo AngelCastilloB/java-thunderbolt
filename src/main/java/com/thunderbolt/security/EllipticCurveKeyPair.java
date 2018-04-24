@@ -37,8 +37,7 @@ import java.security.SecureRandom;
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Wrapper class for a secp256k1 elliptic curve key pair. This object stores also implements
- * a few utility methods for signing and verifying elliptic curve signatures.
+ * Wrapper class for a secp256k1 elliptic curve key pair.
  */
 public class EllipticCurveKeyPair
 {

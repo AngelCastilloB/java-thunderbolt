@@ -24,13 +24,15 @@
 
 package com.thunderbolt;
 
-/* IMPLEMENTATION ************************************************************/
+/* IMPORTS *******************************************************************/
 
 import com.thunderbolt.security.EllipticCurveKeyPair;
 import com.thunderbolt.security.EllipticCurveProvider;
 import com.thunderbolt.security.Sha256Digester;
 
 import java.math.BigInteger;
+
+/* IMPLEMENTATION ************************************************************/
 
 /**
  * Application main class.
