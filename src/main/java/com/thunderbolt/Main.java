@@ -52,71 +52,55 @@ public class Main
      */
     public static void main(String[] args) throws IOException
     {
-        byte[]               content      = new byte[] { 0x01, 0x02 };
-        byte[]               contentsHash = Sha256Digester.doubleDigest(content);
+        byte[] content      = new byte[] { 0x01, 0x02 };
+        byte[] contentsHash = Sha256Digester.doubleDigest(content);
 
-        File file = new File("/tmp/key.bin");
-        FileInputStream fis = new FileInputStream(file);
-        byte[] keyData = new byte[(int) file.length()];
-        fis.read(keyData);
-        fis.close();
+        byte[] signature    = readFile("/tmp/signature3.bin");
+        byte[] privateKey   = readFile("/tmp/key3.bin");
 
-        File file2 = new File("/tmp/signature.bin");
-        FileInputStream fis2 = new FileInputStream(file);
-        byte[] signatureData = new byte[(int) file2.length()];
-        fis2.read(signatureData);
-        fis2.close();
+        EncryptedPrivateKey  deserializedKey      = new EncryptedPrivateKey(privateKey);
+        EllipticCurveKeyPair ellipticCurveKeyPair = new EllipticCurveKeyPair(deserializedKey.getPrivateKey("AAAA"));
 
-        BigInteger[] signature = decodeFromDer(signatureData);
-
-        EncryptedPrivateKey encryptedPrivateKey = new EncryptedPrivateKey(keyData);
-        EllipticCurveKeyPair ellipticCurveKeyPair = new EllipticCurveKeyPair(encryptedPrivateKey.getPrivateKey("TEST"));
         boolean signatureIsValid = EllipticCurveProvider.verify(contentsHash, signature, ellipticCurveKeyPair.getPublicKey());
 
         System.out.println(String.format("Signature valid: %b", signatureIsValid));
     }
 
-
     /**
-     * Creates a digital signature from the DER-encoded values
+     * Reads a file for the disk.
      *
-     * @param       encodedStream       DER-encoded value
+     * @param path The file.
+     *
+     * @return The data of the file.
+     *
+     * @throws IOException Thrown if the file is not found.
      */
-    public static BigInteger[] decodeFromDer(byte[] encodedStream) {
+    static byte[] readFile(String path) throws IOException
+    {
+        File            file       = new File(path);
+        FileInputStream fileStream = new FileInputStream(file);
+        byte[]          data       = new byte[(int) file.length()];
 
-        BigInteger[] signature = new BigInteger[2];
-        try {
-            try (ASN1InputStream decoder = new ASN1InputStream(encodedStream)) {
-                DLSequence seq = (DLSequence)decoder.readObject();
-                signature[0] = ((ASN1Integer)seq.getObjectAt(0)).getPositiveValue();
-                signature[1] = ((ASN1Integer)seq.getObjectAt(1)).getPositiveValue();
-            }
-        } catch (ClassCastException | IOException exc) {
-            throw new RuntimeException("Unable to decode signature", exc);
-        }
+        fileStream.read(data);
+        fileStream.close();
 
-        return signature;
+        return data;
     }
 
-
     /**
-     * Encodes R and S as a DER-encoded byte stream
+     * Writes a writes to the disk.
      *
-     * @return DER-encoded byte stream
+     * @param path The file.
+     * @param data The data to be saved.
+     *
+     * @throws IOException Thrown if the file is not found.
      */
-    public static byte[] encodeToDER(BigInteger r, BigInteger s) {
-        byte[] encodedBytes = null;
-        try {
-            try (ByteArrayOutputStream outStream = new ByteArrayOutputStream(80)) {
-                DERSequenceGenerator seq = new DERSequenceGenerator(outStream);
-                seq.addObject(new ASN1Integer(r));
-                seq.addObject(new ASN1Integer(s));
-                seq.close();
-                encodedBytes = outStream.toByteArray();
-            }
-        } catch (IOException exc) {
-            throw new IllegalStateException("Unexpected IOException", exc);
-        }
-        return encodedBytes;
+    static void writeFile(String path, byte[] data) throws IOException
+    {
+        File             file       = new File(path);
+        FileOutputStream fileStream = new FileOutputStream(file);
+
+        fileStream.write(data);
+        fileStream.close();
     }
 }
