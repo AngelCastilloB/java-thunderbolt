@@ -26,17 +26,10 @@ package com.thunderbolt;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.security.EllipticCurveKeyPair;
-import com.thunderbolt.security.EllipticCurveProvider;
-import com.thunderbolt.security.EncryptedPrivateKey;
-import com.thunderbolt.security.Sha256Digester;
-import org.bouncycastle.asn1.ASN1InputStream;
-import org.bouncycastle.asn1.ASN1Integer;
-import org.bouncycastle.asn1.DERSequenceGenerator;
-import org.bouncycastle.asn1.DLSequence;
+import com.thunderbolt.security.*;
 
 import java.io.*;
-import java.math.BigInteger;
+import java.util.Arrays;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -52,6 +45,15 @@ public class Main
      */
     public static void main(String[] args) throws IOException
     {
+        byte[] addressBytes = new byte[] { 0x00, 0x01, 0x09, 0x66, 0x77, 0x60, 0x06, (byte) 0x95, 0x3D, 0x55, 0x67, 0x43, (byte) 0x9E, 0x5E, 0x39, (byte) 0xF8, 0x6A, 0x0D, 0x27, 0x3B, (byte) 0xEE};
+        //string addressText = "16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM";
+
+        String address = Base58.encode(addressBytes);
+
+        System.out.println(address);
+        byte[] r = Base58.decode(address);
+        System.out.println(String.format("Decoded valid: %b", Arrays.equals(r, addressBytes)));
+
         byte[] content      = new byte[] { 0x01, 0x02 };
         byte[] contentsHash = Sha256Digester.doubleDigest(content);
 
