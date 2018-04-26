@@ -29,7 +29,7 @@ package com.thunderbolt;
 import com.thunderbolt.security.*;
 
 import java.io.*;
-import java.util.Arrays;
+import java.security.GeneralSecurityException;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -43,29 +43,24 @@ public class Main
      *
      * @param args Arguments.
      */
-    public static void main(String[] args) throws IOException
+    public static void main(String[] args) throws IOException, GeneralSecurityException
     {
-        byte[] addressBytes = new byte[] { 0x00, 0x01, 0x09, 0x66, 0x77, 0x60, 0x06, (byte) 0x95, 0x3D, 0x55, 0x67, 0x43, (byte) 0x9E, 0x5E, 0x39, (byte) 0xF8, 0x6A, 0x0D, 0x27, 0x3B, (byte) 0xEE};
-        //string addressText = "16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM";
-
-        String address = Base58.encode(addressBytes);
-
-        System.out.println(address);
-        byte[] r = Base58.decode(address);
-        System.out.println(String.format("Decoded valid: %b", Arrays.equals(r, addressBytes)));
-
         byte[] content      = new byte[] { 0x01, 0x02 };
         byte[] contentsHash = Sha256Digester.doubleDigest(content);
 
-        byte[] signature    = readFile("/tmp/signature3.bin");
-        byte[] privateKey   = readFile("/tmp/key3.bin");
+        /*
+        EllipticCurveKeyPair pair       = new EllipticCurveKeyPair();
+        EncryptedPrivateKey  privateKey = new EncryptedPrivateKey(pair.getPrivateKey(), "AAAA");
+
+        byte[] signature = EllipticCurveProvider.sign(contentsHash, pair.getPrivateKey());
+
 
         EncryptedPrivateKey  deserializedKey      = new EncryptedPrivateKey(privateKey);
         EllipticCurveKeyPair ellipticCurveKeyPair = new EllipticCurveKeyPair(deserializedKey.getPrivateKey("AAAA"));
 
         boolean signatureIsValid = EllipticCurveProvider.verify(contentsHash, signature, ellipticCurveKeyPair.getPublicKey());
 
-        System.out.println(String.format("Signature valid: %b", signatureIsValid));
+        System.out.println(String.format("Signature valid: %b", signatureIsValid));*/
     }
 
     /**

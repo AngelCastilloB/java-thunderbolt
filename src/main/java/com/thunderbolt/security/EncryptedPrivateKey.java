@@ -25,6 +25,7 @@ package com.thunderbolt.security;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.ISerializable;
 import org.bouncycastle.crypto.BufferedBlockCipher;
 import org.bouncycastle.crypto.engines.AESEngine;
 import org.bouncycastle.crypto.modes.CBCBlockCipher;
@@ -40,7 +41,7 @@ import java.security.SecureRandom;
 /**
  * Wraps an AES encrypted key with all the necessary parameters to decrypt it.
  */
-public class EncryptedPrivateKey
+public class EncryptedPrivateKey implements ISerializable
 {
     // Static Fields
     private static final SecureRandom s_secureRandom = new SecureRandom();
@@ -99,9 +100,9 @@ public class EncryptedPrivateKey
      *
      * @param encryptedKey Serialized key
      *
-     * @throws GeneralSecurityException End-of-data while processing serialized data
+     * @throws RuntimeException End-of-data while processing serialized data
      */
-    public EncryptedPrivateKey(byte[] encryptedKey) throws GeneralSecurityException
+    public EncryptedPrivateKey(byte[] encryptedKey) throws RuntimeException
     {
         int encryptedDataLength = encryptedKey.length - IV_LENGTH - SALT_LENGTH;
 
@@ -117,10 +118,10 @@ public class EncryptedPrivateKey
      *
      * @return The byte array with the encrypted data.
      */
-    public byte[] getBytes()
+    @Override
+    public byte[] serialize()
     {
         byte[] data = new byte[m_encKeyBytes.length + IV_LENGTH + SALT_LENGTH];
-
 
         System.arraycopy(m_iv, 0, data, 0, IV_LENGTH);
         System.arraycopy(m_salt, 0, data, IV_LENGTH, SALT_LENGTH);
