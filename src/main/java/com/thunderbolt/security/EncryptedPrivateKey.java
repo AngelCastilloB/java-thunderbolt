@@ -32,7 +32,7 @@ import org.bouncycastle.crypto.paddings.PaddedBufferedBlockCipher;
 import org.bouncycastle.crypto.params.*;
 
 import java.math.BigInteger;
-import java.nio.ByteBuffer;
+import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 
 /* IMPLEMENTATION ************************************************************/
@@ -48,12 +48,13 @@ public class EncryptedPrivateKey
     // Constants
     private static final int KEY_LENGTH   = 32;
     private static final int BLOCK_LENGTH = 16;
-    private static final int INT_SIZE     = 4;
+    private static final int IV_LENGTH    = BLOCK_LENGTH;
+    private static final int SALT_LENGTH  = KEY_LENGTH;
 
     // Instance Fields
     private byte[] m_encKeyBytes = null;
-    private byte[] m_iv          = new byte[BLOCK_LENGTH];
-    private byte[] m_salt        = new byte[KEY_LENGTH];
+    private byte[] m_iv          = new byte[IV_LENGTH];
+    private byte[] m_salt        = new byte[SALT_LENGTH];
 
     /**
      * Creates a new encrypted private key given a private key an a pass phrase.
@@ -61,9 +62,9 @@ public class EncryptedPrivateKey
      * @param  privateKey Private key
      * @param  keyPhrase  Phrase used to derive the encryption key
      *
-     * @throws RuntimeException Unable to complete a cryptographic function.
+     * @throws GeneralSecurityException Unable to complete a cryptographic function.
      */
-    public EncryptedPrivateKey(BigInteger privateKey, String keyPhrase) throws RuntimeException
+    public EncryptedPrivateKey(BigInteger privateKey, String keyPhrase) throws GeneralSecurityException
     {
         s_secureRandom.nextBytes(m_salt);
 
@@ -87,9 +88,9 @@ public class EncryptedPrivateKey
 
             cipher.doFinal(m_encKeyBytes, length);
         }
-        catch (Exception exc)
+        catch (Exception exception)
         {
-            throw new RuntimeException("Unable to encrypt the private key", exc);
+            throw new GeneralSecurityException("Unable to encrypt the private key", exception);
         }
     }
 
@@ -98,17 +99,17 @@ public class EncryptedPrivateKey
      *
      * @param encryptedKey Serialized key
      *
-     * @throws RuntimeException End-of-data while processing serialized data
+     * @throws GeneralSecurityException End-of-data while processing serialized data
      */
-    public EncryptedPrivateKey(byte[] encryptedKey) throws RuntimeException
+    public EncryptedPrivateKey(byte[] encryptedKey) throws GeneralSecurityException
     {
-        int encryptedDataLenght = ByteBuffer.wrap(encryptedKey).getInt(); // Big Endian by default.
+        int encryptedDataLength = encryptedKey.length - IV_LENGTH - SALT_LENGTH;
 
-        m_encKeyBytes = new byte[encryptedDataLenght];
+        m_encKeyBytes = new byte[encryptedDataLength];
 
-        System.arraycopy(encryptedKey, INT_SIZE, m_encKeyBytes, 0, encryptedDataLenght);
-        System.arraycopy(encryptedKey, INT_SIZE + encryptedDataLenght, m_iv, 0, BLOCK_LENGTH);
-        System.arraycopy(encryptedKey, INT_SIZE + encryptedDataLenght + BLOCK_LENGTH, m_salt, 0, KEY_LENGTH);
+        System.arraycopy(encryptedKey, 0, m_iv, 0, IV_LENGTH);
+        System.arraycopy(encryptedKey, IV_LENGTH, m_salt, 0, SALT_LENGTH);
+        System.arraycopy(encryptedKey, IV_LENGTH + SALT_LENGTH, m_encKeyBytes, 0, encryptedDataLength);
     }
 
     /**
@@ -118,19 +119,12 @@ public class EncryptedPrivateKey
      */
     public byte[] getBytes()
     {
-        byte[] data = new byte[m_encKeyBytes.length + BLOCK_LENGTH + KEY_LENGTH + INT_SIZE];
-
-        ByteBuffer buffer = ByteBuffer.allocate(INT_SIZE);
-
-        buffer.putInt(m_encKeyBytes.length); // Initial order of a byte buffer is always BIG_ENDIAN.
-
-        byte[] result = buffer.array();
+        byte[] data = new byte[m_encKeyBytes.length + IV_LENGTH + SALT_LENGTH];
 
 
-        System.arraycopy(result, 0, data, 0, INT_SIZE);
-        System.arraycopy(m_encKeyBytes, 0, data, INT_SIZE, m_encKeyBytes.length);
-        System.arraycopy(m_iv, 0, data, INT_SIZE + m_encKeyBytes.length, BLOCK_LENGTH);
-        System.arraycopy(m_salt, 0, data, INT_SIZE + m_encKeyBytes.length + BLOCK_LENGTH, KEY_LENGTH);
+        System.arraycopy(m_iv, 0, data, 0, IV_LENGTH);
+        System.arraycopy(m_salt, 0, data, IV_LENGTH, SALT_LENGTH);
+        System.arraycopy(m_encKeyBytes, 0, data, IV_LENGTH + SALT_LENGTH, m_encKeyBytes.length);
 
         return data;
     }
@@ -142,7 +136,7 @@ public class EncryptedPrivateKey
      *
      * @return Private key
      */
-    public BigInteger getPrivateKey(String keyPhrase) throws RuntimeException
+    public BigInteger getPrivateKey(String keyPhrase) throws GeneralSecurityException
     {
         KeyParameter aesKey = deriveKey(keyPhrase, m_salt);
         BigInteger   privateKey;
@@ -165,9 +159,9 @@ public class EncryptedPrivateKey
 
             privateKey = new BigInteger(privKeyBytes);
         }
-        catch (Exception exc)
+        catch (Exception exception)
         {
-            throw new RuntimeException("Unable to decrypt the private key", exc);
+            throw new GeneralSecurityException("Unable to decrypt the private key", exception);
         }
 
         return privateKey;
@@ -181,9 +175,9 @@ public class EncryptedPrivateKey
      *
      * @return Key parameter.
      *
-     * @throws RuntimeException Unable to complete cryptographic function
+     * @throws GeneralSecurityException Unable to complete cryptographic function
      */
-    private KeyParameter deriveKey(String keyPhrase, byte[] salt) throws RuntimeException
+    private KeyParameter deriveKey(String keyPhrase, byte[] salt) throws GeneralSecurityException
     {
         KeyParameter aesKey;
 
@@ -201,9 +195,9 @@ public class EncryptedPrivateKey
 
             aesKey = new KeyParameter(keyBytes);
         }
-        catch (Exception exc)
+        catch (Exception exception)
         {
-            throw new RuntimeException("Unable to convert passphrase to a byte array", exc);
+            throw new GeneralSecurityException("Unable to convert passphrase to a byte array", exception);
         }
 
         return aesKey;
