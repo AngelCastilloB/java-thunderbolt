@@ -43,8 +43,9 @@ public class TransactionOutput implements ISerializable
     private static final int AMOUNT_TYPE_SIZE = 8;
 
     // Instance Fields
-    private long   m_amount;
-    private byte[] m_lockingParameters;
+    private long            m_amount;
+    private byte[]          m_lockingParameters;
+    private TransactionLockType m_type;
 
     /**
      * Creates a new instance of the TransactionOutput class.
@@ -57,11 +58,13 @@ public class TransactionOutput implements ISerializable
      * Creates a new instance of the TransactionOutput class.
      *
      * @param amount            The amount of coins locked in this output.
+     * @param type              The transaction type.
      * @param lockingParameters The locking parameters of the output.
      */
-    public TransactionOutput(long amount, byte[] lockingParameters)
+    public TransactionOutput(long amount, TransactionLockType type, byte[] lockingParameters)
     {
         m_amount            = amount;
+        m_type              = type;
         m_lockingParameters = lockingParameters;
     }
 
@@ -73,7 +76,7 @@ public class TransactionOutput implements ISerializable
     public TransactionOutput(ByteBuffer buffer)
     {
         m_amount = buffer.getLong();
-
+        m_type = TransactionLockType.from(buffer.get());
         int lockingParametersSize = buffer.getInt();
 
         m_lockingParameters = new byte[lockingParametersSize];
@@ -99,6 +102,26 @@ public class TransactionOutput implements ISerializable
     public void setAmount(long amount)
     {
         m_amount = amount;
+    }
+
+    /**
+     * Gets the transaction type.
+     *
+     * @return The transaction type.
+     */
+    public TransactionLockType getTransactionType()
+    {
+        return m_type;
+    }
+
+    /**
+     * Sets the transaction sequence.
+     *
+     * @param type The transaction type.
+     */
+    public void setTransactionType(TransactionLockType type)
+    {
+        m_type = type;
     }
 
     /**
@@ -135,6 +158,7 @@ public class TransactionOutput implements ISerializable
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
         data.write(amountBytes);
+        data.write(m_type.getValue());
         data.write(lockingParamSizeBytes);
         data.write(m_lockingParameters);
 

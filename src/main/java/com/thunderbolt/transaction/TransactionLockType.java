@@ -31,33 +31,35 @@ package com.thunderbolt.transaction;
  * Thunderbolt do not inherit the scripting language from Bitcoin, instead it defines a small set of transaction types
  * that can be executed on the network.
  */
-public enum TransactionType
+public enum TransactionLockType
 {
     /**
      * Transfer the ownership of the coins in the spending transaction to a different address.
      */
-    TRANSFER_TO_PUBLIC_KEY((byte)0x00),
+    SingleSignature((byte)0x00),
 
     /**
      * Transfer the ownership of the coins in the spending transaction to a multi signature address.
      */
-    TRANSFER_TO_MULTISIGNATURE((byte)0x01),
+    MultiSignature((byte)0x01),
 
     /**
-     * Commits a hash to the block chain. This type of transaction can not be redeem.
+     * This type of transaction can not be redeem. Useful for committing information to the block chain.
+     *
+     * The max allow locking parameters for this locking type is 32 bytes (sha252 digest size).
      */
-    COMMIT_HASH((byte)0x02);
+    Unlockable((byte)0x02);
 
 
     // Instance fields.
     private byte m_value;
 
     /**
-     * Initializes a new instance of the TransactionType class.
+     * Initializes a new instance of the TransactionLockType class.
      *
      * @param value The enum value.
      */
-    TransactionType(byte value)
+    TransactionLockType(byte value)
     {
         m_value = value;
     }
@@ -79,8 +81,8 @@ public enum TransactionType
      *
      * @return The enum value.
      */
-    static public TransactionType from(byte value)
+    static public TransactionLockType from(byte value)
     {
-        return TransactionType.values()[value & 0xFF];
+        return TransactionLockType.values()[value & 0xFF];
     }
 }

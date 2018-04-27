@@ -43,7 +43,6 @@ public class TransactionInput implements ISerializable
 
     // Instance Fields
     private TransactionOutpoint m_previousOutput;
-    private TransactionType     m_type;
     private byte[]              m_unlockingParameters;
     private int                 m_sequence;
 
@@ -58,16 +57,14 @@ public class TransactionInput implements ISerializable
      * Creates a new instance of the TransactionInput class.
      *
      * @param previousOutput      A reference to a previous output.
-     * @param type                The transaction type.
      * @param unlockingParameters The unlocking parameters hash.
      * @param sequence            The sequence.
      */
-    public TransactionInput(TransactionOutpoint previousOutput, TransactionType type, byte[] unlockingParameters, int sequence)
+    public TransactionInput(TransactionOutpoint previousOutput, byte[] unlockingParameters, int sequence)
     {
-        setPreviousOutput(previousOutput);
-        setTransactionType(type);
-        setUnlockingParameters(unlockingParameters);
-        setSequence(sequence);
+        m_previousOutput      = previousOutput;
+        m_unlockingParameters = unlockingParameters;
+        m_sequence            = sequence;
     }
 
     /**
@@ -79,7 +76,6 @@ public class TransactionInput implements ISerializable
     {
         setPreviousOutput(new TransactionOutpoint(buffer));
 
-        m_type = TransactionType.from(buffer.get());
         int unlockingSize = buffer.getInt();
 
         setUnlockingParameters(new byte[unlockingSize]);
@@ -102,9 +98,8 @@ public class TransactionInput implements ISerializable
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
         data.write(getPreviousOutput().serialize());
-        data.write(m_type.getValue());
         data.write(unlockingParamSizeBytes);
-        data.write(getUnlockingParameters());
+        data.write(m_unlockingParameters);
         data.write(sequenceBytes);
 
         return data.toByteArray();
@@ -128,26 +123,6 @@ public class TransactionInput implements ISerializable
     public void setPreviousOutput(TransactionOutpoint previousOutput)
     {
         m_previousOutput = previousOutput;
-    }
-
-    /**
-     * Gets the transaction type.
-     *
-     * @return The transaction type.
-     */
-    public TransactionType getTransactionType()
-    {
-        return m_type;
-    }
-
-    /**
-     * Sets the transaction sequence.
-     *
-     * @param type The transaction type.
-     */
-    public void setTransactionType(TransactionType type)
-    {
-        m_type = type;
     }
 
     /**
