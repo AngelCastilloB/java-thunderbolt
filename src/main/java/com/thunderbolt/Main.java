@@ -45,7 +45,7 @@ public class Main
 {
     static EllipticCurveKeyPair s_genesisKeyPair     = new EllipticCurveKeyPair();
     static EllipticCurveKeyPair s_genesisKeyPair2    = new EllipticCurveKeyPair();
-    static TransactionOutput    s_genesisOutput      = new TransactionOutput(1500, TransactionLockType.SingleSignature, s_genesisKeyPair.getPublicKey());
+    static TransactionOutput    s_genesisOutput      = new TransactionOutput(1500, OutputLockType.SingleSignature, s_genesisKeyPair.getPublicKey());
     static Transaction          s_genesisTransaction = new Transaction();
 
     static HashMap<String, Transaction> s_UXTOPoll = new HashMap<>();
@@ -88,10 +88,10 @@ public class Main
         transaction.getInputs().add(input);
 
         // Transfer 1000 another user.
-        transaction.getOutputs().add(new TransactionOutput(1000, TransactionLockType.SingleSignature, s_genesisKeyPair2.getPublicKey()));
+        transaction.getOutputs().add(new TransactionOutput(1000, OutputLockType.SingleSignature, s_genesisKeyPair2.getPublicKey()));
 
         // Return the change to myself.
-        transaction.getOutputs().add(new TransactionOutput(500, TransactionLockType.SingleSignature, s_genesisKeyPair.getPublicKey()));
+        transaction.getOutputs().add(new TransactionOutput(500, OutputLockType.SingleSignature, s_genesisKeyPair.getPublicKey()));
 
         // Broadcast the transaction.
         byte[] xtb = transaction.serialize();

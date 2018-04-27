@@ -26,27 +26,30 @@ package com.thunderbolt.transaction;
 // IMPLEMENTATION ************************************************************/
 
 /**
- * The transaction type.
+ * The output lock type.
  *
- * Thunderbolt do not inherit the scripting language from Bitcoin, instead it defines a small set of transaction types
- * that can be executed on the network.
+ * Thunderbolt do not inherit the scripting language from Bitcoin, instead it defines a small set of lock types
+ * for the resulting outputs of the transactions.
  */
-public enum TransactionLockType
+public enum OutputLockType
 {
     /**
-     * Transfer the ownership of the coins in the spending transaction to a different address.
+     * To unlock this kind of output, the transaction must provide a single digital signature that can be validated
+     * with the public key in the locking parameters of the output.
      */
     SingleSignature((byte)0x00),
 
     /**
-     * Transfer the ownership of the coins in the spending transaction to a multi signature address.
+     * To unlock this kind of output, the transaction must provide a set of public keys and N of M digital
+     * signatures generated with those public keys. The public keys must also be hashed in a particular order
+     * and the resulting hash must match the hash in the locking parameters of the output.
      */
     MultiSignature((byte)0x01),
 
     /**
-     * This type of transaction can not be redeem. Useful for committing information to the block chain.
+     * This type of output can not be unlocked. This is useful for committing information to the block chain.
      *
-     * The max allow locking parameters for this locking type is 32 bytes (sha252 digest size).
+     * The max allow locking parameters size for this lock type is 32 bytes (sha252 digest size).
      */
     Unlockable((byte)0x02);
 
@@ -55,11 +58,11 @@ public enum TransactionLockType
     private byte m_value;
 
     /**
-     * Initializes a new instance of the TransactionLockType class.
+     * Initializes a new instance of the OutputLockType class.
      *
      * @param value The enum value.
      */
-    TransactionLockType(byte value)
+    OutputLockType(byte value)
     {
         m_value = value;
     }
@@ -81,8 +84,8 @@ public enum TransactionLockType
      *
      * @return The enum value.
      */
-    static public TransactionLockType from(byte value)
+    static public OutputLockType from(byte value)
     {
-        return TransactionLockType.values()[value & 0xFF];
+        return OutputLockType.values()[value & 0xFF];
     }
 }
