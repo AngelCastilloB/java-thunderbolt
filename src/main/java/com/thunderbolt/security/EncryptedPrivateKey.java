@@ -32,7 +32,10 @@ import org.bouncycastle.crypto.modes.CBCBlockCipher;
 import org.bouncycastle.crypto.paddings.PaddedBufferedBlockCipher;
 import org.bouncycastle.crypto.params.*;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 
@@ -108,9 +111,10 @@ public class EncryptedPrivateKey implements ISerializable
 
         m_encKeyBytes = new byte[encryptedDataLength];
 
-        System.arraycopy(encryptedKey, 0, m_iv, 0, IV_LENGTH);
-        System.arraycopy(encryptedKey, IV_LENGTH, m_salt, 0, SALT_LENGTH);
-        System.arraycopy(encryptedKey, IV_LENGTH + SALT_LENGTH, m_encKeyBytes, 0, encryptedDataLength);
+        ByteBuffer wrapped = ByteBuffer.wrap(encryptedKey);
+        wrapped.get(m_iv);
+        wrapped.get(m_salt);
+        wrapped.get(m_encKeyBytes);
     }
 
     /**
@@ -119,15 +123,15 @@ public class EncryptedPrivateKey implements ISerializable
      * @return The byte array with the encrypted data.
      */
     @Override
-    public byte[] serialize()
+    public byte[] serialize() throws IOException
     {
-        byte[] data = new byte[m_encKeyBytes.length + IV_LENGTH + SALT_LENGTH];
+        ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        System.arraycopy(m_iv, 0, data, 0, IV_LENGTH);
-        System.arraycopy(m_salt, 0, data, IV_LENGTH, SALT_LENGTH);
-        System.arraycopy(m_encKeyBytes, 0, data, IV_LENGTH + SALT_LENGTH, m_encKeyBytes.length);
+        data.write(m_iv);
+        data.write(m_salt);
+        data.write(m_encKeyBytes);
 
-        return data;
+        return data.toByteArray();
     }
 
     /**

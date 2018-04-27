@@ -42,13 +42,20 @@ public class Transaction implements ISerializable
     // Constants
     private static final int VERSION_SIZE           = 4;
     private static final int TRANSACTION_COUNT_SIZE = 4;
-    private static final int LOCKTIME_COUNT_SIZE    = 8;
+    private static final int LOCK_TIME_COUNT_SIZE   = 8;
 
     // Instance Fields
-    private int                          m_version = 0;
-    private ArrayList<TransactionInput>  m_inputs;
-    private ArrayList<TransactionOutput> m_outputs;
-    private long                         m_lockTime;
+    private int                          m_version  = 0;
+    private ArrayList<TransactionInput>  m_inputs   = new ArrayList<>();
+    private ArrayList<TransactionOutput> m_outputs  = new ArrayList<>();
+    private long                         m_lockTime = 0;
+
+    /**
+     * Creates a new instance of the Transaction class.
+     */
+    public Transaction()
+    {
+    }
 
     /**
      * Creates a new instance of the Transaction class.
@@ -60,20 +67,112 @@ public class Transaction implements ISerializable
      */
     public Transaction(int version, ArrayList<TransactionInput> inputs, ArrayList<TransactionOutput> outputs, long lockTime)
     {
-        m_version  = version;
-        m_inputs   = inputs;
-        m_outputs  = outputs;
-        m_lockTime = lockTime;
+        setVersion(version);
+        setInputs(inputs);
+        setOutputs(outputs);
+        setLockTime(lockTime);
     }
 
     /**
-     * Creates a new instance of the TransactionInput class.
+     * Creates a new instance of the Transaction class.
      *
-     * @param serializedData Serialized TransactionInput object.
+     * @param buffer A buffer containing the transaction object Transaction object.
      */
-    public Transaction(byte[] serializedData)
+    public Transaction(ByteBuffer buffer)
     {
-        // TODO
+        setVersion(buffer.getInt());
+
+        int inputsCount = buffer.getInt();
+
+        for (int i = 0; i < inputsCount; ++i)
+            getInputs().add(new TransactionInput(buffer));
+
+        int outputCount = buffer.getInt();
+
+        for (int i = 0; i < outputCount; ++i)
+            getOutputs().add(new TransactionOutput(buffer));
+
+        setLockTime(buffer.getLong());
+    }
+
+    /**
+     * Gets the version of this transaction.
+     *
+     * @return The version of this transaction.
+     */
+    public int getVersion()
+    {
+        return m_version;
+    }
+
+    /**
+     * Sets the version of this transaction.
+     *
+     * @param version The version of this transaction.
+     */
+    public void setVersion(int version)
+    {
+        this.m_version = version;
+    }
+
+    /**
+     * Gets the list of inputs in this transaction.
+     *
+     * @return The list of inputs.
+     */
+    public ArrayList<TransactionInput> getInputs()
+    {
+        return m_inputs;
+    }
+
+    /**
+     * Sets the list of inputs in this transaction.
+     *
+     * @param inputs  The list of inputs.
+     */
+    public void setInputs(ArrayList<TransactionInput> inputs)
+    {
+        this.m_inputs = inputs;
+    }
+
+    /**
+     * Gets the list of outputs in this transactions.
+     *
+     * @return The list of outputs.
+     */
+    public ArrayList<TransactionOutput> getOutputs()
+    {
+        return m_outputs;
+    }
+
+    /**
+     * Sets the list of outputs in this transactions.
+     *
+     * @param outputs The list of outputs.
+     */
+    public void setOutputs(ArrayList<TransactionOutput> outputs)
+    {
+        this.m_outputs = outputs;
+    }
+
+    /**
+     * Gets the lock time of the transaction.
+     *
+     * @return The lock time.
+     */
+    public long getLockTime()
+    {
+        return m_lockTime;
+    }
+
+    /**
+     * Sets the lock time of the transaction.
+     *
+     * @param lockTime The lock time.
+     */
+    public void setLockTime(long lockTime)
+    {
+        this.m_lockTime = lockTime;
     }
 
     /**
@@ -84,39 +183,24 @@ public class Transaction implements ISerializable
     @Override
     public byte[] serialize() throws IOException
     {
-        byte[] versionBytes      = ByteBuffer.allocate(VERSION_SIZE).putInt(m_version).array();
-        byte[] inputSizeBytes    = ByteBuffer.allocate(TRANSACTION_COUNT_SIZE).putInt(m_inputs.size()).array();
-        byte[] outputSizeBytes   = ByteBuffer.allocate(TRANSACTION_COUNT_SIZE).putInt(m_outputs.size()).array();
-        byte[] locktimeSizeBytes = ByteBuffer.allocate(LOCKTIME_COUNT_SIZE).putLong(m_lockTime).array();
-
-        ByteArrayOutputStream inputDataStream = new ByteArrayOutputStream();
-
-        for (int i = 0; i < m_inputs.size(); ++i)
-        {
-            byte[] serializedData = m_inputs.get(i).serialize();
-            inputDataStream.write(serializedData);
-        }
-
-        byte[] inputsPayload = inputDataStream.toByteArray();
-
-        ByteArrayOutputStream outputDataStream = new ByteArrayOutputStream();
-
-        for (int i = 0; i < m_outputs.size(); ++i)
-        {
-            byte[] serializedData = m_outputs.get(i).serialize();
-            outputDataStream.write(serializedData);
-        }
-
-        byte[] outputsPayload = outputDataStream.toByteArray();
-
         ByteArrayOutputStream data = new ByteArrayOutputStream();
+
+        byte[] versionBytes      = ByteBuffer.allocate(VERSION_SIZE).putInt(getVersion()).array();
+        byte[] inputSizeBytes    = ByteBuffer.allocate(TRANSACTION_COUNT_SIZE).putInt(getInputs().size()).array();
+        byte[] outputSizeBytes   = ByteBuffer.allocate(TRANSACTION_COUNT_SIZE).putInt(getOutputs().size()).array();
+        byte[] lockTimeSizeBytes = ByteBuffer.allocate(LOCK_TIME_COUNT_SIZE).putLong(getLockTime()).array();
 
         data.write(versionBytes);
         data.write(inputSizeBytes);
-        data.write(inputsPayload);
+
+        for (int i = 0; i < getInputs().size(); ++i)
+            data.write(m_inputs.get(i).serialize());
+
         data.write(outputSizeBytes);
-        data.write(outputsPayload);
-        data.write(locktimeSizeBytes);
+        for (int i = 0; i < getOutputs().size(); ++i)
+            data.write(m_outputs.get(i).serialize());
+
+        data.write(lockTimeSizeBytes);
 
         return data.toByteArray();
     }

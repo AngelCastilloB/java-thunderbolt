@@ -27,6 +27,8 @@ package com.thunderbolt.transaction;
 
 import com.thunderbolt.common.ISerializable;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 // IMPLEMENTATION ************************************************************/
@@ -46,6 +48,13 @@ public class TransactionOutput implements ISerializable
 
     /**
      * Creates a new instance of the TransactionOutput class.
+     */
+    public TransactionOutput()
+    {
+    }
+
+    /**
+     * Creates a new instance of the TransactionOutput class.
      *
      * @param amount            The amount of coins locked in this output.
      * @param lockingParameters The locking parameters of the output.
@@ -57,19 +66,59 @@ public class TransactionOutput implements ISerializable
     }
 
     /**
-     * Creates a new instance of the TransactionInput class.
+     * Creates a new instance of the TransactionOutput class.
      *
-     * @param serializedData Serialized TransactionInput object.
+     * @param buffer Serialized TransactionOutput object.
      */
-    public TransactionOutput(byte[] serializedData)
+    public TransactionOutput(ByteBuffer buffer)
     {
-        ByteBuffer wrapped = ByteBuffer.wrap(serializedData);
+        m_amount = buffer.getLong();
 
-        m_amount = wrapped.getLong();
+        int lockingParametersSize = buffer.getInt();
 
-        int lockingParametersSize = wrapped.getInt();
+        m_lockingParameters = new byte[lockingParametersSize];
 
-        wrapped.get(m_lockingParameters, 0, lockingParametersSize);
+        buffer.get(m_lockingParameters, 0, lockingParametersSize);
+    }
+
+    /**
+     * Gets the amount in this transaction.
+     *
+     * @return The amount.
+     */
+    public long getAmount()
+    {
+        return m_amount;
+    }
+
+    /**
+     * Sets the amount in this transaction.
+     *
+     * @param amount The amount.
+     */
+    public void setAmount(long amount)
+    {
+        m_amount = amount;
+    }
+
+    /**
+     * Gets the locking parameters of this transaction.
+     *
+     * @return The locking parameters
+     */
+    public byte[] getLockingParameters()
+    {
+        return m_lockingParameters;
+    }
+
+    /**
+     * Sets the locking parameters of this transaction.
+     *
+     * @param lockingParameters The locking parameters
+     */
+    public void setLockingParameters(byte[] lockingParameters)
+    {
+        m_lockingParameters = lockingParameters;
     }
 
     /**
@@ -78,20 +127,17 @@ public class TransactionOutput implements ISerializable
      * @return The serialized object.
      */
     @Override
-    public byte[] serialize()
+    public byte[] serialize() throws IOException
     {
         byte[] amountBytes           = ByteBuffer.allocate(AMOUNT_TYPE_SIZE).putLong(m_amount).array();
         byte[] lockingParamSizeBytes = ByteBuffer.allocate(LOCK_TYPE_SIZE).putInt(m_lockingParameters.length).array();
-        byte[] data                  = new byte[AMOUNT_TYPE_SIZE + LOCK_TYPE_SIZE + m_lockingParameters.length];
 
-        System.arraycopy(amountBytes, 0, data, 0, amountBytes.length);
-        System.arraycopy(lockingParamSizeBytes, 0, data,  amountBytes.length, lockingParamSizeBytes.length);
-        System.arraycopy(
-                m_lockingParameters,
-                0,
-                data,
-                amountBytes.length + lockingParamSizeBytes.length, m_lockingParameters.length);
+        ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        return data;
+        data.write(amountBytes);
+        data.write(lockingParamSizeBytes);
+        data.write(m_lockingParameters);
+
+        return data.toByteArray();
     }
 }

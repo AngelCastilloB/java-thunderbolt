@@ -73,12 +73,14 @@ public enum TransactionType
     }
 
     /**
-     * Set the byte value of this enum instance.
+     * Gets an enum value from a byte.
      *
-     * @param value The byte value.
+     * @param value The byte to be casted.
+     *
+     * @return The enum value.
      */
-    public void setValue(byte value)
+    static public TransactionType from(byte value)
     {
-        m_value = value;
+        return TransactionType.values()[value & 0xFF];
     }
 }

@@ -27,6 +27,8 @@ package com.thunderbolt.transaction;
 
 import com.thunderbolt.common.ISerializable;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 // IMPLEMENTATION ************************************************************/
@@ -37,46 +39,53 @@ import java.nio.ByteBuffer;
 public class TransactionInput implements ISerializable
 {
     // Constants
-    private static final int OUTPOINT_TYPE_SIZE           = 36;
-    private static final int TRANSACTION_TYPE_SIZE        = 1;
-    private static final int SEQUENCE_TYPE_SIZE           = 4;
-    private static final int UNLOCK_TYPE_SIZE             = 4;
+    private static final int SEQUENCE_TYPE_SIZE = 4;
 
     // Instance Fields
     private TransactionOutpoint m_previousOutput;
+    private TransactionType     m_type;
     private byte[]              m_unlockingParameters;
     private int                 m_sequence;
 
     /**
      * Creates a new instance of the TransactionInput class.
-     *
-     * @param previousOutput      A reference to a previous output.
-     * @param unlockingParameters The unlocking parameters hash.
-     * @param sequence            The sequence.
      */
-    public TransactionInput(TransactionOutpoint previousOutput, byte[] unlockingParameters, int sequence)
+    public TransactionInput()
     {
-        m_previousOutput      = previousOutput;
-        m_unlockingParameters = unlockingParameters;
-        m_sequence            = sequence;
     }
 
     /**
      * Creates a new instance of the TransactionInput class.
      *
-     * @param serializedData Serialized TransactionInput object.
+     * @param previousOutput      A reference to a previous output.
+     * @param type                The transaction type.
+     * @param unlockingParameters The unlocking parameters hash.
+     * @param sequence            The sequence.
      */
-    public TransactionInput(byte[] serializedData)
+    public TransactionInput(TransactionOutpoint previousOutput, TransactionType type, byte[] unlockingParameters, int sequence)
     {
-        byte[] outpoint = new byte[OUTPOINT_TYPE_SIZE];
+        setPreviousOutput(previousOutput);
+        setTransactionType(type);
+        setUnlockingParameters(unlockingParameters);
+        setSequence(sequence);
+    }
 
-        ByteBuffer wrapped = ByteBuffer.wrap(serializedData);
-        wrapped.get(outpoint, 0, OUTPOINT_TYPE_SIZE);
+    /**
+     * Creates a new instance of the TransactionInput class.
+     *
+     * @param buffer Serialized TransactionInput object.
+     */
+    public TransactionInput(ByteBuffer buffer)
+    {
+        setPreviousOutput(new TransactionOutpoint(buffer));
 
-        m_previousOutput = new TransactionOutpoint(outpoint);
-        int unlockingSize = wrapped.getInt();
-        wrapped.get(m_unlockingParameters, 0, unlockingSize);
-        m_sequence = wrapped.getInt();
+        m_type = TransactionType.from(buffer.get());
+        int unlockingSize = buffer.getInt();
+
+        setUnlockingParameters(new byte[unlockingSize]);
+
+        buffer.get(getUnlockingParameters(), 0, unlockingSize);
+        setSequence(buffer.getInt());
     }
 
     /**
@@ -85,31 +94,99 @@ public class TransactionInput implements ISerializable
      * @return The serialized object.
      */
     @Override
-    public byte[] serialize()
+    public byte[] serialize() throws IOException
     {
-        byte[] outPoint                = m_previousOutput.serialize();
-        byte[] unlockingParamSizeBytes = ByteBuffer.allocate(SEQUENCE_TYPE_SIZE).putInt(m_unlockingParameters.length).array();
-        byte[] data                    = new byte[outPoint.length + TRANSACTION_TYPE_SIZE + unlockingParamSizeBytes.length + SEQUENCE_TYPE_SIZE];
-        byte[] sequenceBytes           = ByteBuffer.allocate(SEQUENCE_TYPE_SIZE).putInt(m_sequence).array();
+        byte[] unlockingParamSizeBytes = ByteBuffer.allocate(SEQUENCE_TYPE_SIZE).putInt(getUnlockingParameters().length).array();
+        byte[] sequenceBytes           = ByteBuffer.allocate(SEQUENCE_TYPE_SIZE).putInt(getSequence()).array();
 
-        System.arraycopy(outPoint, 0, data, 0, outPoint.length);
+        ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        System.arraycopy(
-                unlockingParamSizeBytes,
-                0, data,
-                outPoint.length, UNLOCK_TYPE_SIZE);
+        data.write(getPreviousOutput().serialize());
+        data.write(m_type.getValue());
+        data.write(unlockingParamSizeBytes);
+        data.write(getUnlockingParameters());
+        data.write(sequenceBytes);
 
-        System.arraycopy(
-                m_unlockingParameters,
-                0,
-                data,
-                outPoint.length + UNLOCK_TYPE_SIZE, m_unlockingParameters.length);
+        return data.toByteArray();
+    }
 
-        System.arraycopy(
-                sequenceBytes,
-                0, data,
-                outPoint.length + UNLOCK_TYPE_SIZE + m_unlockingParameters.length, SEQUENCE_TYPE_SIZE);
+    /**
+     * Gets the previous output reference.
+     *
+     * @return The previous output.
+     */
+    public TransactionOutpoint getPreviousOutput()
+    {
+        return m_previousOutput;
+    }
 
-        return data;
+    /**
+     * Sets the previous output reference.
+     *
+     * @param previousOutput The previous output.
+     */
+    public void setPreviousOutput(TransactionOutpoint previousOutput)
+    {
+        m_previousOutput = previousOutput;
+    }
+
+    /**
+     * Gets the transaction type.
+     *
+     * @return The transaction type.
+     */
+    public TransactionType getTransactionType()
+    {
+        return m_type;
+    }
+
+    /**
+     * Sets the transaction sequence.
+     *
+     * @param type The transaction type.
+     */
+    public void setTransactionType(TransactionType type)
+    {
+        m_type = type;
+    }
+
+    /**
+     * Gets the unlocking parameters.
+     *
+     * @return The unlocking parameters.
+     */
+    public byte[] getUnlockingParameters()
+    {
+        return m_unlockingParameters;
+    }
+
+    /**
+     * Sets the unlocking parameters.
+     *
+     * @param unlockingParameters The unlocking parameters.
+     */
+    public void setUnlockingParameters(byte[] unlockingParameters)
+    {
+        m_unlockingParameters = unlockingParameters;
+    }
+
+    /**
+     * Gets the transaction sequence.
+     *
+     * @return The sequence.
+     */
+    public int getSequence()
+    {
+        return m_sequence;
+    }
+
+    /**
+     * Sets the transaction sequence.
+     *
+     * @param sequence The sequence.
+     */
+    public void setSequence(int sequence)
+    {
+        m_sequence = sequence;
     }
 }

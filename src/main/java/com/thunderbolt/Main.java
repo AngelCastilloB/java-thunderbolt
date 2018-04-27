@@ -27,8 +27,10 @@ package com.thunderbolt;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.security.*;
+import com.thunderbolt.transaction.*;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 
 /* IMPLEMENTATION ************************************************************/
@@ -45,22 +47,6 @@ public class Main
      */
     public static void main(String[] args) throws IOException, GeneralSecurityException
     {
-        byte[] content      = new byte[] { 0x01, 0x02 };
-        byte[] contentsHash = Sha256Digester.doubleDigest(content);
-
-        /*
-        EllipticCurveKeyPair pair       = new EllipticCurveKeyPair();
-        EncryptedPrivateKey  privateKey = new EncryptedPrivateKey(pair.getPrivateKey(), "AAAA");
-
-        byte[] signature = EllipticCurveProvider.sign(contentsHash, pair.getPrivateKey());
-
-
-        EncryptedPrivateKey  deserializedKey      = new EncryptedPrivateKey(privateKey);
-        EllipticCurveKeyPair ellipticCurveKeyPair = new EllipticCurveKeyPair(deserializedKey.getPrivateKey("AAAA"));
-
-        boolean signatureIsValid = EllipticCurveProvider.verify(contentsHash, signature, ellipticCurveKeyPair.getPublicKey());
-
-        System.out.println(String.format("Signature valid: %b", signatureIsValid));*/
     }
 
     /**

@@ -27,6 +27,8 @@ package com.thunderbolt.transaction;
 
 import com.thunderbolt.common.ISerializable;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 // IMPLEMENTATION ************************************************************/
@@ -45,6 +47,13 @@ public class TransactionOutpoint implements ISerializable
     private int    m_index   = 0;
 
     /**
+     * Creates a transaction outpoint.
+     */
+    public TransactionOutpoint()
+    {
+    }
+
+    /**
      * Creates a transaction outpoint from the given hash and index.
      *
      * @param hash  The hash of the reference transaction.
@@ -59,13 +68,12 @@ public class TransactionOutpoint implements ISerializable
     /**
      * Creates a transaction outpoint from the given byte array.
      *
-     * @param transactionOutpoint Byte array containing the transaction output.
+     * @param buffer Byte buffer containing the transaction output.
      */
-    public TransactionOutpoint(byte[] transactionOutpoint)
+    public TransactionOutpoint(ByteBuffer buffer)
     {
-        ByteBuffer wrapped = ByteBuffer.wrap(transactionOutpoint);
-        m_index = wrapped.getInt();
-        wrapped.get(m_refHash, 0, HASH_LENGTH);
+        m_index = buffer.getInt();
+        buffer.get(m_refHash, 0, HASH_LENGTH);
     }
 
     /**
@@ -79,6 +87,16 @@ public class TransactionOutpoint implements ISerializable
     }
 
     /**
+     * Sets the hash of the reference transaction.
+     *
+     * @param hash The hash of the reference transaction.
+     */
+    public void setReferenceHash(byte[] hash)
+    {
+        m_refHash = hash;
+    }
+
+    /**
      * Gets the index of the output in the reference transaction.
      *
      * @return the index of the output in the reference transaction.
@@ -89,19 +107,30 @@ public class TransactionOutpoint implements ISerializable
     }
 
     /**
+     * Sets the index of the output in the reference transaction.
+     *
+     * @param index The index of the output in the reference transaction.
+     */
+    public void setIndex(int index)
+    {
+        m_index = index;
+    }
+
+    /**
      * Gets a byte array with the serialized representation of this outpoint.
      *
      * @return The serialized representation of the outpoint.
      */
     @Override
-    public byte[] serialize()
+    public byte[] serialize() throws IOException
     {
-        byte[] data       = new byte[HASH_LENGTH + INDEX_LENGTH];
         byte[] indexBytes = ByteBuffer.allocate(INDEX_LENGTH).putInt(m_index).array();
 
-        System.arraycopy(indexBytes, 0, data, 0, INDEX_LENGTH);
-        System.arraycopy(m_refHash, 0, data, INDEX_LENGTH, HASH_LENGTH);
+        ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        return data;
+        data.write(indexBytes);
+        data.write(m_refHash);
+
+        return data.toByteArray();
     }
 }
