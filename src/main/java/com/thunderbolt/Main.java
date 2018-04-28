@@ -28,6 +28,7 @@ package com.thunderbolt;
 
 import com.thunderbolt.security.EllipticCurveKeyPair;
 import com.thunderbolt.security.EllipticCurveProvider;
+import com.thunderbolt.security.Hash;
 import com.thunderbolt.security.Sha256Digester;
 import com.thunderbolt.transaction.*;
 
@@ -48,7 +49,7 @@ public class Main
     static TransactionOutput    s_genesisOutput      = new TransactionOutput(1500, OutputLockType.SingleSignature, s_genesisKeyPair.getPublicKey());
     static Transaction          s_genesisTransaction = new Transaction();
 
-    static HashMap<String, Transaction> s_UXTOPoll = new HashMap<>();
+    static HashMap<Hash, Transaction> s_UXTOPoll = new HashMap<>();
 
     /**
      * Application entry point.
@@ -59,7 +60,7 @@ public class Main
     {
         s_genesisTransaction.getOutputs().add(s_genesisOutput);
 
-        String genesisHash = bytesToHexString(Sha256Digester.digest(s_genesisTransaction.serialize()));
+        Hash genesisHash = Sha256Digester.digest(s_genesisTransaction.serialize());
 
         s_UXTOPoll.put(genesisHash, s_genesisTransaction);
 
@@ -68,7 +69,7 @@ public class Main
         // Outpoint pointing to the first output in the genesis transaction.
         TransactionOutpoint outpoint = new TransactionOutpoint(Sha256Digester.digest(s_genesisTransaction.serialize()), 0);
 
-        Transaction referencedTransaction = s_UXTOPoll.get(bytesToHexString(Sha256Digester.digest(s_genesisTransaction.serialize())));
+        Transaction referencedTransaction = s_UXTOPoll.get(Sha256Digester.digest(s_genesisTransaction.serialize()));
         TransactionOutput referencedUxto = referencedTransaction.getOutputs().get(outpoint.getIndex());
 
         // When we sign, we use the locking parameters of the referenced transaction in place of the actual
@@ -99,7 +100,7 @@ public class Main
         // REC the transaction
         Transaction recXt = new Transaction(ByteBuffer.wrap(xtb));
 
-        String secondGenXt = bytesToHexString(Sha256Digester.digest(recXt.serialize()));
+        Hash secondGenXt = Sha256Digester.digest(recXt.serialize());
 
         // Validate transaction
         TransactionInput input1 = recXt.getInputs().get(0);
@@ -107,7 +108,7 @@ public class Main
         // Pull the outpoint referenced by this input.
         TransactionOutpoint outpoint1 = input1.getPreviousOutput();
         // Find the whole transaction.
-        Transaction referencedTransaction1 = s_UXTOPoll.get(bytesToHexString(outpoint1.getReferenceHash()));
+        Transaction referencedTransaction1 = s_UXTOPoll.get(outpoint1.getReferenceHash());
         // Get the referenced input.
         TransactionOutput out1 = referencedTransaction1.getOutputs().get(outpoint1.getIndex());
         // Get the signature.

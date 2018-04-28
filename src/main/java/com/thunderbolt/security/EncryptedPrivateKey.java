@@ -190,13 +190,13 @@ public class EncryptedPrivateKey implements ISerializable
         {
             byte[] stringBytes = keyPhrase.getBytes("UTF-8");
 
-            byte[] digest       = Sha256Digester.digest(stringBytes);
-            byte[] doubleDigest = new byte[digest.length + salt.length];
+            Hash digest         = Sha256Digester.digest(stringBytes);
+            byte[] doubleDigest = new byte[digest.getData().length + salt.length];
 
-            System.arraycopy(digest, 0, doubleDigest, 0, digest.length);
-            System.arraycopy(salt, 0, doubleDigest, digest.length, salt.length);
+            System.arraycopy(digest.getData(), 0, doubleDigest, 0, digest.getData().length);
+            System.arraycopy(salt, 0, doubleDigest, digest.getData().length, salt.length);
 
-            byte[] keyBytes = Sha256Digester.digest(doubleDigest);
+            byte[] keyBytes = Sha256Digester.digest(doubleDigest).serialize();
 
             aesKey = new KeyParameter(keyBytes);
         }

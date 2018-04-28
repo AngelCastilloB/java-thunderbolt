@@ -172,17 +172,14 @@ public class Base58
      */
     private static byte[] getCheckSum(byte[] data)
     {
-        byte[] hash1 = Sha256Digester.digest(data);
-        byte[] hash2 = Sha256Digester.digest(hash1);
+        Hash hash = Sha256Digester.doubleDigest(data);
 
         byte[] result = new byte[CHECK_SUM_SIZE];
 
-        System.arraycopy(hash2, 0, result, 0, CHECK_SUM_SIZE);
+        System.arraycopy(hash.serialize(), 0, result, 0, CHECK_SUM_SIZE);
 
         return result;
     }
-
-    //Returns null if the checksum is invalid
 
     /**
      * Verifies and removes te checksum from the data.

@@ -26,6 +26,7 @@ package com.thunderbolt.transaction;
 // IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.ISerializable;
+import com.thunderbolt.security.Hash;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -43,8 +44,8 @@ public class TransactionOutpoint implements ISerializable
     private static final int INDEX_LENGTH = 4;
 
     //Instance Fields
-    private byte[] m_refHash = new byte[HASH_LENGTH];
-    private int    m_index   = 0;
+    private Hash m_refHash = new Hash();
+    private int  m_index   = 0;
 
     /**
      * Creates a transaction outpoint.
@@ -59,7 +60,7 @@ public class TransactionOutpoint implements ISerializable
      * @param hash  The hash of the reference transaction.
      * @param index The index of the specific output in the reference transaction.
      */
-    public TransactionOutpoint(byte[] hash, int index)
+    public TransactionOutpoint(Hash hash, int index)
     {
         m_refHash = hash;
         m_index   = index;
@@ -73,7 +74,12 @@ public class TransactionOutpoint implements ISerializable
     public TransactionOutpoint(ByteBuffer buffer)
     {
         m_index = buffer.getInt();
-        buffer.get(m_refHash, 0, HASH_LENGTH);
+
+        byte[] hashData = new byte[32];
+
+        buffer.get(hashData, 0, HASH_LENGTH);
+
+        m_refHash.setData(hashData);
     }
 
     /**
@@ -81,7 +87,7 @@ public class TransactionOutpoint implements ISerializable
      *
      * @return The hash of the reference transaction.
      */
-    public byte[] getReferenceHash()
+    public Hash getReferenceHash()
     {
         return m_refHash;
     }
@@ -91,7 +97,7 @@ public class TransactionOutpoint implements ISerializable
      *
      * @param hash The hash of the reference transaction.
      */
-    public void setReferenceHash(byte[] hash)
+    public void setReferenceHash(Hash hash)
     {
         m_refHash = hash;
     }
@@ -129,7 +135,7 @@ public class TransactionOutpoint implements ISerializable
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
         data.write(indexBytes);
-        data.write(m_refHash);
+        data.write(m_refHash.serialize());
 
         return data.toByteArray();
     }

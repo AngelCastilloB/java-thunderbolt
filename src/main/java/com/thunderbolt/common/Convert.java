@@ -21,56 +21,36 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.thunderbolt.security;
-
-/* IMPORTS *******************************************************************/
-
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+package com.thunderbolt.common;
 
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Digester class for the SHA-256 hashing algorithm.
+ * Utility class for data conventions.
  */
-public class Sha256Digester
+public class Convert
 {
-    /**
-     * Gets the hash of the given data.
-     *
-     * @param data The data to get the hash from.
-     *
-     * @return The hash.
-     */
-    public static Hash digest(byte[] data)
-    {
-        MessageDigest md = null;
-
-        try
-        {
-            md = MessageDigest.getInstance("SHA-256");
-        }
-        catch(NoSuchAlgorithmException e)
-        {
-            return null;
-        }
-
-        md.update(data);
-
-        return new Hash(md.digest());
-    }
+    private final static char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
 
     /**
-     * Gets the double hash of the given data.
+     * Return the given byte array encoded as a hex string.
      *
-     * @param data The data to get the double hash from.
+     * @param       bytes           The data to be encoded.
      *
-     * @return The double hash.
+     * @return                      The encoded string
      */
-    public static Hash doubleDigest(byte[] data)
+    public static String toHexString(byte[] bytes)
     {
-        Hash digest = digest(data);
+        char[] hexChars = new char[bytes.length * 2];
 
-        return digest(digest.serialize());
+        for (int i = 0; i < bytes.length; ++i)
+        {
+            int value = bytes[i] & 0xFF;
+
+            hexChars[i * 2]     = HEX_ARRAY[value >>> 4];
+            hexChars[i * 2 + 1] = HEX_ARRAY[value & 0x0F];
+        }
+
+        return new String(hexChars);
     }
 }
