@@ -26,6 +26,8 @@ package com.thunderbolt;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.blockchain.Block;
+import com.thunderbolt.blockchain.BlockHeader;
 import com.thunderbolt.security.EllipticCurveKeyPair;
 import com.thunderbolt.security.EllipticCurveProvider;
 import com.thunderbolt.security.Hash;
@@ -35,6 +37,7 @@ import com.thunderbolt.transaction.*;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 /* IMPLEMENTATION ************************************************************/
@@ -126,6 +129,28 @@ public class Main
         System.out.println(String.format("Can spend: %b", isValid));
 
         s_UXTOPoll.put(secondGenXt, recXt);
+
+
+        Hash aHas = new Hash();
+        Hash bHas = new Hash();
+        BlockHeader header = new BlockHeader(10, aHas, bHas, 97, 50, 13);
+
+        writeFile("C:\\Users\\Angel\\Downloads\\blobkheader1.bin", header.serialize());
+
+        byte[] rawBh = readFile("C:\\Users\\Angel\\Downloads\\blobkheader1.bin");
+        BlockHeader header2 = new BlockHeader(ByteBuffer.wrap(rawBh));
+
+        ArrayList<Transaction> xts = new ArrayList<>();
+        xts.add(referencedTransaction1);
+        xts.add(recXt);
+
+        Block block = new Block(header2, xts);
+        writeFile("C:\\Users\\Angel\\Downloads\\blobk1.bin", block.serialize());
+
+        byte[] rawB = readFile("C:\\Users\\Angel\\Downloads\\blobk1.bin");
+        Block block2 = new Block(ByteBuffer.wrap(rawB));
+
+        int a = 0;
     }
 
     /**
