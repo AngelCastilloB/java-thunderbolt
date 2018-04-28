@@ -28,6 +28,7 @@ package com.thunderbolt;
 
 import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.blockchain.BlockHeader;
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.security.EllipticCurveKeyPair;
 import com.thunderbolt.security.EllipticCurveProvider;
 import com.thunderbolt.security.Hash;
@@ -35,6 +36,7 @@ import com.thunderbolt.security.Sha256Digester;
 import com.thunderbolt.transaction.*;
 
 import java.io.*;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
@@ -151,6 +153,21 @@ public class Main
         Block block2 = new Block(ByteBuffer.wrap(rawB));
 
         int a = 0;
+        System.out.println(String.format("Header hash: %s", block2.getHeaderHash()));
+
+        BigInteger hash = block2.getHeaderHash().toBigInteger();
+        boolean solved = false;
+        while (!solved)
+        {
+            solved = !(hash.compareTo(block2.getTargetDifficultyAsInteger()) > 0);
+            if (solved)
+                break;
+            //System.out.println(String.format("Block hash is higher than target difficulty: %s > %s", block2.getHeaderHash(), Convert.toHexString(block2.getTargetDifficultyAsInteger().toByteArray())));
+            block2.getHeader().setNonce(block2.getHeader().getNonce() + 1);
+            hash = block2.getHeaderHash().toBigInteger();
+        }
+        System.out.println(String.format("Block solved! hash is lower than target difficulty: %s > %s", block2.getHeaderHash(), Convert.toHexString(block2.getTargetDifficultyAsInteger().toByteArray())));
+
     }
 
     /**

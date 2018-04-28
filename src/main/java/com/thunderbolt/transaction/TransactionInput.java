@@ -75,12 +75,6 @@ public class TransactionInput implements ISerializable
     public TransactionInput(ByteBuffer buffer)
     {
         setPreviousOutput(new TransactionOutpoint(buffer));
-
-        int unlockingSize = buffer.getInt();
-
-        setUnlockingParameters(new byte[unlockingSize]);
-
-        buffer.get(getUnlockingParameters(), 0, unlockingSize);
         setSequence(buffer.getInt());
     }
 
@@ -88,18 +82,18 @@ public class TransactionInput implements ISerializable
      * Serializes an object in ray byte format.
      *
      * @return The serialized object.
+     *
+     * @remark In the serialization process we skip the unlocking parameters (witness data). This data
+     * will be serialized outside the transaction to avoid transaction malleability.
      */
     @Override
     public byte[] serialize() throws IOException
     {
-        byte[] unlockingParamSizeBytes = ByteBuffer.allocate(SEQUENCE_TYPE_SIZE).putInt(getUnlockingParameters().length).array();
-        byte[] sequenceBytes           = ByteBuffer.allocate(SEQUENCE_TYPE_SIZE).putInt(getSequence()).array();
+        byte[] sequenceBytes = ByteBuffer.allocate(SEQUENCE_TYPE_SIZE).putInt(getSequence()).array();
 
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
         data.write(getPreviousOutput().serialize());
-        data.write(unlockingParamSizeBytes);
-        data.write(m_unlockingParameters);
         data.write(sequenceBytes);
 
         return data.toByteArray();

@@ -93,6 +93,16 @@ public class Transaction implements ISerializable
             getOutputs().add(new TransactionOutput(buffer));
 
         setLockTime(buffer.getLong());
+
+        // Deserialize the witness data.
+        for (int i = 0; i < getInputs().size(); ++i)
+        {
+            int    dataSize    = buffer.getInt();
+            byte[] witnessData = new byte[dataSize];
+
+            buffer.get(witnessData);
+            m_inputs.get(i).setUnlockingParameters(witnessData);
+        }
     }
 
     /**
@@ -193,6 +203,9 @@ public class Transaction implements ISerializable
         data.write(versionBytes);
         data.write(inputSizeBytes);
 
+        // The serialization method of the input transactions will skip the unlocking parameters (signature)
+        // we need to make sure to serialize them at the end. We do this to remove the signatures from the
+        // transaction id to avoid transaction malleability.
         for (int i = 0; i < getInputs().size(); ++i)
             data.write(m_inputs.get(i).serialize());
 
@@ -201,6 +214,18 @@ public class Transaction implements ISerializable
             data.write(m_outputs.get(i).serialize());
 
         data.write(lockTimeSizeBytes);
+
+        // Serialize the unlocking parameters (witness data).
+        for (int i = 0; i < getInputs().size(); ++i)
+        {
+            byte[] witnessDataSizeBytes = ByteBuffer
+                    .allocate(Integer.BYTES)
+                    .putInt(m_inputs.get(i).getUnlockingParameters().length)
+                    .array();
+
+            data.write(witnessDataSizeBytes);
+            data.write(m_inputs.get(i).getUnlockingParameters());
+        }
 
         return data.toByteArray();
     }

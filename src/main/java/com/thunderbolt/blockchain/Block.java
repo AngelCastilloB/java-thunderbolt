@@ -25,6 +25,7 @@ package com.thunderbolt.blockchain;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.ISerializable;
 import com.thunderbolt.security.Hash;
 import com.thunderbolt.security.Sha256Digester;
@@ -32,6 +33,7 @@ import com.thunderbolt.transaction.Transaction;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,6 +50,8 @@ import java.util.List;
  */
 public class Block implements ISerializable
 {
+    public static final BigInteger LARGEST_HASH = BigInteger.ONE.shiftLeft(256);
+
     private BlockHeader            m_header       = new BlockHeader();
     private ArrayList<Transaction> m_transactions = new ArrayList<>();
     private List<byte[]>           m_merkleTree   = new ArrayList<>();
@@ -149,6 +153,41 @@ public class Block implements ISerializable
     public Hash getHeaderHash() throws IOException
     {
         return m_header.getHash();
+    }
+
+    /**
+     * Returns the target difficulty in compact form
+     *
+     * @return      Target difficulty
+     */
+    public long getTargetDifficulty()
+    {
+        return m_header.getBits();
+    }
+
+    /**
+     * Returns the target difficulty as a 256-bit value that can be compared to a SHA-256 hash.
+     * Inside a block. the target is represented using the compact form.
+     *
+     * @return      The difficulty target
+     */
+    public BigInteger getTargetDifficultyAsInteger()
+    {
+        return Convert.decodeCompactBits(m_header.getBits());
+    }
+
+    /**
+     * Returns the work represented by this block
+     *
+     * Work is defined as the number of tries needed to solve a block in the
+     * average case.  As the target gets lower, the amount of work goes up.
+     *
+     * @return      The work represented by this block
+     */
+    public BigInteger getWork()
+    {
+        BigInteger target = getTargetDifficultyAsInteger();
+        return LARGEST_HASH.divide(target.add(BigInteger.ONE));
     }
 
     /**

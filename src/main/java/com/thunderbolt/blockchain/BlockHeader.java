@@ -44,7 +44,7 @@ public class BlockHeader implements ISerializable
     private Hash m_parentBlock = new Hash();
     private Hash m_markleRoot  = new Hash();
     private long m_timeStamp   = 0;
-    private int  m_bits        = 0;
+    private long m_bits        = 0x1d0fffff;
     private long m_nonce       = 0;
 
     /**
@@ -87,7 +87,7 @@ public class BlockHeader implements ISerializable
         buffer.get(m_markleRoot.getData());
 
         m_timeStamp   = buffer.getLong();
-        m_bits        = buffer.getInt();
+        //m_bits        = buffer.getInt() & 0xffffffffL;
         m_nonce       = buffer.getLong();
     }
 
@@ -176,7 +176,7 @@ public class BlockHeader implements ISerializable
      *
      * @return The difficulty target.
      */
-    public int getBits()
+    public long getBits()
     {
         return m_bits;
     }
@@ -186,7 +186,7 @@ public class BlockHeader implements ISerializable
      *
      * @param bits The difficulty target.
      */
-    public void setBits(int bits)
+    public void setBits(long bits)
     {
         m_bits = bits;
     }
@@ -237,7 +237,7 @@ public class BlockHeader implements ISerializable
 
         byte[] versionBytes   = ByteBuffer.allocate(Integer.BYTES).putInt(m_version).array();
         byte[] timeStampBytes = ByteBuffer.allocate(Long.BYTES).putLong(m_timeStamp).array();
-        byte[] bitsBytes      = ByteBuffer.allocate(Integer.BYTES).putInt(m_bits).array();
+        byte[] bitsBytes      = ByteBuffer.allocate(Integer.BYTES).putInt((int)m_bits).array();
         byte[] nonceBytes     = ByteBuffer.allocate(Long.BYTES).putLong(m_nonce).array();
 
         data.write(versionBytes);
