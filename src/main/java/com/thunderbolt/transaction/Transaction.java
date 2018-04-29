@@ -26,6 +26,8 @@ package com.thunderbolt.transaction;
 // IMPORTS ************************************************************/
 
 import com.thunderbolt.common.ISerializable;
+import com.thunderbolt.security.Hash;
+import com.thunderbolt.security.Sha256Digester;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -45,10 +47,11 @@ public class Transaction implements ISerializable
     private static final int LOCK_TIME_COUNT_SIZE   = 8;
 
     // Instance Fields
-    private int                          m_version  = 0;
-    private ArrayList<TransactionInput>  m_inputs   = new ArrayList<>();
-    private ArrayList<TransactionOutput> m_outputs  = new ArrayList<>();
-    private long                         m_lockTime = 0;
+    private int                          m_version             = 0;
+    private ArrayList<TransactionInput>  m_inputs              = new ArrayList<>();
+    private ArrayList<TransactionOutput> m_outputs             = new ArrayList<>();
+    private long                         m_lockTime            = 0;
+    private ArrayList<byte[]>            m_unlockingParameters = new ArrayList<>();
 
     /**
      * Creates a new instance of the Transaction class.
@@ -101,7 +104,7 @@ public class Transaction implements ISerializable
             byte[] witnessData = new byte[dataSize];
 
             buffer.get(witnessData);
-            m_inputs.get(i).setUnlockingParameters(witnessData);
+            m_unlockingParameters.add(witnessData);
         }
     }
 
@@ -186,6 +189,51 @@ public class Transaction implements ISerializable
     }
 
     /**
+     * Gets the transaction id of this transaction.
+     *
+     * @return The transaction id.
+     */
+    public Hash getTransactionId() throws IOException
+    {
+        return Sha256Digester.digest(serializeWithoutWitnesses());
+    }
+
+    /**
+     * Serializes the object without the unlocking parameters.
+     *
+     * We use this serialization form to calculate the transaction id and avoid changing the transaction id due
+     * transaction malleability.
+     *
+     * @return The serialized object without the witness data. This method is useful for calculating the transaction id.
+     */
+    public byte[] serializeWithoutWitnesses() throws IOException
+    {
+        ByteArrayOutputStream data = new ByteArrayOutputStream();
+
+        byte[] versionBytes      = ByteBuffer.allocate(VERSION_SIZE).putInt(getVersion()).array();
+        byte[] inputSizeBytes    = ByteBuffer.allocate(TRANSACTION_COUNT_SIZE).putInt(getInputs().size()).array();
+        byte[] outputSizeBytes   = ByteBuffer.allocate(TRANSACTION_COUNT_SIZE).putInt(getOutputs().size()).array();
+        byte[] lockTimeSizeBytes = ByteBuffer.allocate(LOCK_TIME_COUNT_SIZE).putLong(getLockTime()).array();
+
+        data.write(versionBytes);
+        data.write(inputSizeBytes);
+
+        // The serialization method of the input transactions will skip the unlocking parameters (signature)
+        // we need to make sure to serialize them at the end. We do this to remove the signatures from the
+        // transaction id to avoid transaction malleability.
+        for (int i = 0; i < getInputs().size(); ++i)
+            data.write(m_inputs.get(i).serialize());
+
+        data.write(outputSizeBytes);
+        for (int i = 0; i < getOutputs().size(); ++i)
+            data.write(m_outputs.get(i).serialize());
+
+        data.write(lockTimeSizeBytes);
+
+        return data.toByteArray();
+    }
+
+    /**
      * Serializes an object in ray byte format.
      *
      * @return The serialized object.
@@ -220,13 +268,41 @@ public class Transaction implements ISerializable
         {
             byte[] witnessDataSizeBytes = ByteBuffer
                     .allocate(Integer.BYTES)
-                    .putInt(m_inputs.get(i).getUnlockingParameters().length)
+                    .putInt(m_unlockingParameters.get(i).length)
                     .array();
 
             data.write(witnessDataSizeBytes);
-            data.write(m_inputs.get(i).getUnlockingParameters());
+            data.write(m_unlockingParameters.get(i));
         }
 
         return data.toByteArray();
+    }
+
+    /**
+     * Gets the list of unlocking parameters.
+     *
+     * @return The list off unlocking parameters.
+     *
+     * @return The list of unlocking parameters.
+     *
+     * @remark The parameters are in the same order as in input transactions. So Unlocking parameters at
+     * position zero correspond to input at index zero.
+     */
+    public ArrayList<byte[]> getUnlockingParameters()
+    {
+        return m_unlockingParameters;
+    }
+
+    /**
+     * Sets the list of unlocking parameters for this transaction.
+     *
+     * @param unlockingParameters The list of unlocking parameters.
+     *
+     * @remark The parameters must be in the same order as in input transactions. So Unlocking parameters at
+     * position zero must correspond to input at index zero.
+     */
+    public void setUnlockingParameters(ArrayList<byte[]> unlockingParameters)
+    {
+        this.m_unlockingParameters = unlockingParameters;
     }
 }

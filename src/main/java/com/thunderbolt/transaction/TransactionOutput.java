@@ -29,6 +29,7 @@ import com.thunderbolt.common.ISerializable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 
 // IMPLEMENTATION ************************************************************/
@@ -40,10 +41,9 @@ public class TransactionOutput implements ISerializable
 {
     // Constants
     private static final int LOCK_TYPE_SIZE   = 4;
-    private static final int AMOUNT_TYPE_SIZE = 8;
 
     // Instance Fields
-    private long           m_amount;
+    private BigInteger     m_amount;
     private byte[]         m_lockingParameters;
     private OutputLockType m_type;
 
@@ -61,7 +61,7 @@ public class TransactionOutput implements ISerializable
      * @param type              The transaction type.
      * @param lockingParameters The locking parameters of the output.
      */
-    public TransactionOutput(long amount, OutputLockType type, byte[] lockingParameters)
+    public TransactionOutput(BigInteger amount, OutputLockType type, byte[] lockingParameters)
     {
         m_amount            = amount;
         m_type              = type;
@@ -75,7 +75,7 @@ public class TransactionOutput implements ISerializable
      */
     public TransactionOutput(ByteBuffer buffer)
     {
-        m_amount = buffer.getLong();
+        m_amount = BigInteger.valueOf(buffer.getLong());
         m_type = OutputLockType.from(buffer.get());
         int lockingParametersSize = buffer.getInt();
 
@@ -89,7 +89,7 @@ public class TransactionOutput implements ISerializable
      *
      * @return The amount.
      */
-    public long getAmount()
+    public BigInteger getAmount()
     {
         return m_amount;
     }
@@ -99,7 +99,7 @@ public class TransactionOutput implements ISerializable
      *
      * @param amount The amount.
      */
-    public void setAmount(long amount)
+    public void setAmount(BigInteger amount)
     {
         m_amount = amount;
     }
@@ -119,7 +119,7 @@ public class TransactionOutput implements ISerializable
      *
      * @param type The transaction type.
      */
-    public void setTransactionType(OutputLockType type)
+    public void setLockType(OutputLockType type)
     {
         m_type = type;
     }
@@ -152,10 +152,19 @@ public class TransactionOutput implements ISerializable
     @Override
     public byte[] serialize() throws IOException
     {
-        byte[] amountBytes           = ByteBuffer.allocate(AMOUNT_TYPE_SIZE).putLong(m_amount).array();
+        byte[] amountBytes           = m_amount.toByteArray();
         byte[] lockingParamSizeBytes = ByteBuffer.allocate(LOCK_TYPE_SIZE).putInt(m_lockingParameters.length).array();
 
         ByteArrayOutputStream data = new ByteArrayOutputStream();
+
+        if (amountBytes.length > 8)
+            throw new IllegalStateException("Output value is too big.");
+
+        if (amountBytes.length < 8)
+        {
+            for (int i = 0; i < 8 - amountBytes.length; i++)
+                data.write(0);
+        }
 
         data.write(amountBytes);
         data.write(m_type.getValue());

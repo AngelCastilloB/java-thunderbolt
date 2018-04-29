@@ -40,11 +40,15 @@ import java.nio.ByteBuffer;
  */
 public class BlockHeader implements ISerializable
 {
+    // Constants
+    private static final int STARTING_DIFFICULTY = 0x1d0fffff;
+
+    // Instance fields
     private int  m_version     = 0;
     private Hash m_parentBlock = new Hash();
     private Hash m_markleRoot  = new Hash();
     private long m_timeStamp   = 0;
-    private long m_bits        = 0x1d0fffff;
+    private long m_bits        = STARTING_DIFFICULTY;
     private long m_nonce       = 0;
 
     /**
@@ -61,8 +65,22 @@ public class BlockHeader implements ISerializable
      * @param parentBlock A list of 1 or more inputs.
      * @param markleRoot  A list of 1 or more outputs.
      * @param timestamp   UNIX timestamp at which this transaction unlocks.
-     * @param difficulty  UNIX timestamp at which this transaction unlocks.
-     * @param nonce       UNIX timestamp at which this transaction unlocks.
+     * @param nonce       Value for changing the hash of the block.
+     */
+    public BlockHeader(int version, Hash parentBlock, Hash markleRoot, long timestamp, long nonce)
+    {
+        this(version, parentBlock, markleRoot, timestamp, STARTING_DIFFICULTY, nonce);
+    }
+
+    /**
+     * Creates a new instance of the block header class.
+     *
+     * @param version     Transaction data format version.
+     * @param parentBlock A list of 1 or more inputs.
+     * @param markleRoot  A list of 1 or more outputs.
+     * @param timestamp   UNIX timestamp at which this transaction unlocks.
+     * @param difficulty  The difficulty of the block.
+     * @param nonce       Value for changing the hash of the block.
      */
     public BlockHeader(int version, Hash parentBlock, Hash markleRoot, long timestamp, int difficulty, long nonce)
     {
@@ -87,7 +105,7 @@ public class BlockHeader implements ISerializable
         buffer.get(m_markleRoot.getData());
 
         m_timeStamp   = buffer.getLong();
-        //m_bits        = buffer.getInt() & 0xffffffffL;
+        m_bits        = buffer.getInt() & 0xffffffffL;
         m_nonce       = buffer.getLong();
     }
 
@@ -237,14 +255,20 @@ public class BlockHeader implements ISerializable
 
         byte[] versionBytes   = ByteBuffer.allocate(Integer.BYTES).putInt(m_version).array();
         byte[] timeStampBytes = ByteBuffer.allocate(Long.BYTES).putLong(m_timeStamp).array();
-        byte[] bitsBytes      = ByteBuffer.allocate(Integer.BYTES).putInt((int)m_bits).array();
         byte[] nonceBytes     = ByteBuffer.allocate(Long.BYTES).putLong(m_nonce).array();
 
         data.write(versionBytes);
         data.write(m_parentBlock.getData());
         data.write(m_markleRoot.getData());
         data.write(timeStampBytes);
-        data.write(bitsBytes);
+
+        // Serialize m_bits as unsigned int (from long).
+        int intBits = (int)m_bits;
+        data.write((byte) ((intBits & 0xFF000000) >> 24));
+        data.write((byte) ((intBits & 0x00FF0000) >> 16));
+        data.write((byte) ((intBits & 0x0000FF00) >> 8));
+        data.write((byte) ((intBits & 0x000000FF)));
+
         data.write(nonceBytes);
 
         return data.toByteArray();

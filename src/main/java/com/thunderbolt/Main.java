@@ -29,10 +29,8 @@ package com.thunderbolt;
 import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.blockchain.BlockHeader;
 import com.thunderbolt.common.Convert;
-import com.thunderbolt.security.EllipticCurveKeyPair;
-import com.thunderbolt.security.EllipticCurveProvider;
-import com.thunderbolt.security.Hash;
-import com.thunderbolt.security.Sha256Digester;
+import com.thunderbolt.network.NetworkParameters;
+import com.thunderbolt.security.*;
 import com.thunderbolt.transaction.*;
 
 import java.io.*;
@@ -51,7 +49,7 @@ public class Main
 {
     static EllipticCurveKeyPair s_genesisKeyPair     = new EllipticCurveKeyPair();
     static EllipticCurveKeyPair s_genesisKeyPair2    = new EllipticCurveKeyPair();
-    static TransactionOutput    s_genesisOutput      = new TransactionOutput(1500, OutputLockType.SingleSignature, s_genesisKeyPair.getPublicKey());
+    static TransactionOutput    s_genesisOutput      = new TransactionOutput(BigInteger.valueOf(1500), OutputLockType.SingleSignature, s_genesisKeyPair.getPublicKey());
     static Transaction          s_genesisTransaction = new Transaction();
 
     static HashMap<Hash, Transaction> s_UXTOPoll = new HashMap<>();
@@ -61,14 +59,52 @@ public class Main
      *
      * @param args Arguments.
      */
-    public static void main(String[] args) throws IOException, GeneralSecurityException
+    public static void main(String[] args) throws IOException, GeneralSecurityException, CloneNotSupportedException
     {
+        Block genesisBlock = NetworkParameters.createGenesis();
         s_genesisTransaction.getOutputs().add(s_genesisOutput);
+
+        NetworkParameters params = NetworkParameters.mainNet();
+
+        writeFile("C:\\Users\\Angel\\Downloads\\genesisBlock.bin", genesisBlock.serialize());
 
         Hash genesisHash = Sha256Digester.digest(s_genesisTransaction.serialize());
 
+        EncryptedPrivateKey eCk = new EncryptedPrivateKey(s_genesisKeyPair.getPrivateKey(), "angel");
+
+        byte[] adressRaw = new byte[24];
+        byte[] addressHash = Sha256Digester.sha256hash160(s_genesisKeyPair.getPublicKey());
+        // Single signature magic 84
+        // Multi signature magic 74
+        for (int i = 0; i < 255; ++i)
+        {
+            ByteBuffer o = ByteBuffer.wrap(adressRaw);
+
+            o.put((byte)84);
+            o.put((byte)i);
+            o.put(addressHash);
+
+            String base58 = Base58.encode(o.array());
+            System.out.println(base58);
+
+            if (base58.charAt(1) == 's')
+            {
+                System.out.println((int)i);
+                break;
+            }
+        }
+
+
+
+        //Tndrblt
+
+
+        //writeFile("C:\\Users\\Angel\\Downloads\\genesisKey.bin", eCk.serialize());
+
         s_UXTOPoll.put(genesisHash, s_genesisTransaction);
 
+
+        //System.out.println(Base58.encode(s_genesisKeyPair.getPublicKey()));
         // Create Transaction
 
         // Outpoint pointing to the first output in the genesis transaction.
@@ -77,27 +113,30 @@ public class Main
         Transaction referencedTransaction = s_UXTOPoll.get(Sha256Digester.digest(s_genesisTransaction.serialize()));
         TransactionOutput referencedUxto = referencedTransaction.getOutputs().get(outpoint.getIndex());
 
-        // When we sign, we use the locking parameters of the referenced transaction in place of the actual
-        // unlocking parameter (which will be the resulting signature). So we add the locking parameters,
-        // generate the signature, and then replace the locking parameters with the signature (the actual unlocking parameter).
-        ByteArrayOutputStream unlockingParameters = new ByteArrayOutputStream();
-        unlockingParameters.write(referencedUxto.getTransactionType().getValue());
-        unlockingParameters.write(referencedUxto.getLockingParameters());
 
-        TransactionInput input = new TransactionInput(outpoint, unlockingParameters.toByteArray(), 0);
+        TransactionInput input = new TransactionInput(outpoint, 0);
 
-        byte[] derSignature = EllipticCurveProvider.sign(input.serialize(), s_genesisKeyPair.getPrivateKey());
-        input.setUnlockingParameters(derSignature);
+        // When we sign the transaction input plus the locking parameters of the referenced output.
+        ByteArrayOutputStream signatureData = new ByteArrayOutputStream();
+        signatureData.write(input.serialize());
+        signatureData.write(referencedUxto.getTransactionType().getValue());
+        signatureData.write(referencedUxto.getLockingParameters());
+
+
+        // The signature in DER format is the unlocking parameter of the referenced output. We need to add this to the unlocking parameters
+        // list of the transaction at the same position at which we added the transaction.
+        byte[] derSignature = EllipticCurveProvider.sign(signatureData.toByteArray(), s_genesisKeyPair.getPrivateKey());
 
         // At this point this input transaction is spendable.
         Transaction transaction = new Transaction();
         transaction.getInputs().add(input);
+        transaction.getUnlockingParameters().add(derSignature);
 
         // Transfer 1000 another user.
-        transaction.getOutputs().add(new TransactionOutput(1000, OutputLockType.SingleSignature, s_genesisKeyPair2.getPublicKey()));
+        transaction.getOutputs().add(new TransactionOutput(BigInteger.valueOf(1000), OutputLockType.SingleSignature, s_genesisKeyPair2.getPublicKey()));
 
         // Return the change to myself.
-        transaction.getOutputs().add(new TransactionOutput(500, OutputLockType.SingleSignature, s_genesisKeyPair.getPublicKey()));
+        transaction.getOutputs().add(new TransactionOutput(BigInteger.valueOf(500), OutputLockType.SingleSignature, s_genesisKeyPair.getPublicKey()));
 
         // Broadcast the transaction.
         byte[] xtb = transaction.serialize();
@@ -117,16 +156,15 @@ public class Main
         // Get the referenced input.
         TransactionOutput out1 = referencedTransaction1.getOutputs().get(outpoint1.getIndex());
         // Get the signature.
-        byte[] signature1 = input1.getUnlockingParameters();
+        byte[] signature1 = recXt.getUnlockingParameters().get(0);
 
         // To validate the signature we need to sign the transaction with the locking parameters in the unlocking parameters field.
-        ByteArrayOutputStream unlockingParameters2 = new ByteArrayOutputStream();
-        unlockingParameters2.write(out1.getTransactionType().getValue());
-        unlockingParameters2.write(out1.getLockingParameters());
+        ByteArrayOutputStream signatureData2 = new ByteArrayOutputStream();
+        signatureData2.write(input1.serialize());
+        signatureData2.write(out1.getTransactionType().getValue());
+        signatureData2.write(out1.getLockingParameters());
 
-        input1.setUnlockingParameters(unlockingParameters.toByteArray());
-
-        boolean isValid = EllipticCurveProvider.verify(input1.serialize(), signature1, out1.getLockingParameters());
+        boolean isValid = EllipticCurveProvider.verify(signatureData2.toByteArray(), signature1, out1.getLockingParameters());
 
         System.out.println(String.format("Can spend: %b", isValid));
 
@@ -135,7 +173,7 @@ public class Main
 
         Hash aHas = new Hash();
         Hash bHas = new Hash();
-        BlockHeader header = new BlockHeader(10, aHas, bHas, 97, 50, 13);
+        BlockHeader header = new BlockHeader(10, aHas, bHas, 97, 13);
 
         writeFile("C:\\Users\\Angel\\Downloads\\blobkheader1.bin", header.serialize());
 
@@ -155,18 +193,22 @@ public class Main
         int a = 0;
         System.out.println(String.format("Header hash: %s", block2.getHeaderHash()));
 
-        BigInteger hash = block2.getHeaderHash().toBigInteger();
+        byte[] genesisRaw = NetworkParameters.createGenesis().serialize();
+
+        Block deserializedGenesis = new Block(ByteBuffer.wrap(genesisRaw));
+
+        BigInteger hash = deserializedGenesis.getHeaderHash().toBigInteger();
         boolean solved = false;
         while (!solved)
         {
-            solved = !(hash.compareTo(block2.getTargetDifficultyAsInteger()) > 0);
+            solved = !(hash.compareTo(deserializedGenesis.getTargetDifficultyAsInteger()) > 0);
             if (solved)
                 break;
             //System.out.println(String.format("Block hash is higher than target difficulty: %s > %s", block2.getHeaderHash(), Convert.toHexString(block2.getTargetDifficultyAsInteger().toByteArray())));
-            block2.getHeader().setNonce(block2.getHeader().getNonce() + 1);
-            hash = block2.getHeaderHash().toBigInteger();
+            deserializedGenesis.getHeader().setNonce(deserializedGenesis.getHeader().getNonce() + 1);
+            hash = deserializedGenesis.getHeaderHash().toBigInteger();
         }
-        System.out.println(String.format("Block solved! hash is lower than target difficulty: %s > %s", block2.getHeaderHash(), Convert.toHexString(block2.getTargetDifficultyAsInteger().toByteArray())));
+        System.out.println(String.format("Block solved! hash is lower than target difficulty (%d): %s > %s", deserializedGenesis.getHeader().getNonce(), genesisBlock.getHeaderHash(), Convert.toHexString(block2.getTargetDifficultyAsInteger().toByteArray())));
 
     }
 

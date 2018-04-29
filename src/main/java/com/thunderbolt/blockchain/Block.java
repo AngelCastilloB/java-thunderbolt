@@ -227,7 +227,7 @@ public class Block implements ISerializable
     }
 
     /**
-     * Builds the Merkle tree from the block transactions
+     * Builds the Merkle tree from the block transactions.
      *
      * @return List of byte arrays representing the nodes in the Merkle tree
      */
@@ -261,7 +261,7 @@ public class Block implements ISerializable
                 byte[] both = Arrays.copyOf(leftBytes, leftBytes.length + rightBytes.length);
                 System.arraycopy(rightBytes, 0, both, leftBytes.length, rightBytes.length);
 
-                byte[] nodeHash   = Sha256Digester.digest(both).getData();
+                byte[] nodeHash = Sha256Digester.digest(both).getData();
 
                 tree.add(nodeHash);
             }

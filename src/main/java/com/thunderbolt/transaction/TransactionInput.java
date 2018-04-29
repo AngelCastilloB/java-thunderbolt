@@ -43,7 +43,6 @@ public class TransactionInput implements ISerializable
 
     // Instance Fields
     private TransactionOutpoint m_previousOutput;
-    private byte[]              m_unlockingParameters;
     private int                 m_sequence;
 
     /**
@@ -57,13 +56,11 @@ public class TransactionInput implements ISerializable
      * Creates a new instance of the TransactionInput class.
      *
      * @param previousOutput      A reference to a previous output.
-     * @param unlockingParameters The unlocking parameters hash.
      * @param sequence            The sequence.
      */
-    public TransactionInput(TransactionOutpoint previousOutput, byte[] unlockingParameters, int sequence)
+    public TransactionInput(TransactionOutpoint previousOutput, int sequence)
     {
         m_previousOutput      = previousOutput;
-        m_unlockingParameters = unlockingParameters;
         m_sequence            = sequence;
     }
 
@@ -117,26 +114,6 @@ public class TransactionInput implements ISerializable
     public void setPreviousOutput(TransactionOutpoint previousOutput)
     {
         m_previousOutput = previousOutput;
-    }
-
-    /**
-     * Gets the unlocking parameters.
-     *
-     * @return The unlocking parameters.
-     */
-    public byte[] getUnlockingParameters()
-    {
-        return m_unlockingParameters;
-    }
-
-    /**
-     * Sets the unlocking parameters.
-     *
-     * @param unlockingParameters The unlocking parameters.
-     */
-    public void setUnlockingParameters(byte[] unlockingParameters)
-    {
-        m_unlockingParameters = unlockingParameters;
     }
 
     /**
