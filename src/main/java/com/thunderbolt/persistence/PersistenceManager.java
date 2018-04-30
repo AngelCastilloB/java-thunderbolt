@@ -42,12 +42,12 @@ import java.nio.file.Paths;
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * The persistence manager handles storing and retrieving data and metadata for the network state (block and transaction
- * artifacts).
+ * The persistence manager is a naive approach at storing and retrieving data (and metadata) for the network state (block
+ * and transaction artifacts). We will need to improve upon this in the future.
  *
  * All the items are indexed by the ID in the system (the hash of the serialized data).
  *
- * At initialization time this class will load in memory the list of available blocks and the unspent transaction outputs.
+ * At initialization time this class will load in memory the list of available blocks and unspent transaction outputs.
  */
 public class PersistenceManager
 {
