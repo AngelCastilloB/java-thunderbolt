@@ -30,8 +30,11 @@ import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.blockchain.BlockHeader;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.network.NetworkParameters;
+import com.thunderbolt.persistence.PersistenceManager;
 import com.thunderbolt.security.*;
 import com.thunderbolt.transaction.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.math.BigInteger;
@@ -47,6 +50,8 @@ import java.util.HashMap;
  */
 public class Main
 {
+    private static final Logger s_logger = LoggerFactory.getLogger(Main.class);
+
     static EllipticCurveKeyPair s_genesisKeyPair     = new EllipticCurveKeyPair();
     static EllipticCurveKeyPair s_genesisKeyPair2    = new EllipticCurveKeyPair();
     static TransactionOutput    s_genesisOutput      = new TransactionOutput(BigInteger.valueOf(1500), OutputLockType.SingleSignature, s_genesisKeyPair.getPublicKey());
@@ -74,30 +79,6 @@ public class Main
 
         byte[] adressRaw = new byte[24];
         byte[] addressHash = Sha256Digester.sha256hash160(s_genesisKeyPair.getPublicKey());
-        // Single signature magic 84
-        // Multi signature magic 74
-        for (int i = 0; i < 255; ++i)
-        {
-            ByteBuffer o = ByteBuffer.wrap(adressRaw);
-
-            o.put((byte)84);
-            o.put((byte)i);
-            o.put(addressHash);
-
-            String base58 = Base58.encode(o.array());
-            System.out.println(base58);
-
-            if (base58.charAt(1) == 's')
-            {
-                System.out.println((int)i);
-                break;
-            }
-        }
-
-
-
-        //Tndrblt
-
 
         //writeFile("C:\\Users\\Angel\\Downloads\\genesisKey.bin", eCk.serialize());
 
@@ -166,7 +147,7 @@ public class Main
 
         boolean isValid = EllipticCurveProvider.verify(signatureData2.toByteArray(), signature1, out1.getLockingParameters());
 
-        System.out.println(String.format("Can spend: %b", isValid));
+        s_logger.debug(String.format("Can spend: %b", isValid));
 
         s_UXTOPoll.put(secondGenXt, recXt);
 
@@ -191,7 +172,8 @@ public class Main
         Block block2 = new Block(ByteBuffer.wrap(rawB));
 
         int a = 0;
-        System.out.println(String.format("Header hash: %s", block2.getHeaderHash()));
+
+        s_logger.debug(String.format("Header hash: %s", block2.getHeaderHash()));
 
         byte[] genesisRaw = NetworkParameters.createGenesis().serialize();
 
@@ -208,8 +190,8 @@ public class Main
             deserializedGenesis.getHeader().setNonce(deserializedGenesis.getHeader().getNonce() + 1);
             hash = deserializedGenesis.getHeaderHash().toBigInteger();
         }
-        System.out.println(String.format("Block solved! hash is lower than target difficulty (%d): %s > %s", deserializedGenesis.getHeader().getNonce(), genesisBlock.getHeaderHash(), Convert.toHexString(block2.getTargetDifficultyAsInteger().toByteArray())));
-
+        PersistenceManager.getInstance().persist(deserializedGenesis);
+        s_logger.debug(String.format("Block solved! hash is lower than target difficulty (%d): %s > %s", deserializedGenesis.getHeader().getNonce(), genesisBlock.getHeaderHash(), Convert.toHexString(block2.getTargetDifficultyAsInteger().toByteArray())));
     }
 
     /**
