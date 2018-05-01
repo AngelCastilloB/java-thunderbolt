@@ -26,7 +26,9 @@ package com.thunderbolt.transaction;
 // IMPORTS ************************************************************/
 
 import com.thunderbolt.common.ISerializable;
+import com.thunderbolt.common.NumberSerializer;
 
+import java.awt.font.NumericShaper;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -86,12 +88,10 @@ public class TransactionInput implements ISerializable
     @Override
     public byte[] serialize() throws IOException
     {
-        byte[] sequenceBytes = ByteBuffer.allocate(SEQUENCE_TYPE_SIZE).putInt(getSequence()).array();
-
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
         data.write(getPreviousOutput().serialize());
-        data.write(sequenceBytes);
+        data.write(NumberSerializer.serialize(m_sequence));
 
         return data.toByteArray();
     }

@@ -26,6 +26,7 @@ package com.thunderbolt.transaction;
 // IMPORTS ************************************************************/
 
 import com.thunderbolt.common.ISerializable;
+import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
 import com.thunderbolt.security.Sha256Digester;
 
@@ -41,11 +42,6 @@ import java.util.ArrayList;
  */
 public class Transaction implements ISerializable
 {
-    // Constants
-    private static final int VERSION_SIZE           = 4;
-    private static final int TRANSACTION_COUNT_SIZE = 4;
-    private static final int LOCK_TIME_COUNT_SIZE   = 8;
-
     // Instance Fields
     private int                          m_version             = 0;
     private ArrayList<TransactionInput>  m_inputs              = new ArrayList<>();
@@ -210,13 +206,8 @@ public class Transaction implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        byte[] versionBytes      = ByteBuffer.allocate(VERSION_SIZE).putInt(getVersion()).array();
-        byte[] inputSizeBytes    = ByteBuffer.allocate(TRANSACTION_COUNT_SIZE).putInt(getInputs().size()).array();
-        byte[] outputSizeBytes   = ByteBuffer.allocate(TRANSACTION_COUNT_SIZE).putInt(getOutputs().size()).array();
-        byte[] lockTimeSizeBytes = ByteBuffer.allocate(LOCK_TIME_COUNT_SIZE).putLong(getLockTime()).array();
-
-        data.write(versionBytes);
-        data.write(inputSizeBytes);
+        data.write(NumberSerializer.serialize(m_version));
+        data.write(NumberSerializer.serialize(getInputs().size()));
 
         // The serialization method of the input transactions will skip the unlocking parameters (signature)
         // we need to make sure to serialize them at the end. We do this to remove the signatures from the
@@ -224,11 +215,11 @@ public class Transaction implements ISerializable
         for (int i = 0; i < getInputs().size(); ++i)
             data.write(m_inputs.get(i).serialize());
 
-        data.write(outputSizeBytes);
+        data.write(NumberSerializer.serialize(getOutputs().size()));
         for (int i = 0; i < getOutputs().size(); ++i)
             data.write(m_outputs.get(i).serialize());
 
-        data.write(lockTimeSizeBytes);
+        data.write(NumberSerializer.serialize(m_lockTime));
 
         return data.toByteArray();
     }
@@ -243,13 +234,8 @@ public class Transaction implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        byte[] versionBytes      = ByteBuffer.allocate(VERSION_SIZE).putInt(getVersion()).array();
-        byte[] inputSizeBytes    = ByteBuffer.allocate(TRANSACTION_COUNT_SIZE).putInt(getInputs().size()).array();
-        byte[] outputSizeBytes   = ByteBuffer.allocate(TRANSACTION_COUNT_SIZE).putInt(getOutputs().size()).array();
-        byte[] lockTimeSizeBytes = ByteBuffer.allocate(LOCK_TIME_COUNT_SIZE).putLong(getLockTime()).array();
-
-        data.write(versionBytes);
-        data.write(inputSizeBytes);
+        data.write(NumberSerializer.serialize(m_version));
+        data.write(NumberSerializer.serialize(getInputs().size()));
 
         // The serialization method of the input transactions will skip the unlocking parameters (signature)
         // we need to make sure to serialize them at the end. We do this to remove the signatures from the
@@ -257,11 +243,11 @@ public class Transaction implements ISerializable
         for (int i = 0; i < getInputs().size(); ++i)
             data.write(m_inputs.get(i).serialize());
 
-        data.write(outputSizeBytes);
+        data.write(NumberSerializer.serialize(getOutputs().size()));
         for (int i = 0; i < getOutputs().size(); ++i)
             data.write(m_outputs.get(i).serialize());
 
-        data.write(lockTimeSizeBytes);
+        data.write(NumberSerializer.serialize(m_lockTime));
 
         // Serialize the unlocking parameters (witness data).
         for (int i = 0; i < getInputs().size(); ++i)

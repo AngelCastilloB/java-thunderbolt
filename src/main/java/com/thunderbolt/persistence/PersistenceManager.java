@@ -54,12 +54,13 @@ public class PersistenceManager
     private static final Logger s_logger = LoggerFactory.getLogger(PersistenceManager.class);
 
     // Constants
-    static private final String USER_HOME_PATH                   = System.getProperty("user.home");
-    static private final String THUNDERBOLT_DATA_FOLDER_NAME     = ".thunderbolt";
-    static private final Path   THUNDERBOLT_DEFAULT_PATH         = Paths.get(USER_HOME_PATH, THUNDERBOLT_DATA_FOLDER_NAME);
-    static private final Path   THUNDERBOLT_BLOCKS_PATH          = Paths.get(THUNDERBOLT_DEFAULT_PATH.toString(), "blocks");
-    static private final Path   THUNDERBOLT_BLOCKS_METADATA_PATH = Paths.get(THUNDERBOLT_BLOCKS_PATH.toString(), "index");
-    static private final Path   THUNDERBOLT_STATE_PATH           = Paths.get(THUNDERBOLT_DEFAULT_PATH.toString(), "state");
+    static private final String USER_HOME_PATH       = System.getProperty("user.home");
+    static private final String DATA_FOLDER_NAME     = ".thunderbolt";
+    static private final Path   DEFAULT_PATH         = Paths.get(USER_HOME_PATH, DATA_FOLDER_NAME);
+    static private final Path   BLOCKS_PATH          = Paths.get(DEFAULT_PATH.toString(), "blocks");
+    static private final Path   BLOCKS_METADATA_PATH = Paths.get(BLOCKS_PATH.toString(), "manifest");
+    static private final Path   STATE_PATH           = Paths.get(DEFAULT_PATH.toString(), "state");
+    static private final int    BLOCKS_PER_FILE      = 128;
 
     private static final PersistenceManager instance = new PersistenceManager();
 
@@ -71,22 +72,10 @@ public class PersistenceManager
         s_logger.debug("Initializing persistence manager...");
 
         // Initialize.
-        if (!THUNDERBOLT_BLOCKS_PATH.toFile().exists())
+        if (!BLOCKS_PATH.toFile().exists())
         {
-            s_logger.debug(String.format("Block data folder '%s' does not exist. Creating...",THUNDERBOLT_BLOCKS_PATH.toString()));
-            THUNDERBOLT_BLOCKS_PATH.toFile().mkdirs();
-        }
-
-        if (!THUNDERBOLT_BLOCKS_METADATA_PATH.toFile().exists())
-        {
-            s_logger.debug(String.format("Block metadata folder '%s' does not exist. Creating...",THUNDERBOLT_BLOCKS_METADATA_PATH.toString()));
-            THUNDERBOLT_BLOCKS_METADATA_PATH.toFile().mkdirs();
-        }
-
-        if (!THUNDERBOLT_STATE_PATH.toFile().exists())
-        {
-            s_logger.debug(String.format("State data folder '%s' does not exist. Creating...",THUNDERBOLT_STATE_PATH.toString()));
-            THUNDERBOLT_STATE_PATH.toFile().mkdirs();
+            s_logger.debug(String.format("Block data folder '%s' does not exist. Creating...", BLOCKS_PATH.toString()));
+            BLOCKS_PATH.toFile().mkdirs();
         }
     }
 
@@ -105,9 +94,9 @@ public class PersistenceManager
      */
     public void persist(Block block) throws IOException
     {
-        writeFile(Paths.get(THUNDERBOLT_BLOCKS_PATH.toString(), "bkl0001.dat").toString(), block.serialize());
+        writeFile(Paths.get(BLOCKS_PATH.toString(), "bkl0001.dat").toString(), block.serialize());
 
-        s_logger.debug(String.format("File saved to %s", Paths.get(THUNDERBOLT_BLOCKS_PATH.toString(), "bkl0001.dat").toString()));
+        s_logger.debug(String.format("File saved to %s", Paths.get(BLOCKS_PATH.toString(), "bkl0001.dat").toString()));
     }
 
     /**

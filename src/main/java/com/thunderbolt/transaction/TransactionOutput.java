@@ -26,6 +26,7 @@ package com.thunderbolt.transaction;
 // IMPORTS ************************************************************/
 
 import com.thunderbolt.common.ISerializable;
+import com.thunderbolt.common.NumberSerializer;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -39,9 +40,6 @@ import java.nio.ByteBuffer;
  */
 public class TransactionOutput implements ISerializable
 {
-    // Constants
-    private static final int LOCK_TYPE_SIZE   = 4;
-
     // Instance Fields
     private BigInteger     m_amount;
     private byte[]         m_lockingParameters;
@@ -152,8 +150,7 @@ public class TransactionOutput implements ISerializable
     @Override
     public byte[] serialize() throws IOException
     {
-        byte[] amountBytes           = m_amount.toByteArray();
-        byte[] lockingParamSizeBytes = ByteBuffer.allocate(LOCK_TYPE_SIZE).putInt(m_lockingParameters.length).array();
+        byte[] amountBytes = m_amount.toByteArray();
 
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
@@ -168,7 +165,7 @@ public class TransactionOutput implements ISerializable
 
         data.write(amountBytes);
         data.write(m_type.getValue());
-        data.write(lockingParamSizeBytes);
+        data.write(NumberSerializer.serialize(m_lockingParameters.length));
         data.write(m_lockingParameters);
 
         return data.toByteArray();

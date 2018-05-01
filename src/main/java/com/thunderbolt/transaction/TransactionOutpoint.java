@@ -26,6 +26,7 @@ package com.thunderbolt.transaction;
 // IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.ISerializable;
+import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
 
 import java.io.ByteArrayOutputStream;
@@ -41,7 +42,6 @@ public class TransactionOutpoint implements ISerializable
 {
     // Constants
     private static final int HASH_LENGTH  = 32;
-    private static final int INDEX_LENGTH = 4;
 
     //Instance Fields
     private Hash m_refHash = new Hash();
@@ -130,11 +130,9 @@ public class TransactionOutpoint implements ISerializable
     @Override
     public byte[] serialize() throws IOException
     {
-        byte[] indexBytes = ByteBuffer.allocate(INDEX_LENGTH).putInt(m_index).array();
-
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        data.write(indexBytes);
+        data.write(NumberSerializer.serialize(m_index));
         data.write(m_refHash.serialize());
 
         return data.toByteArray();

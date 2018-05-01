@@ -27,6 +27,7 @@ package com.thunderbolt.blockchain;
 
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.ISerializable;
+import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
 import com.thunderbolt.security.Sha256Digester;
 import com.thunderbolt.transaction.Transaction;
@@ -147,12 +148,20 @@ public class Block implements ISerializable
      * Gets the hash of the block header.
      *
      * @return The hash of this block's header.
-     *
-     * @throws IOException If there is an error reading the block header serialized data.
      */
-    public Hash getHeaderHash() throws IOException
+    public Hash getHeaderHash()
     {
-        return m_header.getHash();
+        Hash headerHash = new Hash();
+        try
+        {
+            headerHash = m_header.getHash();
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+
+        return headerHash;
     }
 
     /**
@@ -202,10 +211,8 @@ public class Block implements ISerializable
 
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        byte[] transactionCountBytes = ByteBuffer.allocate(Integer.BYTES).putInt(m_transactions.size()).array();
-
         data.write(m_header.serialize());
-        data.write(transactionCountBytes);
+        data.write(NumberSerializer.serialize(m_transactions.size()));
 
         for (Transaction transaction : m_transactions)
             data.write(transaction.serialize());

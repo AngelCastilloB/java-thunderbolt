@@ -52,6 +52,7 @@ public class NetworkParameters implements Serializable
     static private final long       MAIN_NET_PACKET_MAGIC                 = 0x746e6470;
     static private final long       MAIN_NET_SUBSIDY_HALVING_INTERVAL     = 210000;
     static private final BigInteger MAIN_NET_SUBSIDY_STARTING_VALUE       = BigInteger.valueOf(5000000000L);
+    static private final long       MAIN_NET_BLOCK_SIZE                   = 1024 * 1000  * 2; // 2 Megabyte blocks
 
     // Instance fields
     private Block      m_genesisBlock;
@@ -63,6 +64,11 @@ public class NetworkParameters implements Serializable
     private int        m_interval;
     private int        m_targetTimespan;
     private int        m_protocol;
+    private long       m_blockSize;
+
+    // Public static fields.
+    // TODO: remove this.
+    static public NetworkParameters currentNet = NetworkParameters.mainNet();
 
     /**
      * Creates the Genesis block.
@@ -107,7 +113,7 @@ public class NetworkParameters implements Serializable
      *
      * @throws IOException IO exceptions.
      */
-    public static NetworkParameters mainNet() throws IOException
+    public static NetworkParameters mainNet()
     {
         NetworkParameters parameters = new NetworkParameters();
 
@@ -118,6 +124,7 @@ public class NetworkParameters implements Serializable
         parameters.m_multiSignatureAddressHeader  = MAIN_NET_MULTI_SIGNATURE_PREFIX;
         parameters.m_interval                     = MAIN_NET_INTERVAL;
         parameters.m_targetTimespan               = MAIN_NET_TARGET_TIMESPAN;
+        parameters.m_blockSize                    = MAIN_NET_BLOCK_SIZE;
         parameters.m_genesisBlock                 = createGenesis();
 
         String genesisHash = parameters.getGenesisBlock().getHeaderHash().toString();
@@ -175,6 +182,16 @@ public class NetworkParameters implements Serializable
     public int getPort()
     {
         return m_port;
+    }
+
+    /**
+     * Returns the network maximum block size in bytes.
+     *
+     * @return The block size.
+     */
+    public long getBlockMaxSize()
+    {
+        return m_blockSize;
     }
 
     /**

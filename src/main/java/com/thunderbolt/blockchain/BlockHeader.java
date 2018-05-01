@@ -26,9 +26,11 @@ package com.thunderbolt.blockchain;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.ISerializable;
+import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
 import com.thunderbolt.security.Sha256Digester;
 
+import java.awt.font.NumericShaper;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -253,14 +255,10 @@ public class BlockHeader implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        byte[] versionBytes   = ByteBuffer.allocate(Integer.BYTES).putInt(m_version).array();
-        byte[] timeStampBytes = ByteBuffer.allocate(Long.BYTES).putLong(m_timeStamp).array();
-        byte[] nonceBytes     = ByteBuffer.allocate(Long.BYTES).putLong(m_nonce).array();
-
-        data.write(versionBytes);
+        data.write(NumberSerializer.serialize(m_version));
         data.write(m_parentBlock.getData());
         data.write(m_markleRoot.getData());
-        data.write(timeStampBytes);
+        data.write(NumberSerializer.serialize(m_timeStamp));
 
         // Serialize m_bits as unsigned int (from long).
         int intBits = (int)m_bits;
@@ -269,7 +267,7 @@ public class BlockHeader implements ISerializable
         data.write((byte) ((intBits & 0x0000FF00) >> 8));
         data.write((byte) ((intBits & 0x000000FF)));
 
-        data.write(nonceBytes);
+        data.write(NumberSerializer.serialize(m_nonce));
 
         return data.toByteArray();
     }
