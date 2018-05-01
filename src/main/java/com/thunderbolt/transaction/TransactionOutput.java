@@ -148,7 +148,7 @@ public class TransactionOutput implements ISerializable
      * @return The serialized object.
      */
     @Override
-    public byte[] serialize() throws IOException
+    public byte[] serialize()
     {
         byte[] amountBytes = m_amount.toByteArray();
 
@@ -163,10 +163,17 @@ public class TransactionOutput implements ISerializable
                 data.write(0);
         }
 
-        data.write(amountBytes);
-        data.write(m_type.getValue());
-        data.write(NumberSerializer.serialize(m_lockingParameters.length));
-        data.write(m_lockingParameters);
+        try
+        {
+            data.write(amountBytes);
+            data.write(m_type.getValue());
+            data.write(NumberSerializer.serialize(m_lockingParameters.length));
+            data.write(m_lockingParameters);
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
 
         return data.toByteArray();
     }

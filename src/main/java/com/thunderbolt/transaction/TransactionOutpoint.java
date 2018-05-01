@@ -128,12 +128,20 @@ public class TransactionOutpoint implements ISerializable
      * @return The serialized representation of the outpoint.
      */
     @Override
-    public byte[] serialize() throws IOException
+    public byte[] serialize()
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        data.write(NumberSerializer.serialize(m_index));
-        data.write(m_refHash.serialize());
+        try
+        {
+            data.write(NumberSerializer.serialize(m_index));
+            data.write(m_refHash.serialize());
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+
 
         return data.toByteArray();
     }

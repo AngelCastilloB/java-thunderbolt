@@ -230,35 +230,42 @@ public class Transaction implements ISerializable
      * @return The serialized object.
      */
     @Override
-    public byte[] serialize() throws IOException
+    public byte[] serialize()
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        data.write(NumberSerializer.serialize(m_version));
-        data.write(NumberSerializer.serialize(getInputs().size()));
-
-        // The serialization method of the input transactions will skip the unlocking parameters (signature)
-        // we need to make sure to serialize them at the end. We do this to remove the signatures from the
-        // transaction id to avoid transaction malleability.
-        for (int i = 0; i < getInputs().size(); ++i)
-            data.write(m_inputs.get(i).serialize());
-
-        data.write(NumberSerializer.serialize(getOutputs().size()));
-        for (int i = 0; i < getOutputs().size(); ++i)
-            data.write(m_outputs.get(i).serialize());
-
-        data.write(NumberSerializer.serialize(m_lockTime));
-
-        // Serialize the unlocking parameters (witness data).
-        for (int i = 0; i < getInputs().size(); ++i)
+        try
         {
-            byte[] witnessDataSizeBytes = ByteBuffer
-                    .allocate(Integer.BYTES)
-                    .putInt(m_unlockingParameters.get(i).length)
-                    .array();
+            data.write(NumberSerializer.serialize(m_version));
+            data.write(NumberSerializer.serialize(getInputs().size()));
 
-            data.write(witnessDataSizeBytes);
-            data.write(m_unlockingParameters.get(i));
+            // The serialization method of the input transactions will skip the unlocking parameters (signature)
+            // we need to make sure to serialize them at the end. We do this to remove the signatures from the
+            // transaction id to avoid transaction malleability.
+            for (int i = 0; i < getInputs().size(); ++i)
+                data.write(m_inputs.get(i).serialize());
+
+            data.write(NumberSerializer.serialize(getOutputs().size()));
+            for (int i = 0; i < getOutputs().size(); ++i)
+                data.write(m_outputs.get(i).serialize());
+
+            data.write(NumberSerializer.serialize(m_lockTime));
+
+            // Serialize the unlocking parameters (witness data).
+            for (int i = 0; i < getInputs().size(); ++i)
+            {
+                byte[] witnessDataSizeBytes = ByteBuffer
+                        .allocate(Integer.BYTES)
+                        .putInt(m_unlockingParameters.get(i).length)
+                        .array();
+
+                data.write(witnessDataSizeBytes);
+                data.write(m_unlockingParameters.get(i));
+            }
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
         }
 
         return data.toByteArray();

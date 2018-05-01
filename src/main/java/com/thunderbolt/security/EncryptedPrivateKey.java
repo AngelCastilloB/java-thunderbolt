@@ -123,13 +123,20 @@ public class EncryptedPrivateKey implements ISerializable
      * @return The byte array with the encrypted data.
      */
     @Override
-    public byte[] serialize() throws IOException
+    public byte[] serialize()
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        data.write(m_iv);
-        data.write(m_salt);
-        data.write(m_encKeyBytes);
+        try
+        {
+            data.write(m_iv);
+            data.write(m_salt);
+            data.write(m_encKeyBytes);
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
 
         return data.toByteArray();
     }

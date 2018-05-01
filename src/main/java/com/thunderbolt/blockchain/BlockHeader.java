@@ -240,7 +240,7 @@ public class BlockHeader implements ISerializable
      *
      * @throws IOException If there is an error reading the serialized data.
      */
-    public Hash getHash() throws IOException
+    public Hash getHash()
     {
         return Sha256Digester.digest(serialize());
     }
@@ -251,23 +251,30 @@ public class BlockHeader implements ISerializable
      * @return The serialized object.
      */
     @Override
-    public byte[] serialize() throws IOException
+    public byte[] serialize()
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        data.write(NumberSerializer.serialize(m_version));
-        data.write(m_parentBlock.getData());
-        data.write(m_markleRoot.getData());
-        data.write(NumberSerializer.serialize(m_timeStamp));
+        try
+        {
+            data.write(NumberSerializer.serialize(m_version));
+            data.write(m_parentBlock.getData());
+            data.write(m_markleRoot.getData());
+            data.write(NumberSerializer.serialize(m_timeStamp));
 
-        // Serialize m_bits as unsigned int (from long).
-        int intBits = (int)m_bits;
-        data.write((byte) ((intBits & 0xFF000000) >> 24));
-        data.write((byte) ((intBits & 0x00FF0000) >> 16));
-        data.write((byte) ((intBits & 0x0000FF00) >> 8));
-        data.write((byte) ((intBits & 0x000000FF)));
+            // Serialize m_bits as unsigned int (from long).
+            int intBits = (int)m_bits;
+            data.write((byte) ((intBits & 0xFF000000) >> 24));
+            data.write((byte) ((intBits & 0x00FF0000) >> 16));
+            data.write((byte) ((intBits & 0x0000FF00) >> 8));
+            data.write((byte) ((intBits & 0x000000FF)));
 
-        data.write(NumberSerializer.serialize(m_nonce));
+            data.write(NumberSerializer.serialize(m_nonce));
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
 
         return data.toByteArray();
     }

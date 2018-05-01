@@ -151,16 +151,7 @@ public class Block implements ISerializable
      */
     public Hash getHeaderHash()
     {
-        Hash headerHash = new Hash();
-        try
-        {
-            headerHash = m_header.getHash();
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-
+        Hash headerHash = m_header.getHash();
         return headerHash;
     }
 
@@ -205,17 +196,25 @@ public class Block implements ISerializable
      * @return The serialized object.
      */
     @Override
-    public byte[] serialize() throws IOException
+    public byte[] serialize()
     {
         m_header.setMarkleRoot(calculateMerkleRoot());
 
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        data.write(m_header.serialize());
-        data.write(NumberSerializer.serialize(m_transactions.size()));
+        try
+        {
+            data.write(m_header.serialize());
+            data.write(NumberSerializer.serialize(m_transactions.size()));
 
-        for (Transaction transaction : m_transactions)
-            data.write(transaction.serialize());
+            for (Transaction transaction : m_transactions)
+                data.write(transaction.serialize());
+
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
 
         return data.toByteArray();
     }
@@ -244,14 +243,7 @@ public class Block implements ISerializable
 
         for (Transaction tx : m_transactions)
         {
-            try
-            {
-                tree.add(Sha256Digester.digest(tx.serialize()).getData());
-            }
-            catch (IOException e)
-            {
-                e.printStackTrace();
-            }
+            tree.add(Sha256Digester.digest(tx.serialize()).getData());
         }
 
         int levelOffset = 0;

@@ -43,8 +43,7 @@ import java.nio.ByteBuffer;
 public class BlockMetadata implements ISerializable
 {
     // Instance fields.
-    private Hash        m_hash;
-    private BlockHeader m_header;
+    private BlockHeader m_header = new BlockHeader();
     private long        m_height;
     private int         m_transactionCount;
     private byte        m_status;
@@ -56,9 +55,17 @@ public class BlockMetadata implements ISerializable
     /**
      * Creates a new instance of the BlockMetadata class.
      */
+    public BlockMetadata()
+    {
+    }
+
+    /**
+     * Creates a new instance of the BlockMetadata class.
+     *
+     * @param buffer A byte buffer containing a raw block metadata entry.
+     */
     public BlockMetadata(ByteBuffer buffer)
     {
-        m_hash               = new Hash(buffer);
         m_header             = new BlockHeader(buffer);
         m_height             = buffer.getLong();
         m_transactionCount   = buffer.getInt();
@@ -76,17 +83,7 @@ public class BlockMetadata implements ISerializable
      */
     public Hash getHash()
     {
-        return m_hash;
-    }
-
-    /**
-     * Sets the hash of the block (this is the key this metadata in the database).
-     *
-     * @param hash The hash of the block.
-     */
-    public void setHash(Hash hash)
-    {
-        m_hash = hash;
+        return m_header.getHash();
     }
 
     /**
@@ -255,19 +252,25 @@ public class BlockMetadata implements ISerializable
      * @return The serialized object.
      */
     @Override
-    public byte[] serialize() throws IOException
+    public byte[] serialize()
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        data.write(m_hash.serialize());
-        data.write(m_header.serialize());
-        data.write(NumberSerializer.serialize(m_height));
-        data.write(NumberSerializer.serialize(m_transactionCount));
-        data.write(m_status);
-        data.write(NumberSerializer.serialize(m_blockFile));
-        data.write(NumberSerializer.serialize(m_blockFilePosition));
-        data.write(NumberSerializer.serialize(m_revertFile));
-        data.write(NumberSerializer.serialize(m_revertFilePosition));
+        try
+        {
+            data.write(m_header.serialize());
+            data.write(NumberSerializer.serialize(m_height));
+            data.write(NumberSerializer.serialize(m_transactionCount));
+            data.write(m_status);
+            data.write(NumberSerializer.serialize(m_blockFile));
+            data.write(NumberSerializer.serialize(m_blockFilePosition));
+            data.write(NumberSerializer.serialize(m_revertFile));
+            data.write(NumberSerializer.serialize(m_revertFilePosition));
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
 
         return data.toByteArray();
     }

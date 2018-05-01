@@ -86,12 +86,19 @@ public class TransactionInput implements ISerializable
      * will be serialized outside the transaction to avoid transaction malleability.
      */
     @Override
-    public byte[] serialize() throws IOException
+    public byte[] serialize()
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        data.write(getPreviousOutput().serialize());
-        data.write(NumberSerializer.serialize(m_sequence));
+        try
+        {
+            data.write(getPreviousOutput().serialize());
+            data.write(NumberSerializer.serialize(m_sequence));
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
 
         return data.toByteArray();
     }

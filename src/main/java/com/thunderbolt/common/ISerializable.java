@@ -25,8 +25,6 @@ package com.thunderbolt.common;
 
 /* IMPLEMENTATION ************************************************************/
 
-import java.io.IOException;
-
 /**
  * Instance implementing this interface can be serialized in raw byte format.
  */
@@ -37,5 +35,5 @@ public interface ISerializable
      *
      * @return The serialized object.
      */
-    byte[] serialize() throws IOException;
+    byte[] serialize();
 }

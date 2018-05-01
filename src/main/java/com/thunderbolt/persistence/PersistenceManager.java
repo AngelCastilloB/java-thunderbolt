@@ -54,13 +54,13 @@ public class PersistenceManager
     private static final Logger s_logger = LoggerFactory.getLogger(PersistenceManager.class);
 
     // Constants
-    static private final String USER_HOME_PATH       = System.getProperty("user.home");
-    static private final String DATA_FOLDER_NAME     = ".thunderbolt";
-    static private final Path   DEFAULT_PATH         = Paths.get(USER_HOME_PATH, DATA_FOLDER_NAME);
-    static private final Path   BLOCKS_PATH          = Paths.get(DEFAULT_PATH.toString(), "blocks");
-    static private final Path   BLOCKS_METADATA_PATH = Paths.get(BLOCKS_PATH.toString(), "manifest");
-    static private final Path   STATE_PATH           = Paths.get(DEFAULT_PATH.toString(), "state");
-    static private final int    BLOCKS_PER_FILE      = 128;
+    static public final String USER_HOME_PATH       = System.getProperty("user.home");
+    static public final String DATA_FOLDER_NAME     = ".thunderbolt";
+    static public final Path   DEFAULT_PATH         = Paths.get(USER_HOME_PATH, DATA_FOLDER_NAME);
+    static public final Path   BLOCKS_PATH          = Paths.get(DEFAULT_PATH.toString(), "blocks");
+    static public final Path   BLOCKS_METADATA_PATH = Paths.get(BLOCKS_PATH.toString(), "manifest");
+    static public final Path   STATE_PATH           = Paths.get(DEFAULT_PATH.toString(), "state");
+    static public final int    BLOCKS_PER_FILE      = 128;
 
     private static final PersistenceManager instance = new PersistenceManager();
 

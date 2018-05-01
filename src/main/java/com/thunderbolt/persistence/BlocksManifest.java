@@ -25,6 +25,17 @@ package com.thunderbolt.persistence;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.NumberSerializer;
+import com.thunderbolt.security.Hash;
+import org.iq80.leveldb.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static org.iq80.leveldb.impl.Iq80DBFactory.*;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+
 /* IMPLEMENTATION ************************************************************/
 
 /**
@@ -32,5 +43,71 @@ package com.thunderbolt.persistence;
  */
 public class BlocksManifest
 {
+    private static final Logger s_logger = LoggerFactory.getLogger(BlocksManifest.class);
 
+    /**
+     * Gets the metadata entry from the manifest.
+     *
+     * @param blockId The hash of the block header.
+     *
+     * @return The block metadata.
+     *
+     * @throws IOException If there is any IO error.
+     */
+    public static BlockMetadata getMetadata(Hash blockId) throws IOException
+    {
+        BlockMetadata metadata;
+
+        Options options = new Options();
+        options.createIfMissing(true);
+        DB db = factory.open(PersistenceManager.BLOCKS_METADATA_PATH.toFile(), options);
+
+        try
+        {
+            metadata = new BlockMetadata(ByteBuffer.wrap(db.get(blockId.serialize())));
+        }
+        finally
+        {
+            db.close();
+        }
+
+        return metadata;
+    }
+
+    /**
+     * Adds a block metadata entry to the manifest.
+     *
+     * @param metadata The metadata to be added.
+     *
+     * @throws IOException If there is any IO error.
+     */
+    public static void addBlockMetadata(BlockMetadata metadata) throws IOException
+    {
+        Options options = new Options();
+        options.createIfMissing(true);
+        DB db = factory.open(PersistenceManager.BLOCKS_METADATA_PATH.toFile(), options);
+
+        try
+        {
+            int lastFile = 0;
+
+            // If the entry "l" does not exists create it.
+            try
+            {
+                lastFile = ByteBuffer.wrap(db.get(bytes("l"))).getInt();
+            }
+            catch (Exception e)
+            {
+                s_logger.debug(e.toString());
+                db.put(bytes("l"), NumberSerializer.serialize(lastFile));
+            }
+
+            //String fileKey = String.format("block%05d.bin", lastFile);
+            db.put(metadata.getHeader().getHash().serialize(), metadata.serialize());
+        }
+        finally
+        {
+            db.close();
+        }
+    }
 }
