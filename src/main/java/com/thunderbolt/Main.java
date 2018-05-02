@@ -71,6 +71,9 @@ public class Main
         Block genesisBlock = NetworkParameters.createGenesis();
         s_genesisTransaction.getOutputs().add(s_genesisOutput);
 
+        PersistenceManager.getInstance().persist(genesisBlock);
+
+        Block loaded = PersistenceManager.getInstance().get(genesisBlock.getHeaderHash());
 
         BlockMetadata metadata = new BlockMetadata();
         metadata.setHeader(genesisBlock.getHeader());

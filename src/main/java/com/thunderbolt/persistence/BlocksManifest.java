@@ -33,17 +33,103 @@ import org.slf4j.LoggerFactory;
 
 import static org.iq80.leveldb.impl.Iq80DBFactory.*;
 
-import java.io.IOException;
+import java.io.*;
 import java.nio.ByteBuffer;
 
 /* IMPLEMENTATION ************************************************************/
 
 /**
  * Data structure that holds how are the blocks stored in disk. (which file and at what index).
+ *
+ * TODO: We need to make this class an instance so we can unit test the Persistence manager. Right now
+ * it is a bunch of naive static methods. We need to improve this in the near future.
  */
 public class BlocksManifest
 {
     private static final Logger s_logger = LoggerFactory.getLogger(BlocksManifest.class);
+
+    /**
+     * Initializes the block manifest by creating the block metadata database.
+     */
+    public static void initialize()
+    {
+        updateLastFile(0);
+    }
+
+    /**
+     * Updates the laset used file in the database.
+     *
+     * @param number The last used file.
+     */
+    public static boolean updateLastFile(int number)
+    {
+        Options options = new Options();
+        options.createIfMissing(true);
+        DB db = null;
+
+        try
+        {
+            db = factory.open(PersistenceManager.BLOCKS_METADATA_PATH.toFile(), options);
+            db.put(bytes("l"), NumberSerializer.serialize(number));
+        }
+        catch (IOException e)
+        {
+            s_logger.debug(e.toString());
+            return false;
+        }
+        finally
+        {
+            try
+            {
+                db.close();
+            }
+            catch (IOException e)
+            {
+                s_logger.debug(e.toString());
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Gets the name of the last used block.
+     *
+     * @return The name of the last used block.
+     */
+    public static int getLastUsedFile() throws IOException
+    {
+        int     lastFile = 0;
+        Options options  = new Options();
+
+        try (DB db = factory.open(PersistenceManager.BLOCKS_METADATA_PATH.toFile(), options))
+        {
+            lastFile = ByteBuffer.wrap(db.get(bytes("l"))).getInt();
+        }
+
+        return lastFile;
+    }
+
+    /**
+     * Gets the next blocks file name.
+     *
+     * @return Returns the name of the new blocks file.
+     */
+    public static int getNextBlocksFileName() throws IOException
+    {
+        int     lastFile = 0;
+        Options options  = new Options();
+
+        try (DB db = factory.open(PersistenceManager.BLOCKS_METADATA_PATH.toFile(), options))
+        {
+            lastFile = ByteBuffer.wrap(db.get(bytes("l"))).getInt();
+            ++lastFile;
+
+            db.put(bytes("l"), NumberSerializer.serialize(lastFile));
+        }
+
+        return lastFile;
+    }
 
     /**
      * Gets the metadata entry from the manifest.
@@ -60,15 +146,12 @@ public class BlocksManifest
 
         Options options = new Options();
         options.createIfMissing(true);
-        DB db = factory.open(PersistenceManager.BLOCKS_METADATA_PATH.toFile(), options);
 
-        try
+        try (DB db = factory.open(PersistenceManager.BLOCKS_METADATA_PATH.toFile(), options))
         {
-            metadata = new BlockMetadata(ByteBuffer.wrap(db.get(blockId.serialize())));
-        }
-        finally
-        {
-            db.close();
+            byte[] rawHash = db.get(blockId.serialize());
+
+            metadata = new BlockMetadata(ByteBuffer.wrap(rawHash));
         }
 
         return metadata;
@@ -85,29 +168,12 @@ public class BlocksManifest
     {
         Options options = new Options();
         options.createIfMissing(true);
-        DB db = factory.open(PersistenceManager.BLOCKS_METADATA_PATH.toFile(), options);
 
-        try
+        try (DB db = factory.open(PersistenceManager.BLOCKS_METADATA_PATH.toFile(), options))
         {
-            int lastFile = 0;
-
-            // If the entry "l" does not exists create it.
-            try
-            {
-                lastFile = ByteBuffer.wrap(db.get(bytes("l"))).getInt();
-            }
-            catch (Exception e)
-            {
-                s_logger.debug(e.toString());
-                db.put(bytes("l"), NumberSerializer.serialize(lastFile));
-            }
-
-            //String fileKey = String.format("block%05d.bin", lastFile);
             db.put(metadata.getHeader().getHash().serialize(), metadata.serialize());
         }
-        finally
-        {
-            db.close();
-        }
+
+        s_logger.debug(String.format("Metadata added for block '%s'", metadata.getHash()));
     }
 }

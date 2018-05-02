@@ -48,9 +48,9 @@ public class BlockMetadata implements ISerializable
     private int         m_transactionCount;
     private byte        m_status;
     private int         m_blockFile;
-    private int         m_blockFilePosition;
+    private long        m_blockFilePosition;
     private int         m_revertFile;
-    private int         m_revertFilePosition;
+    private long        m_revertFilePosition;
 
     /**
      * Creates a new instance of the BlockMetadata class.
@@ -71,9 +71,9 @@ public class BlockMetadata implements ISerializable
         m_transactionCount   = buffer.getInt();
         m_status             = buffer.get();
         m_blockFile          = buffer.getInt();
-        m_blockFilePosition  = buffer.getInt();
+        m_blockFilePosition  = buffer.getLong();
         m_revertFile         = buffer.getInt();
-        m_revertFilePosition = buffer.getInt();
+        m_revertFilePosition = buffer.getLong();
     }
 
     /**
@@ -191,7 +191,7 @@ public class BlockMetadata implements ISerializable
      *
      * @return The position in the file where this block is stored.
      */
-    public int getBlockFilePosition()
+    public long getBlockFilePosition()
     {
         return m_blockFilePosition;
     }
@@ -201,7 +201,7 @@ public class BlockMetadata implements ISerializable
      *
      * @param position The position in the file where this block is stored.
      */
-    public void setBlockFilePosition(int position)
+    public void setBlockFilePosition(long position)
     {
         m_blockFilePosition = position;
     }
@@ -231,7 +231,7 @@ public class BlockMetadata implements ISerializable
      *
      * @return The position in the file where this block revert data is stored.
      */
-    public int getRevertFilePosition()
+    public long getRevertFilePosition()
     {
         return m_revertFilePosition;
     }
@@ -241,7 +241,7 @@ public class BlockMetadata implements ISerializable
      *
      * @param file The position in the file where this block revert data is stored.
      */
-    public void setRevertFilePosition(int file)
+    public void setRevertFilePosition(long file)
     {
         m_revertFilePosition = file;
     }

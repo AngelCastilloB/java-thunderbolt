@@ -123,6 +123,16 @@ public class Block implements ISerializable
     }
 
     /**
+     * Gets the number of transactions in this block.
+     *
+     * @return The number of transactions in the block.
+     */
+    public int getTransactionsCount()
+    {
+        return m_transactions.size();
+    }
+
+    /**
      * Sets the blocks transactions.
      *
      * @param transactions The transactions in this block.

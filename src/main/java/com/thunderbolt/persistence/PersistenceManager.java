@@ -26,16 +26,16 @@ package com.thunderbolt.persistence;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.blockchain.Block;
+import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
 import com.thunderbolt.transaction.Transaction;
 import com.thunderbolt.transaction.TransactionOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -48,6 +48,9 @@ import java.nio.file.Paths;
  * All the items are indexed by the ID in the system (the hash of the serialized data).
  *
  * At initialization time this class will load in memory the list of available blocks and unspent transaction outputs.
+ *
+ * TODO: We need to improve this class to make it unit testable. Right now is just a bunch of naive methods for storing
+ * and retrieving blocks.
  */
 public class PersistenceManager
 {
@@ -60,8 +63,10 @@ public class PersistenceManager
     static public final Path   BLOCKS_PATH          = Paths.get(DEFAULT_PATH.toString(), "blocks");
     static public final Path   BLOCKS_METADATA_PATH = Paths.get(BLOCKS_PATH.toString(), "manifest");
     static public final Path   STATE_PATH           = Paths.get(DEFAULT_PATH.toString(), "state");
-    static public final int    BLOCKS_PER_FILE      = 128;
+    static public final long   BLOCKS_FILE_SIZE     = 1024 * 1000 * 128 ; // 128 MB
+    static private final int   BLOCKS_FILE_MAGIC    = 0xAAAAAAAA;
 
+    // Singleton Instance
     private static final PersistenceManager instance = new PersistenceManager();
 
     /**
@@ -76,6 +81,9 @@ public class PersistenceManager
         {
             s_logger.debug(String.format("Block data folder '%s' does not exist. Creating...", BLOCKS_PATH.toString()));
             BLOCKS_PATH.toFile().mkdirs();
+
+            s_logger.debug("Initializing block manifest...");
+            BlocksManifest.initialize();
         }
     }
 
@@ -94,17 +102,102 @@ public class PersistenceManager
      */
     public void persist(Block block) throws IOException
     {
-        writeFile(Paths.get(BLOCKS_PATH.toString(), "bkl0001.dat").toString(), block.serialize());
+        int    lastBlock       = BlocksManifest.getLastUsedFile();
+        long   position        = 0;
+        byte[] serializedBlock = block.serialize();
 
-        s_logger.debug(String.format("File saved to %s", Paths.get(BLOCKS_PATH.toString(), "bkl0001.dat").toString()));
+        File file = Paths.get(PersistenceManager.BLOCKS_PATH.toString(), String.format("block%05d.bin", lastBlock)).toFile();
+
+        if (file.exists())
+        {
+            long size = file.length();
+
+            // If writing this block to the blocks store file makes the file bigger than we expect; create a new file.
+            if (size + serializedBlock.length > BLOCKS_FILE_SIZE)
+            {
+                s_logger.debug(String.format("File %s is already full, creating new file...", lastBlock));
+
+                lastBlock = BlocksManifest.getNextBlocksFileName();
+
+                file = Paths.get(PersistenceManager.BLOCKS_PATH.toString(), String.format("block%05d.bin", lastBlock)).toFile();
+
+                FileOutputStream fileStream = new FileOutputStream(new File(file.toString()), true);
+
+                fileStream.write(NumberSerializer.serialize(BLOCKS_FILE_MAGIC));
+                fileStream.write(NumberSerializer.serialize(serializedBlock.length));
+                fileStream.write(serializedBlock);
+                fileStream.close();
+            }
+            else
+            {
+                position = size;
+                FileOutputStream fileStream = new FileOutputStream(new File(file.toString()), true);
+
+                fileStream.write(NumberSerializer.serialize(BLOCKS_FILE_MAGIC));
+                fileStream.write(NumberSerializer.serialize(serializedBlock.length));
+                fileStream.write(serializedBlock);
+                fileStream.close();
+            }
+        }
+        else
+        {
+            FileOutputStream fileStream = new FileOutputStream(new File(file.toString()), true);
+
+            fileStream.write(NumberSerializer.serialize(BLOCKS_FILE_MAGIC));
+            fileStream.write(NumberSerializer.serialize(serializedBlock.length));
+            fileStream.write(serializedBlock);
+            fileStream.close();
+        }
+
+        s_logger.debug(String.format("File saved to '%s', position '%s'", String.format("block%05d.bin", lastBlock), position));
+
+        BlockMetadata metadata = new BlockMetadata();
+
+        metadata.setHeader(block.getHeader());
+        metadata.setBlockFile(lastBlock);
+        metadata.setBlockFilePosition(position);
+        metadata.setTransactionCount(block.getTransactionsCount());
+
+        /*
+        metadata.setRevertFile(lastBlock);
+        metadata.setRevertFilePosition(position);
+        metadata.setStatus(0);
+        metadata.setHeight();
+        */
+
+        BlocksManifest.addBlockMetadata(metadata);
     }
 
     /**
      * Gets the Block with the given hash.
      */
-    public Block get(Hash hash)
+    public Block get(Hash hash) throws IOException
     {
-        return new Block();
+        BlockMetadata metadata = BlocksManifest.getMetadata(hash);
+
+        Path filePath = Paths.get(
+                PersistenceManager.BLOCKS_PATH.toString(),
+                String.format("block%05d.bin", metadata.getBlockFile()));
+
+        InputStream data = Files.newInputStream(filePath);
+        data.skip(metadata.getBlockFilePosition());
+
+        byte[] entryHeader = new byte[Integer.BYTES * 2];
+        data.read(entryHeader, 0, Integer.BYTES * 2);
+
+        ByteBuffer buffer = ByteBuffer.wrap(entryHeader);
+        int magic = buffer.getInt();
+        int size  = buffer.getInt();
+
+        if (magic != BLOCKS_FILE_MAGIC)
+            throw new IOException("Invalid magic header.");
+
+        byte[] rawBlock = new byte[size];
+        data.read(rawBlock, 0, size);
+
+        Block block = new Block(ByteBuffer.wrap(rawBlock));
+
+        return block;
     }
 
     /**
