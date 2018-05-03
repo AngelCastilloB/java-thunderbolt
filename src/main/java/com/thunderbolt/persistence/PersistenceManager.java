@@ -29,6 +29,7 @@ import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
 import com.thunderbolt.transaction.Transaction;
+import com.thunderbolt.transaction.TransactionInput;
 import com.thunderbolt.transaction.TransactionOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,8 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -76,6 +79,7 @@ public class PersistenceManager
     {
         s_logger.debug("Initializing persistence manager...");
 
+        s_logger.debug(BLOCKS_PATH.toString());
         // Initialize.
         if (!BLOCKS_PATH.toFile().exists())
         {
@@ -99,12 +103,42 @@ public class PersistenceManager
 
     /**
      * Persist the given block. The block will be indexed by its block id (hash).
+     *
+     * @param height The height of this block.
      */
-    public void persist(Block block) throws IOException
+    public void persist(Block block, int height) throws IOException
     {
         int    lastBlock       = BlocksManifest.getLastUsedFile();
         long   position        = 0;
         byte[] serializedBlock = block.serialize();
+
+        // The list of unspent transaction outputs this blocks spends.
+        List<UnspentTransactionOutput> unspentTransactionOutputs = new ArrayList<>();
+
+        for (int i = 0; i < block.getTransactionsCount(); ++i)
+        {
+            Transaction transaction = block.getTransaction(i);
+
+            // We ignore coinbase transactions since they dont spent any previous outputs.
+            if (transaction.isCoinBase())
+                continue;
+
+            for (TransactionInput input: transaction.getInputs())
+            {
+                Hash transactionHash = input.getPreviousOutput().getReferenceHash();
+                int  outputIndex     = input.getPreviousOutput().getIndex();
+
+                Transaction referencedTransaction = getTransaction(transactionHash);
+
+                UnspentTransactionOutput unspentOutput = new UnspentTransactionOutput();
+                unspentOutput.setBlockHeight(height);
+                unspentOutput.setVersion(referencedTransaction.getVersion());
+                unspentOutput.setIsCoinbase(referencedTransaction.isCoinBase());
+                unspentOutput.getOutputs().add(referencedTransaction.getOutputs().get(outputIndex));
+
+                unspentTransactionOutputs.add(unspentOutput);
+            }
+        }
 
         File file = Paths.get(PersistenceManager.BLOCKS_PATH.toString(), String.format("block%05d.bin", lastBlock)).toFile();
 
@@ -112,8 +146,8 @@ public class PersistenceManager
         {
             long size = file.length();
 
-            // If writing this block to the blocks store file makes the file bigger than we expect; create a new file.
-            if (size + serializedBlock.length > BLOCKS_FILE_SIZE)
+            // If the is file bigger than we expect; create a new file.
+            if (size > BLOCKS_FILE_SIZE)
             {
                 s_logger.debug(String.format("File %s is already full, creating new file...", lastBlock));
 
@@ -126,6 +160,17 @@ public class PersistenceManager
                 fileStream.write(NumberSerializer.serialize(BLOCKS_FILE_MAGIC));
                 fileStream.write(NumberSerializer.serialize(serializedBlock.length));
                 fileStream.write(serializedBlock);
+
+                // Serialize the revert data.
+                ByteArrayOutputStream data = new ByteArrayOutputStream();
+
+                data.write(unspentTransactionOutputs.size());
+                for (UnspentTransactionOutput unspent: unspentTransactionOutputs)
+                    data.write(unspent.serialize());
+
+                fileStream.write(NumberSerializer.serialize(data.size()));
+                fileStream.write(data.toByteArray());
+
                 fileStream.close();
             }
             else
@@ -136,6 +181,17 @@ public class PersistenceManager
                 fileStream.write(NumberSerializer.serialize(BLOCKS_FILE_MAGIC));
                 fileStream.write(NumberSerializer.serialize(serializedBlock.length));
                 fileStream.write(serializedBlock);
+
+                // Serialize the revert data.
+                ByteArrayOutputStream data = new ByteArrayOutputStream();
+
+                data.write(unspentTransactionOutputs.size());
+                for (UnspentTransactionOutput unspent: unspentTransactionOutputs)
+                    data.write(unspent.serialize());
+
+                fileStream.write(NumberSerializer.serialize(data.size()));
+                fileStream.write(data.toByteArray());
+
                 fileStream.close();
             }
         }
@@ -146,6 +202,17 @@ public class PersistenceManager
             fileStream.write(NumberSerializer.serialize(BLOCKS_FILE_MAGIC));
             fileStream.write(NumberSerializer.serialize(serializedBlock.length));
             fileStream.write(serializedBlock);
+
+            // Serialize the revert data.
+            ByteArrayOutputStream data = new ByteArrayOutputStream();
+
+            data.write(unspentTransactionOutputs.size());
+            for (UnspentTransactionOutput unspent: unspentTransactionOutputs)
+                data.write(unspent.serialize());
+
+            fileStream.write(NumberSerializer.serialize(data.size()));
+            fileStream.write(data.toByteArray());
+
             fileStream.close();
         }
 
@@ -156,24 +223,34 @@ public class PersistenceManager
         metadata.setHeader(block.getHeader());
         metadata.setBlockFile(lastBlock);
         metadata.setBlockFilePosition(position);
+        metadata.setSpentOutputsPosition(position + serializedBlock.length);
         metadata.setTransactionCount(block.getTransactionsCount());
-
-        /*
-        metadata.setRevertFile(lastBlock);
-        metadata.setRevertFilePosition(position);
-        metadata.setStatus(0);
-        metadata.setHeight();
-        */
+        metadata.setHeight(height);
+        metadata.setStatus((byte)0);
 
         BlocksManifest.addBlockMetadata(metadata);
+
+        // Create and store the transaction metadata for this block.
+        for (int i = 0; i < block.getTransactionsCount(); ++i)
+        {
+            Transaction transaction = block.getTransaction(i);
+
+            TransactionMetadata transactionMetadata = new TransactionMetadata();
+            transactionMetadata.setBlockFile(lastBlock);
+            transactionMetadata.setBlockPosition(position);
+            transactionMetadata.setTransactionPosition(i);
+            transactionMetadata.setHash(transaction.getTransactionId());
+
+            BlocksManifest.addTransactionMetadata(transactionMetadata);
+        }
     }
 
     /**
      * Gets the Block with the given hash.
      */
-    public Block get(Hash hash) throws IOException
+    public Block getBlock(Hash hash) throws IOException
     {
-        BlockMetadata metadata = BlocksManifest.getMetadata(hash);
+        BlockMetadata metadata = BlocksManifest.getBlockMetadata(hash);
 
         Path filePath = Paths.get(
                 PersistenceManager.BLOCKS_PATH.toString(),
@@ -201,13 +278,55 @@ public class PersistenceManager
     }
 
     /**
+     * Gets the spent outputs for the block with the given hash.
+     *
+     * @param hash The block hash.
+     *
+     * @return the spent outputs by this block.
+     */
+    public List<UnspentTransactionOutput> getSpentOutputs(Hash hash) throws IOException
+    {
+        BlockMetadata metadata = BlocksManifest.getBlockMetadata(hash);
+
+        Path filePath = Paths.get(
+                PersistenceManager.BLOCKS_PATH.toString(),
+                String.format("block%05d.bin", metadata.getBlockFile()));
+
+        InputStream data = Files.newInputStream(filePath);
+        data.skip(metadata.getSpentOutputsPosition());
+
+        byte[] dataSize = new byte[Integer.BYTES];
+        data.read(dataSize, 0, Integer.BYTES);
+
+        ByteBuffer buffer = ByteBuffer.wrap(dataSize);
+        int count  = buffer.getInt();
+
+        ArrayList<UnspentTransactionOutput> outputs = new ArrayList<>();
+
+        for (int i = 0; i < count; ++i)
+            outputs.add(new UnspentTransactionOutput(buffer));
+
+        return outputs;
+    }
+
+    /**
      * Gets the current chain head.
      *
      * @return The block at the head of the blockchain.
      */
-    public Block getChainHead()
+    public BlockMetadata getChainHead() throws IOException
     {
-        return new Block();
+        return BlocksManifest.getChainHead();
+    }
+
+    /**
+     * Sets the current chain head.
+     *
+     * @param metadata The block at the head of the blockchain.
+     */
+    public void setChainHead(BlockMetadata metadata) throws IOException
+    {
+        BlocksManifest.setChainHead(metadata);
     }
 
     /**
@@ -217,9 +336,33 @@ public class PersistenceManager
      *
      * @return The transaction.
      */
-    public Transaction getTransaction(Hash hash)
+    public Transaction getTransaction(Hash hash) throws IOException
     {
-        return new Transaction();
+        TransactionMetadata metadata = BlocksManifest.getTransactionMetadata(hash);
+
+        Path filePath = Paths.get(
+                PersistenceManager.BLOCKS_PATH.toString(),
+                String.format("block%05d.bin", metadata.getBlockFile()));
+
+        InputStream data = Files.newInputStream(filePath);
+        data.skip(metadata.getBlockPosition());
+
+        byte[] entryHeader = new byte[Integer.BYTES * 2];
+        data.read(entryHeader, 0, Integer.BYTES * 2);
+
+        ByteBuffer buffer = ByteBuffer.wrap(entryHeader);
+        int magic = buffer.getInt();
+        int size  = buffer.getInt();
+
+        if (magic != BLOCKS_FILE_MAGIC)
+            throw new IOException("Invalid magic header.");
+
+        byte[] rawBlock = new byte[size];
+        data.read(rawBlock, 0, size);
+
+        Block block = new Block(ByteBuffer.wrap(rawBlock));
+
+        return block.getTransaction(metadata.getTransactionPosition());
     }
 
     /**
@@ -234,43 +377,4 @@ public class PersistenceManager
     {
         return new TransactionOutput();
     }
-
-    /**
-     * Reads a file for the disk.
-     *
-     * @param path The file.
-     *
-     * @return The data of the file.
-     *
-     * @throws IOException Thrown if the file is not found.
-     */
-    private byte[] readFile(String path) throws IOException
-    {
-        File file       = new File(path);
-        FileInputStream fileStream = new FileInputStream(file);
-        byte[]          data       = new byte[(int) file.length()];
-
-        fileStream.read(data);
-        fileStream.close();
-
-        return data;
-    }
-
-    /**
-     * Writes a writes to the disk.
-     *
-     * @param path The file.
-     * @param data The data to be saved.
-     *
-     * @throws IOException Thrown if the file is not found.
-     */
-    private void writeFile(String path, byte[] data) throws IOException
-    {
-        File             file       = new File(path);
-        FileOutputStream fileStream = new FileOutputStream(file);
-
-        fileStream.write(data);
-        fileStream.close();
-    }
-
 }

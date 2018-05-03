@@ -225,6 +225,14 @@ public class Transaction implements ISerializable
     }
 
     /**
+     * A coinbase transaction is one that creates a new coin.
+     */
+    public boolean isCoinBase()
+    {
+        return m_inputs.get(0).isCoinBase();
+    }
+
+    /**
      * Serializes an object in ray byte format.
      *
      * @return The serialized object.

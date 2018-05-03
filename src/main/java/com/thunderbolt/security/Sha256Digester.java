@@ -40,7 +40,7 @@ public class Sha256Digester
     /**
      * Gets the hash of the given data.
      *
-     * @param data The data to get the hash from.
+     * @param data The data to getBlock the hash from.
      *
      * @return The hash.
      */
@@ -65,7 +65,7 @@ public class Sha256Digester
     /**
      * Gets the double hash of the given data.
      *
-     * @param data The data to get the double hash from.
+     * @param data The data to getBlock the double hash from.
      *
      * @return The double hash.
      */

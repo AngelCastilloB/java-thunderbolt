@@ -48,9 +48,8 @@ public class BlockMetadata implements ISerializable
     private int         m_transactionCount;
     private byte        m_status;
     private int         m_blockFile;
-    private long        m_blockFilePosition;
-    private int         m_revertFile;
-    private long        m_revertFilePosition;
+    private long        m_blockPosition;
+    private long        m_spentOutputsPosition;
 
     /**
      * Creates a new instance of the BlockMetadata class.
@@ -66,14 +65,13 @@ public class BlockMetadata implements ISerializable
      */
     public BlockMetadata(ByteBuffer buffer)
     {
-        m_header             = new BlockHeader(buffer);
-        m_height             = buffer.getLong();
-        m_transactionCount   = buffer.getInt();
-        m_status             = buffer.get();
-        m_blockFile          = buffer.getInt();
-        m_blockFilePosition  = buffer.getLong();
-        m_revertFile         = buffer.getInt();
-        m_revertFilePosition = buffer.getLong();
+        m_header               = new BlockHeader(buffer);
+        m_height               = buffer.getLong();
+        m_transactionCount     = buffer.getInt();
+        m_status               = buffer.get();
+        m_blockFile            = buffer.getInt();
+        m_blockPosition        = buffer.getLong();
+        m_spentOutputsPosition = buffer.getLong();
     }
 
     /**
@@ -193,7 +191,7 @@ public class BlockMetadata implements ISerializable
      */
     public long getBlockFilePosition()
     {
-        return m_blockFilePosition;
+        return m_blockPosition;
     }
 
     /**
@@ -203,47 +201,27 @@ public class BlockMetadata implements ISerializable
      */
     public void setBlockFilePosition(long position)
     {
-        m_blockFilePosition = position;
+        m_blockPosition = position;
     }
 
     /**
-     * Gets the revert data file number where this block revert data is stored.
+     * Gets the spent outputs position.
      *
-     * @return The block revert data file number.
+     * @return The spent outputs position.
      */
-    public int getRevertFile()
+    public long getSpentOutputsPosition()
     {
-        return m_revertFile;
+        return m_spentOutputsPosition;
     }
 
     /**
-     * Sets the revert data file number where this block revert data is stored.
+     * Sets the spent outputs position.
      *
-     * @param file The block revert data file number.
+     * @param position The spent outputs position.
      */
-    public void setRevertFile(int file)
+    public void setSpentOutputsPosition(long position)
     {
-        m_revertFile = file;
-    }
-
-    /**
-     * Gets the position inside the file where this block revert data is stored.
-     *
-     * @return The position in the file where this block revert data is stored.
-     */
-    public long getRevertFilePosition()
-    {
-        return m_revertFilePosition;
-    }
-
-    /**
-     * Sets the position inside the file where this block revert data is stored.
-     *
-     * @param file The position in the file where this block revert data is stored.
-     */
-    public void setRevertFilePosition(long file)
-    {
-        m_revertFilePosition = file;
+        m_spentOutputsPosition = position;
     }
 
     /**
@@ -263,9 +241,8 @@ public class BlockMetadata implements ISerializable
             data.write(NumberSerializer.serialize(m_transactionCount));
             data.write(m_status);
             data.write(NumberSerializer.serialize(m_blockFile));
-            data.write(NumberSerializer.serialize(m_blockFilePosition));
-            data.write(NumberSerializer.serialize(m_revertFile));
-            data.write(NumberSerializer.serialize(m_revertFilePosition));
+            data.write(NumberSerializer.serialize(m_blockPosition));
+            data.write(NumberSerializer.serialize(m_spentOutputsPosition));
         }
         catch (IOException e)
         {

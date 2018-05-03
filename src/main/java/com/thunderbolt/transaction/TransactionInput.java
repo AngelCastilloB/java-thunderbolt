@@ -27,6 +27,7 @@ package com.thunderbolt.transaction;
 
 import com.thunderbolt.common.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
+import com.thunderbolt.security.Hash;
 
 import java.awt.font.NumericShaper;
 import java.io.ByteArrayOutputStream;
@@ -75,6 +76,14 @@ public class TransactionInput implements ISerializable
     {
         setPreviousOutput(new TransactionOutpoint(buffer));
         setSequence(buffer.getInt());
+    }
+
+    /**
+     * Coinbase transactions have special inputs with hashes of zero. If this is such an input, returns true.
+     */
+    public boolean isCoinBase()
+    {
+        return m_previousOutput.getReferenceHash().equals(new Hash());
     }
 
     /**

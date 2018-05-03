@@ -140,16 +140,20 @@ public class BlocksManifest
      *
      * @throws IOException If there is any IO error.
      */
-    public static BlockMetadata getMetadata(Hash blockId) throws IOException
+    public static BlockMetadata getBlockMetadata(Hash blockId) throws IOException
     {
         BlockMetadata metadata;
 
         Options options = new Options();
         options.createIfMissing(true);
 
+        ByteArrayOutputStream key = new ByteArrayOutputStream();
+        key.write('b');
+        key.write(blockId.serialize());
+
         try (DB db = factory.open(PersistenceManager.BLOCKS_METADATA_PATH.toFile(), options))
         {
-            byte[] rawHash = db.get(blockId.serialize());
+            byte[] rawHash = db.get(key.toByteArray());
 
             metadata = new BlockMetadata(ByteBuffer.wrap(rawHash));
         }
@@ -169,11 +173,115 @@ public class BlocksManifest
         Options options = new Options();
         options.createIfMissing(true);
 
+        ByteArrayOutputStream key = new ByteArrayOutputStream();
+        key.write('b');
+        key.write(metadata.getHash().serialize());
+
         try (DB db = factory.open(PersistenceManager.BLOCKS_METADATA_PATH.toFile(), options))
         {
-            db.put(metadata.getHeader().getHash().serialize(), metadata.serialize());
+            db.put(key.toByteArray(), metadata.serialize());
         }
 
         s_logger.debug(String.format("Metadata added for block '%s'", metadata.getHash()));
+    }
+
+    /**
+     * Sets the block chain head in the manifest..
+     *
+     * @param metadata The metadata of the block chain head.
+     *
+     * @throws IOException If there is any IO error.
+     */
+    public static void setChainHead(BlockMetadata metadata) throws IOException
+    {
+        Options options = new Options();
+        options.createIfMissing(true);
+
+        try (DB db = factory.open(PersistenceManager.BLOCKS_METADATA_PATH.toFile(), options))
+        {
+            db.put(bytes("h"), metadata.serialize());
+        }
+
+        s_logger.debug(String.format("Chain head metadata added (block '%s')", metadata.getHash()));
+    }
+
+    /**
+     * Gets the block chain head metadata entry from the manifest.
+     *
+     * @return The block metadata.
+     *
+     * @throws IOException If there is any IO error.
+     */
+    public static BlockMetadata getChainHead() throws IOException
+    {
+        BlockMetadata metadata;
+
+        Options options = new Options();
+        options.createIfMissing(true);
+
+        try (DB db = factory.open(PersistenceManager.BLOCKS_METADATA_PATH.toFile(), options))
+        {
+            byte[] head = db.get(bytes("h"));
+
+            metadata = new BlockMetadata(ByteBuffer.wrap(head));
+        }
+
+        return metadata;
+    }
+
+    /**
+     * Adds a transaction metadata entry to the manifest.
+     *
+     * @param metadata The metadata to be added.
+     *
+     * @throws IOException If there is any IO error.
+     */
+    public static void addTransactionMetadata(TransactionMetadata metadata) throws IOException
+    {
+        Options options = new Options();
+        options.createIfMissing(true);
+
+        ByteArrayOutputStream key = new ByteArrayOutputStream();
+        key.write('t');
+        key.write(metadata.getHash().serialize());
+
+        try (DB db = factory.open(PersistenceManager.BLOCKS_METADATA_PATH.toFile(), options))
+        {
+            db.put(key.toByteArray(), metadata.serialize());
+        }
+
+        key.close();
+
+        s_logger.debug(String.format("Metadata added for transaction '%s'", metadata.getHash()));
+    }
+
+    /**
+     * Gets the metadata entry from the manifest.
+     *
+     * @param transactionId The hash of the transaction.
+     *
+     * @return The transaction metadata.
+     *
+     * @throws IOException If there is any IO error.
+     */
+    public static TransactionMetadata getTransactionMetadata(Hash transactionId) throws IOException
+    {
+        TransactionMetadata metadata;
+
+        Options options = new Options();
+        options.createIfMissing(true);
+
+        ByteArrayOutputStream key = new ByteArrayOutputStream();
+        key.write('t');
+        key.write(transactionId.serialize());
+
+        try (DB db = factory.open(PersistenceManager.BLOCKS_METADATA_PATH.toFile(), options))
+        {
+            byte[] rawData = db.get(key.toByteArray());
+
+            metadata = new TransactionMetadata(ByteBuffer.wrap(rawData));
+        }
+
+        return metadata;
     }
 }

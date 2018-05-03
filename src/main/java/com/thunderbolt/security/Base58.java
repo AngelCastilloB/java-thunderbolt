@@ -166,7 +166,7 @@ public class Base58
     /**
      * Get the checksum of the given data.
      *
-     * @param data The data to get the checksum of.
+     * @param data The data to getBlock the checksum of.
      *
      * @return The 4 byte checksum.
      */

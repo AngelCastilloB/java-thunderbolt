@@ -71,21 +71,20 @@ public class Main
         Block genesisBlock = NetworkParameters.createGenesis();
         s_genesisTransaction.getOutputs().add(s_genesisOutput);
 
-        PersistenceManager.getInstance().persist(genesisBlock);
+        PersistenceManager.getInstance().persist(genesisBlock, 0);
 
-        Block loaded = PersistenceManager.getInstance().get(genesisBlock.getHeaderHash());
+        Block loaded = PersistenceManager.getInstance().getBlock(genesisBlock.getHeaderHash());
 
         BlockMetadata metadata = new BlockMetadata();
         metadata.setHeader(genesisBlock.getHeader());
 
         metadata.setHeight(20);
-        metadata.setRevertFile(1);
         metadata.setBlockFile(32);
 
         s_logger.debug(String.format("Adding block %s metadata to db", metadata.getHash().toString()));
         BlocksManifest.addBlockMetadata(metadata);
 
-        BlockMetadata metadata2 = BlocksManifest.getMetadata(metadata.getHeader().getHash());
+        BlockMetadata metadata2 = BlocksManifest.getBlockMetadata(metadata.getHeader().getHash());
         s_logger.debug(String.format("Read block %s metadata from db", metadata2.getHash().toString()));
 
 
@@ -210,7 +209,7 @@ public class Main
             deserializedGenesis.getHeader().setNonce(deserializedGenesis.getHeader().getNonce() + 1);
             hash = deserializedGenesis.getHeaderHash().toBigInteger();
         }
-        PersistenceManager.getInstance().persist(deserializedGenesis);
+        PersistenceManager.getInstance().persist(deserializedGenesis, 0);
         s_logger.debug(String.format("Block solved! hash is lower than target difficulty (%d): %s > %s", deserializedGenesis.getHeader().getNonce(), genesisBlock.getHeaderHash(), Convert.toHexString(block2.getTargetDifficultyAsInteger().toByteArray())));
     }
 
