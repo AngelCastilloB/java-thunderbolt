@@ -73,6 +73,8 @@ public class UnspentTransactionOutput implements ISerializable
         int bitVectorSize = buffer.getInt();
         byte[] bitVectorData = new byte[bitVectorSize];
 
+        buffer.get(bitVectorData);
+
         m_spentOutputs = BitSet.valueOf(bitVectorData);
 
         int transactionsCount = buffer.getInt();
@@ -192,9 +194,15 @@ public class UnspentTransactionOutput implements ISerializable
             data.write(m_hash.serialize());
             data.write(NumberSerializer.serialize(m_version));
             data.write(NumberSerializer.serialize(m_blockHeight));
-            data.write(NumberSerializer.serialize(m_isCoinbase ? 1 : 0));
+            data.write(m_isCoinbase ? 1 : 0);
 
-            byte[] bitVectorData = m_spentOutputs.toByteArray();
+            int    bitVectorSize = (int)Math.ceil((double)m_outputs.size() / 8.0);
+            byte[] bitVectorData = new byte[bitVectorSize];
+
+            byte[] spentOutputsArray = m_spentOutputs.toByteArray();
+
+            System.arraycopy(spentOutputsArray, 0, bitVectorData, 0, spentOutputsArray.length);
+
             data.write(NumberSerializer.serialize(bitVectorData.length));
             data.write(bitVectorData);
 
