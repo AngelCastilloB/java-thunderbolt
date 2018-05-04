@@ -69,29 +69,62 @@ public class Main
      */
     public static void main(String[] args) throws IOException, GeneralSecurityException, CloneNotSupportedException
     {
-        Block genesisBlock = NetworkParameters.createGenesis();
-
-        PersistenceManager.getInstance().persist(genesisBlock, 0);
-
-        // Add outputs to database.
-        for (int i = 0; i < genesisBlock.getTransactionsCount(); ++i)
-        {
-            Transaction xt = genesisBlock.getTransaction(i);
-
-            UnspentTransactionOutput unspentXt = new UnspentTransactionOutput();
-
-            unspentXt.setHash(xt.getTransactionId());
-
-            for (TransactionOutput output : xt.getOutputs())
-                unspentXt.getOutputs().add(output);
-
-            unspentXt.setOutputAsSpent(0, false);
-            PersistenceManager.getInstance().addUnspentOutput(unspentXt);
-        }
-
+        Transaction spentXT = PersistenceManager.getInstance().getTransaction(new Hash("C6F5EF7E766C3C01EEEB58CF3D7F2341F86AAC37D6A5624BBB4EB5933EEE8D71"));
+        Block block = PersistenceManager.getInstance().getBlock(new Hash("000000018E63AF34BB7773220540E4456513A32E70994E2E9A014553DA9A076F"));
+        int a = 3;
+        ++a;
+        /*
         UnspentTransactionOutput spentXT = PersistenceManager.getInstance().getUnspentOutput(new Hash("E2DBE246FEEAFD8B57CB2C08A6C62DA2F2CF98BE9BA21CD5CE3E6FD485D21E8D"));
 
         s_logger.debug(String.format("%s", spentXT.getHash()));
+
+        TransactionOutpoint outpoint = new TransactionOutpoint(new Hash("E2DBE246FEEAFD8B57CB2C08A6C62DA2F2CF98BE9BA21CD5CE3E6FD485D21E8D"), 0);
+        TransactionInput input = new TransactionInput(outpoint, 0);
+
+        // When we sign the transaction input plus the locking parameters of the referenced output.
+        ByteArrayOutputStream signatureData = new ByteArrayOutputStream();
+        signatureData.write(input.serialize());
+        signatureData.write(spentXT.getOutputs().get(0).getTransactionType().getValue());
+        signatureData.write(spentXT.getOutputs().get(0).getLockingParameters());
+
+        // The signature in DER format is the unlocking parameter of the referenced output. We need to add this to the unlocking parameters
+        // list of the transaction at the same position at which we added the transaction.
+        byte[] derSignature = EllipticCurveProvider.sign(signatureData.toByteArray(), s_genesisKeyPair.getPrivateKey());
+
+        // At this point this input transaction is spendable.
+        Transaction transaction = new Transaction();
+        transaction.getInputs().add(input);
+        transaction.getUnlockingParameters().add(derSignature);
+
+        // Transfer 1000 another user.
+        transaction.getOutputs().add(new TransactionOutput(BigInteger.valueOf(1000), OutputLockType.SingleSignature, s_genesisKeyPair2.getPublicKey()));
+
+        // Return the change to myself.
+        transaction.getOutputs().add(new TransactionOutput(BigInteger.valueOf(500), OutputLockType.SingleSignature, s_genesisKeyPair.getPublicKey()));
+
+        Block newBlock = new Block();
+        newBlock.addTransactions(transaction);
+        newBlock.getHeader().setTimeStamp(1525003294);
+        newBlock.getHeader().setBits(0x1d07fff8L);
+        newBlock.getHeader().setParentBlockHash(NetworkParameters.createGenesis().getHeaderHash());
+
+        BigInteger hash = newBlock.getHeaderHash().toBigInteger();
+        boolean solved = false;
+        while (!solved)
+        {
+            solved = !(hash.compareTo(newBlock.getTargetDifficultyAsInteger()) > 0);
+            if (solved)
+                break;
+            //System.out.println(String.format("Block hash is higher than target difficulty: %s > %s", newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
+            newBlock.getHeader().setNonce(newBlock.getHeader().getNonce() + 1);
+            hash = newBlock.getHeaderHash().toBigInteger();
+        }
+
+        s_logger.debug(String.format("Block solved! hash is lower than target difficulty (%d): %s > %s", newBlock.getHeader().getNonce(), newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
+
+        PersistenceManager.getInstance().persist(newBlock, 0);
+
+        s_logger.debug(String.format("Added Block %s, with transaction %s", newBlock.getHeader().getHash(), newBlock.getTransaction(0).getTransactionId()));
 
         /*
         Block genesisBlock = NetworkParameters.createGenesis();

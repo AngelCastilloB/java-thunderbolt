@@ -48,7 +48,7 @@ public class UnspentTransactionOutput implements ISerializable
     private int                     m_version      = 0;
     private int                     m_blockHeight  = 0;
     private boolean                 m_isCoinbase   = false;
-    private BitSet                  m_spentOutputs = null;
+    private BitSet                  m_spentOutputs = new BitSet(1);
     private List<TransactionOutput> m_outputs      = new ArrayList<>();
 
     /**

@@ -41,12 +41,9 @@ import java.nio.ByteBuffer;
  */
 public class TransactionInput implements ISerializable
 {
-    // Constants
-    private static final int SEQUENCE_TYPE_SIZE = 4;
-
     // Instance Fields
     private TransactionOutpoint m_previousOutput;
-    private int                 m_sequence;
+    private int                 m_sequence; // TODO: Remove field.
 
     /**
      * Creates a new instance of the TransactionInput class.
