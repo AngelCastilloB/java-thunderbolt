@@ -369,12 +369,22 @@ public class PersistenceManager
      * Gets the unspent output that matches the given transaction id and index inside that transaction.
      *
      * @param transactionId The transaction ID that contains the output.
-     * @param index The index inside that transaction.
      *
      * @return The transaction output, or null if the output is not available or was already spent.
      */
-    public TransactionOutput getUnspentOutput(Hash transactionId, int index)
+    public UnspentTransactionOutput getUnspentOutput(Hash transactionId) throws IOException
     {
-        return new TransactionOutput();
+        return BlocksManifest.getUnspentOutput(transactionId);
+    }
+
+    /**
+     * Adds the given unspent output to the database.
+     *
+     * @param output The unspent output to store in the system.
+     */
+    public void addUnspentOutput(UnspentTransactionOutput output) throws IOException
+    {
+        s_logger.debug(String.format("Adding outputs for transaction %s", output.getHash().toString()));
+        BlocksManifest.addUnspentOutput(output);
     }
 }

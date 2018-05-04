@@ -48,6 +48,16 @@ public class Hash implements ISerializable
     {
     }
 
+    /**
+     * Creates a hash instance.
+     *
+     * @param hex The hash in hex format.
+     */
+    public Hash(String hex)
+    {
+        this(hexStringToByteArray(hex));
+    }
+
     /** Creates a hash instance from the given data.
      *
      * @param data 32-byte hash digest.
@@ -147,5 +157,28 @@ public class Hash implements ISerializable
             throw new IllegalArgumentException("Hash must be 32 bytes long.");
 
         System.arraycopy(data, 0, m_data, 0, 32);
+    }
+
+    /**
+     * Converts a hex string to byte array.
+     *
+     * @param hex The hex string.
+     *
+     * @return The byte array.
+     */
+    private static byte[] hexStringToByteArray(String hex)
+    {
+        byte[] b = new byte[hex.length() / 2];
+
+        for (int i = 0; i < b.length; ++i)
+        {
+            int index = i * 2;
+
+            int v = Integer.parseInt(hex.substring(index, index + 2), 16);
+
+            b[i] = (byte) v;
+        }
+
+        return b;
     }
 }

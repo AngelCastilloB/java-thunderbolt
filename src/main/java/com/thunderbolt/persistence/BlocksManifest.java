@@ -284,4 +284,56 @@ public class BlocksManifest
 
         return metadata;
     }
+
+    /**
+     * Gets an unspent transaction from the database.
+     *
+     * @param id The transactiion id that contains the unspent output.
+     *
+     * @throws IOException If there is any IO error.
+     */
+    public static UnspentTransactionOutput getUnspentOutput(Hash id) throws IOException
+    {
+        UnspentTransactionOutput output;
+
+        Options options = new Options();
+        options.createIfMissing(true);
+
+        ByteArrayOutputStream key = new ByteArrayOutputStream();
+        key.write('c');
+        key.write(id.serialize());
+
+        try (DB db = factory.open(PersistenceManager.STATE_PATH.toFile(), options))
+        {
+            byte[] data = db.get(key.toByteArray());
+
+            output = new UnspentTransactionOutput(ByteBuffer.wrap(data));
+        }
+
+        return output;
+    }
+
+    /**
+     * Adds an unspent transaction to the database.
+     *
+     * @param output The unspent outputs to be added.
+     *
+     * @throws IOException If there is any IO error.
+     */
+    public static void addUnspentOutput(UnspentTransactionOutput output) throws IOException
+    {
+        Options options = new Options();
+        options.createIfMissing(true);
+
+        ByteArrayOutputStream key = new ByteArrayOutputStream();
+        key.write('c');
+        key.write(output.getHash().serialize());
+
+        try (DB db = factory.open(PersistenceManager.STATE_PATH.toFile(), options))
+        {
+            db.put(key.toByteArray(), output.serialize());
+        }
+
+        s_logger.debug(String.format("Outputs metadata added for transaction '%s'", output.getHash()));
+    }
 }

@@ -106,6 +106,18 @@ public class UnspentTransactionOutput implements ISerializable
     }
 
     /**
+     * Gets whether the output is spent.
+     *
+     * @param index The index of the output.
+     *
+     * @return True if the output is spend, otherwise, false.
+     */
+    public boolean isOutputSpent(int index)
+    {
+        return m_spentOutputs.get(index);
+    }
+
+    /**
      * Gets the version of the transaction.
      *
      * @return The version.
@@ -197,5 +209,25 @@ public class UnspentTransactionOutput implements ISerializable
         }
 
         return data.toByteArray();
+    }
+
+    /**
+     * Gets the transaction hash for this outputs.
+     *
+     * @return The transaction hash.
+     */
+    public Hash getHash()
+    {
+        return m_hash;
+    }
+
+    /**
+     * Sets the transaction hash for this outputs.
+     *
+     * @param hash The transaction hash.
+     */
+    public void setHash(Hash hash)
+    {
+        m_hash = hash;
     }
 }

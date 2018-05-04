@@ -33,6 +33,7 @@ import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.persistence.BlockMetadata;
 import com.thunderbolt.persistence.BlocksManifest;
 import com.thunderbolt.persistence.PersistenceManager;
+import com.thunderbolt.persistence.UnspentTransactionOutput;
 import com.thunderbolt.security.*;
 import com.thunderbolt.transaction.*;
 import org.slf4j.Logger;
@@ -68,6 +69,31 @@ public class Main
      */
     public static void main(String[] args) throws IOException, GeneralSecurityException, CloneNotSupportedException
     {
+        Block genesisBlock = NetworkParameters.createGenesis();
+
+        PersistenceManager.getInstance().persist(genesisBlock, 0);
+
+        // Add outputs to database.
+        for (int i = 0; i < genesisBlock.getTransactionsCount(); ++i)
+        {
+            Transaction xt = genesisBlock.getTransaction(i);
+
+            UnspentTransactionOutput unspentXt = new UnspentTransactionOutput();
+
+            unspentXt.setHash(xt.getTransactionId());
+
+            for (TransactionOutput output : xt.getOutputs())
+                unspentXt.getOutputs().add(output);
+
+            unspentXt.setOutputAsSpent(0, false);
+            PersistenceManager.getInstance().addUnspentOutput(unspentXt);
+        }
+
+        UnspentTransactionOutput spentXT = PersistenceManager.getInstance().getUnspentOutput(new Hash("E2DBE246FEEAFD8B57CB2C08A6C62DA2F2CF98BE9BA21CD5CE3E6FD485D21E8D"));
+
+        s_logger.debug(String.format("%s", spentXT.getHash()));
+
+        /*
         Block genesisBlock = NetworkParameters.createGenesis();
         s_genesisTransaction.getOutputs().add(s_genesisOutput);
 
@@ -211,55 +237,6 @@ public class Main
         }
         PersistenceManager.getInstance().persist(deserializedGenesis, 0);
         s_logger.debug(String.format("Block solved! hash is lower than target difficulty (%d): %s > %s", deserializedGenesis.getHeader().getNonce(), genesisBlock.getHeaderHash(), Convert.toHexString(block2.getTargetDifficultyAsInteger().toByteArray())));
-    }
-
-    /**
-     * Reads a file for the disk.
-     *
-     * @param path The file.
-     *
-     * @return The data of the file.
-     *
-     * @throws IOException Thrown if the file is not found.
-     */
-    static byte[] readFile(String path) throws IOException
-    {
-        File            file       = new File(path);
-        FileInputStream fileStream = new FileInputStream(file);
-        byte[]          data       = new byte[(int) file.length()];
-
-        fileStream.read(data);
-        fileStream.close();
-
-        return data;
-    }
-
-    /**
-     * Writes a writes to the disk.
-     *
-     * @param path The file.
-     * @param data The data to be saved.
-     *
-     * @throws IOException Thrown if the file is not found.
-     */
-    static void writeFile(String path, byte[] data) throws IOException
-    {
-        File             file       = new File(path);
-        FileOutputStream fileStream = new FileOutputStream(file);
-
-        fileStream.write(data);
-        fileStream.close();
-    }
-
-    /** Returns the given byte array hex encoded. */
-    public static String bytesToHexString(byte[] bytes) {
-        StringBuffer buf = new StringBuffer(bytes.length * 2);
-        for (byte b : bytes) {
-            String s = Integer.toString(0xFF & b, 16);
-            if (s.length() < 2)
-                buf.append('0');
-            buf.append(s);
-        }
-        return buf.toString();
+        */
     }
 }
