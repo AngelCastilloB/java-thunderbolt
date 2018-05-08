@@ -69,12 +69,23 @@ public class Main
      */
     public static void main(String[] args) throws IOException, GeneralSecurityException, CloneNotSupportedException
     {
-        /*
-        Transaction spentXT = PersistenceManager.getInstance().getTransaction(new Hash("C6F5EF7E766C3C01EEEB58CF3D7F2341F86AAC37D6A5624BBB4EB5933EEE8D71"));
-        Block block = PersistenceManager.getInstance().getBlock(new Hash("000000018E63AF34BB7773220540E4456513A32E70994E2E9A014553DA9A076F"));
+        //PersistenceManager.getInstance().persist(NetworkParameters.createGenesis(), 0);
+        Transaction spentXT = PersistenceManager.getInstance().getTransaction(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"));
+        Block block = PersistenceManager.getInstance().getBlock(new Hash("00000004063B34C6FE99D1DB8A8C7F041B46487E64B0ED74C0EE8B7D4FA8F4E9"));
+        UnspentTransactionOutput uxto = PersistenceManager.getInstance().getUnspentOutput(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"), 0);
         int a = 3;
-        ++a;*/
+        ++a;
+/*
+        UnspentTransactionOutput uxto = new UnspentTransactionOutput();
+        uxto.setHash(spentXT.getTransactionId());
+        uxto.setVersion(spentXT.getVersion());
+        uxto.setIndex(0);
+        uxto.setBlockHeight(0);
+        uxto.setIsCoinbase(uxto.isIsCoinbase());
+        uxto.setOutput(spentXT.getOutputs().get(0));
 
+        PersistenceManager.getInstance().addUnspentOutput(uxto);*/
+        /*
         Block newBlock = NetworkParameters.createGenesis();
         BigInteger hash = newBlock.getHeaderHash().toBigInteger();
         boolean solved = false;
@@ -89,7 +100,7 @@ public class Main
         }
 
         s_logger.debug(String.format("Block solved! hash is lower than target difficulty (%d): %s > %s", newBlock.getHeader().getNonce(), newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
-
+*/
 
         /*
         UnspentTransactionOutput spentXT = PersistenceManager.getInstance().getUnspentOutput(new Hash("E2DBE246FEEAFD8B57CB2C08A6C62DA2F2CF98BE9BA21CD5CE3E6FD485D21E8D"));
