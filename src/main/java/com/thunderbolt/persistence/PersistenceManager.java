@@ -133,7 +133,9 @@ public class PersistenceManager
                 unspentOutput.setBlockHeight(height);
                 unspentOutput.setVersion(referencedTransaction.getVersion());
                 unspentOutput.setIsCoinbase(referencedTransaction.isCoinBase());
-                unspentOutput.getOutputs().add(referencedTransaction.getOutputs().get(outputIndex));
+                unspentOutput.setHash(referencedTransaction.getTransactionId());
+                unspentOutput.setIndex(outputIndex);
+                unspentOutput.setOutput(referencedTransaction.getOutputs().get(outputIndex));
 
                 unspentTransactionOutputs.add(unspentOutput);
             }
@@ -371,9 +373,9 @@ public class PersistenceManager
      *
      * @return The transaction output, or null if the output is not available or was already spent.
      */
-    public UnspentTransactionOutput getUnspentOutput(Hash transactionId) throws IOException
+    public UnspentTransactionOutput getUnspentOutput(Hash transactionId, int index) throws IOException
     {
-        return BlocksManifest.getUnspentOutput(transactionId);
+        return BlocksManifest.getUnspentOutput(transactionId, index);
     }
 
     /**
@@ -383,7 +385,7 @@ public class PersistenceManager
      */
     public void addUnspentOutput(UnspentTransactionOutput output) throws IOException
     {
-        s_logger.debug(String.format("Adding outputs for transaction %s", output.getHash().toString()));
+        s_logger.debug(String.format("Adding output %s for transaction %s", output.getIndex(), output.getHash().toString()));
         BlocksManifest.addUnspentOutput(output);
     }
 }

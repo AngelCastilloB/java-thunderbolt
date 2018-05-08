@@ -288,11 +288,12 @@ public class BlocksManifest
     /**
      * Gets an unspent transaction from the database.
      *
-     * @param id The transactiion id that contains the unspent output.
+     * @param id    The transaction id that contains the unspent output.
+     * @param index The index of the output inside the transaction.
      *
      * @throws IOException If there is any IO error.
      */
-    public static UnspentTransactionOutput getUnspentOutput(Hash id) throws IOException
+    public static UnspentTransactionOutput getUnspentOutput(Hash id, int index) throws IOException
     {
         UnspentTransactionOutput output;
 
@@ -302,6 +303,7 @@ public class BlocksManifest
         ByteArrayOutputStream key = new ByteArrayOutputStream();
         key.write('c');
         key.write(id.serialize());
+        key.write(NumberSerializer.serialize(index));
 
         try (DB db = factory.open(PersistenceManager.STATE_PATH.toFile(), options))
         {
@@ -328,6 +330,7 @@ public class BlocksManifest
         ByteArrayOutputStream key = new ByteArrayOutputStream();
         key.write('c');
         key.write(output.getHash().serialize());
+        key.write(NumberSerializer.serialize(output.getIndex()));
 
         try (DB db = factory.open(PersistenceManager.STATE_PATH.toFile(), options))
         {

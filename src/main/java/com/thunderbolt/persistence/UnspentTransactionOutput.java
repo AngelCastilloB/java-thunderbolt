@@ -33,9 +33,6 @@ import com.thunderbolt.transaction.TransactionOutput;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -44,12 +41,12 @@ import java.util.List;
  */
 public class UnspentTransactionOutput implements ISerializable
 {
-    private Hash                    m_hash         = new Hash();
-    private int                     m_version      = 0;
-    private int                     m_blockHeight  = 0;
-    private boolean                 m_isCoinbase   = false;
-    private BitSet                  m_spentOutputs = new BitSet(1);
-    private List<TransactionOutput> m_outputs      = new ArrayList<>();
+    private Hash                    m_transactionHash = new Hash();
+    private int                     m_index           = 0;
+    private int                     m_version         = 0;
+    private int                     m_blockHeight     = 0;
+    private boolean                 m_isCoinbase      = false;
+    private TransactionOutput       m_output          = new TransactionOutput();
 
     /**
      * Initializes a new instance of the UnspentTransactionOutput class.
@@ -65,58 +62,72 @@ public class UnspentTransactionOutput implements ISerializable
      */
     public UnspentTransactionOutput(ByteBuffer buffer)
     {
-        m_hash        = new Hash(buffer);
-        m_version     = buffer.getInt();
-        m_blockHeight = buffer.getInt();
-        m_isCoinbase  = buffer.get() > 0;
-
-        int bitVectorSize = buffer.getInt();
-        byte[] bitVectorData = new byte[bitVectorSize];
-
-        buffer.get(bitVectorData);
-
-        m_spentOutputs = BitSet.valueOf(bitVectorData);
-
-        int transactionsCount = buffer.getInt();
-
-        for (int i = 0; i < transactionsCount; ++i)
-            m_outputs.add(new TransactionOutput(buffer));
+        m_transactionHash = new Hash(buffer);
+        m_index           = buffer.getInt();
+        m_version         = buffer.getInt();
+        m_blockHeight     = buffer.getInt();
+        m_isCoinbase      = buffer.get() > 0;
+        m_output          = new TransactionOutput(buffer);
     }
 
     /**
-     * Gets the list of transaction outputs.
+     * Gets the transaction hash for this outputs.
      *
-     * @return The list of transaction outputs
+     * @return The transaction hash.
      */
-    public List<TransactionOutput> getOutputs()
+    public Hash getHash()
     {
-        return m_outputs;
+        return m_transactionHash;
     }
 
     /**
-     * Sets the output at the given index as spent..
+     * Sets the transaction hash for this outputs.
      *
-     * @param index   The index of the output.
-     * @param isSpent Whether the output is spent or not.
+     * @param hash The transaction hash.
      */
-    public void setOutputAsSpent(int index, boolean isSpent)
+    public void setHash(Hash hash)
     {
-        if (m_spentOutputs == null)
-            m_spentOutputs = new BitSet(m_outputs.size());
-
-        m_spentOutputs.set(index, isSpent);
+        m_transactionHash = hash;
     }
 
     /**
-     * Gets whether the output is spent.
+     * Gets the index of this output inside the transactions.
      *
-     * @param index The index of the output.
-     *
-     * @return True if the output is spend, otherwise, false.
+     * @return The index of the output in the transaction.
      */
-    public boolean isOutputSpent(int index)
+    public int getIndex()
     {
-        return m_spentOutputs.get(index);
+        return m_index;
+    }
+
+    /**
+     * Sets the index of this output inside the transactions.
+     *
+     * @param index The index of the output in the transaction.
+     */
+    public void setIndex(int index)
+    {
+        m_index = index;
+    }
+
+    /**
+     * Gets the transaction outputs.
+     *
+     * @return The transaction output.
+     */
+    public TransactionOutput getOutput()
+    {
+        return m_output;
+    }
+
+    /**
+     * Gets the transaction outputs.
+     *
+     * @param output The transaction output.
+     */
+    public void setOutput(TransactionOutput output)
+    {
+        m_output = output;
     }
 
     /**
@@ -191,25 +202,12 @@ public class UnspentTransactionOutput implements ISerializable
 
         try
         {
-            data.write(m_hash.serialize());
+            data.write(m_transactionHash.serialize());
+            data.write(NumberSerializer.serialize(m_index));
             data.write(NumberSerializer.serialize(m_version));
             data.write(NumberSerializer.serialize(m_blockHeight));
             data.write(m_isCoinbase ? 1 : 0);
-
-            int    bitVectorSize = (int)Math.ceil((double)m_outputs.size() / 8.0);
-            byte[] bitVectorData = new byte[bitVectorSize];
-
-            byte[] spentOutputsArray = m_spentOutputs.toByteArray();
-
-            System.arraycopy(spentOutputsArray, 0, bitVectorData, 0, spentOutputsArray.length);
-
-            data.write(NumberSerializer.serialize(bitVectorData.length));
-            data.write(bitVectorData);
-
-            data.write(NumberSerializer.serialize(m_outputs.size()));
-
-            for (TransactionOutput m_output : m_outputs)
-                data.write(m_output.serialize());
+            data.write(m_output.serialize());
         }
         catch (IOException e)
         {
@@ -217,25 +215,5 @@ public class UnspentTransactionOutput implements ISerializable
         }
 
         return data.toByteArray();
-    }
-
-    /**
-     * Gets the transaction hash for this outputs.
-     *
-     * @return The transaction hash.
-     */
-    public Hash getHash()
-    {
-        return m_hash;
-    }
-
-    /**
-     * Sets the transaction hash for this outputs.
-     *
-     * @param hash The transaction hash.
-     */
-    public void setHash(Hash hash)
-    {
-        m_hash = hash;
     }
 }
