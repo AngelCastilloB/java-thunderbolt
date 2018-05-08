@@ -75,11 +75,9 @@ public class NetworkParameters implements Serializable
         Block               genesisBlock = new Block();
         Transaction         transaction  = new Transaction();
         TransactionInput    input        = new TransactionInput();
-        TransactionOutpoint outpoint     = new TransactionOutpoint();
         TransactionOutput   output       = new TransactionOutput();
 
-        outpoint.setIndex(Integer.MAX_VALUE);
-        input.setPreviousOutput(outpoint);
+        input.setIndex(Integer.MAX_VALUE);
 
         output.setAmount(MAIN_NET_SUBSIDY_STARTING_VALUE);
         output.setLockType(OutputLockType.SingleSignature);
@@ -96,7 +94,7 @@ public class NetworkParameters implements Serializable
 
         genesisBlock.getHeader().setTimeStamp(1525003294);
         genesisBlock.getHeader().setBits(0x1d07fff8L);
-        genesisBlock.getHeader().setNonce(433897726);
+        genesisBlock.getHeader().setNonce(449327816);
 
         return genesisBlock;
     }

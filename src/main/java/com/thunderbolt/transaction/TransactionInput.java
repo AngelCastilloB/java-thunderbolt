@@ -23,13 +23,12 @@
  */
 package com.thunderbolt.transaction;
 
-// IMPORTS ************************************************************/
+// IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
 
-import java.awt.font.NumericShaper;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -37,42 +36,50 @@ import java.nio.ByteBuffer;
 // IMPLEMENTATION ************************************************************/
 
 /**
- * An input is a reference to an output from a previous transaction.
+ * A reference to an output inside a particular transaction.
  */
 public class TransactionInput implements ISerializable
 {
-    // Instance Fields
-    private TransactionOutpoint m_previousOutput;
-    private int                 m_sequence; // TODO: Remove field.
+    // Constants
+    private static final int HASH_LENGTH  = 32;
+
+    //Instance Fields
+    private Hash m_refHash = new Hash();
+    private int  m_index   = 0;
 
     /**
-     * Creates a new instance of the TransactionInput class.
+     * Creates a transaction outpoint.
      */
     public TransactionInput()
     {
     }
 
     /**
-     * Creates a new instance of the TransactionInput class.
+     * Creates a transaction outpoint from the given hash and index.
      *
-     * @param previousOutput      A reference to a previous output.
-     * @param sequence            The sequence.
+     * @param hash  The hash of the reference transaction.
+     * @param index The index of the specific output in the reference transaction.
      */
-    public TransactionInput(TransactionOutpoint previousOutput, int sequence)
+    public TransactionInput(Hash hash, int index)
     {
-        m_previousOutput      = previousOutput;
-        m_sequence            = sequence;
+        m_refHash = hash;
+        m_index   = index;
     }
 
     /**
-     * Creates a new instance of the TransactionInput class.
+     * Creates a transaction outpoint from the given byte array.
      *
-     * @param buffer Serialized TransactionInput object.
+     * @param buffer Byte buffer containing the transaction output.
      */
     public TransactionInput(ByteBuffer buffer)
     {
-        setPreviousOutput(new TransactionOutpoint(buffer));
-        setSequence(buffer.getInt());
+        m_index = buffer.getInt();
+
+        byte[] hashData = new byte[32];
+
+        buffer.get(hashData, 0, HASH_LENGTH);
+
+        m_refHash.setData(hashData);
     }
 
     /**
@@ -80,16 +87,53 @@ public class TransactionInput implements ISerializable
      */
     public boolean isCoinBase()
     {
-        return m_previousOutput.getReferenceHash().equals(new Hash());
+        return m_refHash.equals(new Hash());
     }
 
     /**
-     * Serializes an object in ray byte format.
+     * Gets the hash of the reference transaction.
      *
-     * @return The serialized object.
+     * @return The hash of the reference transaction.
+     */
+    public Hash getReferenceHash()
+    {
+        return m_refHash;
+    }
+
+    /**
+     * Sets the hash of the reference transaction.
      *
-     * @remark In the serialization process we skip the unlocking parameters (witness data). This data
-     * will be serialized outside the transaction to avoid transaction malleability.
+     * @param hash The hash of the reference transaction.
+     */
+    public void setReferenceHash(Hash hash)
+    {
+        m_refHash = hash;
+    }
+
+    /**
+     * Gets the index of the output in the reference transaction.
+     *
+     * @return the index of the output in the reference transaction.
+     */
+    public int getIndex()
+    {
+        return m_index;
+    }
+
+    /**
+     * Sets the index of the output in the reference transaction.
+     *
+     * @param index The index of the output in the reference transaction.
+     */
+    public void setIndex(int index)
+    {
+        m_index = index;
+    }
+
+    /**
+     * Gets a byte array with the serialized representation of this outpoint.
+     *
+     * @return The serialized representation of the outpoint.
      */
     @Override
     public byte[] serialize()
@@ -98,54 +142,15 @@ public class TransactionInput implements ISerializable
 
         try
         {
-            data.write(getPreviousOutput().serialize());
-            data.write(NumberSerializer.serialize(m_sequence));
+            data.write(NumberSerializer.serialize(m_index));
+            data.write(m_refHash.serialize());
         }
         catch (IOException e)
         {
             e.printStackTrace();
         }
 
+
         return data.toByteArray();
-    }
-
-    /**
-     * Gets the previous output reference.
-     *
-     * @return The previous output.
-     */
-    public TransactionOutpoint getPreviousOutput()
-    {
-        return m_previousOutput;
-    }
-
-    /**
-     * Sets the previous output reference.
-     *
-     * @param previousOutput The previous output.
-     */
-    public void setPreviousOutput(TransactionOutpoint previousOutput)
-    {
-        m_previousOutput = previousOutput;
-    }
-
-    /**
-     * Gets the transaction sequence.
-     *
-     * @return The sequence.
-     */
-    public int getSequence()
-    {
-        return m_sequence;
-    }
-
-    /**
-     * Sets the transaction sequence.
-     *
-     * @param sequence The sequence.
-     */
-    public void setSequence(int sequence)
-    {
-        m_sequence = sequence;
     }
 }

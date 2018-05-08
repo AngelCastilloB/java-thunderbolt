@@ -30,7 +30,6 @@ import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
 import com.thunderbolt.transaction.Transaction;
 import com.thunderbolt.transaction.TransactionInput;
-import com.thunderbolt.transaction.TransactionOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,8 +124,8 @@ public class PersistenceManager
 
             for (TransactionInput input: transaction.getInputs())
             {
-                Hash transactionHash = input.getPreviousOutput().getReferenceHash();
-                int  outputIndex     = input.getPreviousOutput().getIndex();
+                Hash transactionHash = input.getReferenceHash();
+                int  outputIndex     = input.getIndex();
 
                 Transaction referencedTransaction = getTransaction(transactionHash);
 

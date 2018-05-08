@@ -69,16 +69,34 @@ public class Main
      */
     public static void main(String[] args) throws IOException, GeneralSecurityException, CloneNotSupportedException
     {
+        /*
         Transaction spentXT = PersistenceManager.getInstance().getTransaction(new Hash("C6F5EF7E766C3C01EEEB58CF3D7F2341F86AAC37D6A5624BBB4EB5933EEE8D71"));
         Block block = PersistenceManager.getInstance().getBlock(new Hash("000000018E63AF34BB7773220540E4456513A32E70994E2E9A014553DA9A076F"));
         int a = 3;
-        ++a;
+        ++a;*/
+
+        Block newBlock = NetworkParameters.createGenesis();
+        BigInteger hash = newBlock.getHeaderHash().toBigInteger();
+        boolean solved = false;
+        while (!solved)
+        {
+            solved = !(hash.compareTo(newBlock.getTargetDifficultyAsInteger()) > 0);
+            if (solved)
+                break;
+            //System.out.println(String.format("Block hash is higher than target difficulty: %s > %s", newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
+            newBlock.getHeader().setNonce(newBlock.getHeader().getNonce() + 1);
+            hash = newBlock.getHeaderHash().toBigInteger();
+        }
+
+        s_logger.debug(String.format("Block solved! hash is lower than target difficulty (%d): %s > %s", newBlock.getHeader().getNonce(), newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
+
+
         /*
         UnspentTransactionOutput spentXT = PersistenceManager.getInstance().getUnspentOutput(new Hash("E2DBE246FEEAFD8B57CB2C08A6C62DA2F2CF98BE9BA21CD5CE3E6FD485D21E8D"));
 
         s_logger.debug(String.format("%s", spentXT.getHash()));
 
-        TransactionOutpoint outpoint = new TransactionOutpoint(new Hash("E2DBE246FEEAFD8B57CB2C08A6C62DA2F2CF98BE9BA21CD5CE3E6FD485D21E8D"), 0);
+        TransactionInput outpoint = new TransactionInput(new Hash("E2DBE246FEEAFD8B57CB2C08A6C62DA2F2CF98BE9BA21CD5CE3E6FD485D21E8D"), 0);
         TransactionInput input = new TransactionInput(outpoint, 0);
 
         // When we sign the transaction input plus the locking parameters of the referenced output.
@@ -167,7 +185,7 @@ public class Main
         // Create Transaction
 
         // Outpoint pointing to the first output in the genesis transaction.
-        TransactionOutpoint outpoint = new TransactionOutpoint(Sha256Digester.digest(s_genesisTransaction.serialize()), 0);
+        TransactionInput outpoint = new TransactionInput(Sha256Digester.digest(s_genesisTransaction.serialize()), 0);
 
         Transaction referencedTransaction = s_UXTOPoll.get(Sha256Digester.digest(s_genesisTransaction.serialize()));
         TransactionOutput referencedUxto = referencedTransaction.getOutputs().get(outpoint.getIndex());
@@ -209,7 +227,7 @@ public class Main
         TransactionInput input1 = recXt.getInputs().get(0);
 
         // Pull the outpoint referenced by this input.
-        TransactionOutpoint outpoint1 = input1.getPreviousOutput();
+        TransactionInput outpoint1 = input1.getPreviousOutput();
         // Find the whole transaction.
         Transaction referencedTransaction1 = s_UXTOPoll.get(outpoint1.getReferenceHash());
         // Get the referenced input.
