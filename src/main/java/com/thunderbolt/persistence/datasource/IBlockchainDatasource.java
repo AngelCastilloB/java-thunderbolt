@@ -33,12 +33,12 @@ import com.thunderbolt.security.Hash;
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Manifest of all the relevant blockchain related information. Blocks, transactions, inputs, outputs etc...
+ * Contains all the relevant blockchain related information. Blocks, transactions, inputs, outputs etc...
  */
-public interface IBlockchainManifest
+public interface IBlockchainDatasource
 {
     /**
-     * Gets the metadata entry from the manifest.
+     * Gets the metadata entry from the data source.
      *
      * @param id The hash of the block header.
      *
@@ -47,35 +47,35 @@ public interface IBlockchainManifest
     BlockMetadata getBlockMetadata(Hash id);
 
     /**
-     * Adds a block metadata entry to the manifest.
+     * Adds a block metadata entry to the data source.
      *
      * @param metadata The metadata to be added.
      */
     boolean addBlockMetadata(BlockMetadata metadata);
 
     /**
-     * Sets the block chain head in the manifest.
+     * Sets the block chain head in the data source.
      *
      * @param metadata The metadata of the block chain head.
      */
     boolean setChainHead(BlockMetadata metadata);
 
     /**
-     * Gets the block chain head metadata entry from the manifest.
+     * Gets the block chain head metadata entry from the data source.
      *
      * @return The block metadata.
      */
     BlockMetadata getChainHead();
 
     /**
-     * Adds a transaction metadata entry to the manifest.
+     * Adds a transaction metadata entry to the data source.
      *
      * @param metadata The metadata to be added.
      */
     void addTransactionMetadata(TransactionMetadata metadata);
 
     /**
-     * Gets the metadata entry from the manifest.
+     * Gets the metadata entry from the data source.
      *
      * @param id The hash of the transaction.
      *
@@ -84,14 +84,14 @@ public interface IBlockchainManifest
     TransactionMetadata getTransactionMetadata(Hash id);
 
     /**
-     * Adds an unspent transaction to the database.
+     * Adds an unspent transaction to the data source.
      *
      * @param output The unspent outputs to be added.
      */
     void addUnspentOutput(UnspentTransactionOutput output);
 
     /**
-     * Gets an unspent transaction from the database.
+     * Gets an unspent transaction from the data source.
      *
      * @param id    The transaction id that contains the unspent output.
      * @param index The index of the output inside the transaction.
