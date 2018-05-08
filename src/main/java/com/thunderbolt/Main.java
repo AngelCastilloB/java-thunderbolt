@@ -27,13 +27,8 @@ package com.thunderbolt;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.blockchain.Block;
-import com.thunderbolt.blockchain.BlockHeader;
-import com.thunderbolt.common.Convert;
-import com.thunderbolt.network.NetworkParameters;
-import com.thunderbolt.persistence.BlockMetadata;
-import com.thunderbolt.persistence.BlocksManifest;
 import com.thunderbolt.persistence.PersistenceManager;
-import com.thunderbolt.persistence.UnspentTransactionOutput;
+import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.*;
 import com.thunderbolt.transaction.*;
 import org.slf4j.Logger;
@@ -41,9 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.math.BigInteger;
-import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
-import java.util.ArrayList;
 import java.util.HashMap;
 
 /* IMPLEMENTATION ************************************************************/

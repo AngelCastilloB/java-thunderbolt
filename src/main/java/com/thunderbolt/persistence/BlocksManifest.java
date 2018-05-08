@@ -26,6 +26,9 @@ package com.thunderbolt.persistence;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.NumberSerializer;
+import com.thunderbolt.persistence.structures.BlockMetadata;
+import com.thunderbolt.persistence.structures.TransactionMetadata;
+import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Hash;
 import org.iq80.leveldb.*;
 import org.slf4j.Logger;

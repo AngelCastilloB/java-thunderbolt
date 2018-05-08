@@ -27,6 +27,9 @@ package com.thunderbolt.persistence;
 
 import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.common.NumberSerializer;
+import com.thunderbolt.persistence.structures.BlockMetadata;
+import com.thunderbolt.persistence.structures.TransactionMetadata;
+import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Hash;
 import com.thunderbolt.transaction.Transaction;
 import com.thunderbolt.transaction.TransactionInput;
@@ -66,7 +69,7 @@ public class PersistenceManager
     static public final Path   BLOCKS_METADATA_PATH = Paths.get(BLOCKS_PATH.toString(), "manifest");
     static public final Path   STATE_PATH           = Paths.get(DEFAULT_PATH.toString(), "state");
     static public final long   BLOCKS_FILE_SIZE     = 1024 * 1000 * 128 ; // 128 MB
-    static private final int   BLOCKS_FILE_MAGIC    = 0xAAAAAAAA;
+    static private final int   BLOCKS_FILE_MAGIC    = 0xAAAAAAAA; // This magic needs to be the network magic.
 
     // Singleton Instance
     private static final PersistenceManager instance = new PersistenceManager();
