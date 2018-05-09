@@ -48,7 +48,7 @@ public interface IContiguousStorage
      *
      * @return An datasource pointer. This pointer will be needed later to retrieve the data.
      */
-    StoragePointer store(byte[] buffer);
+    StoragePointer store(byte[] buffer) throws StorageException;
 
     /**
      * Stores the given byte buffer in the contiguous datasource.
@@ -57,7 +57,7 @@ public interface IContiguousStorage
      *
      * @return An datasource pointer. This pointer will be needed later to retrieve the data.
      */
-    StoragePointer store(ByteBuffer buffer);
+    StoragePointer store(ByteBuffer buffer) throws StorageException;
 
     /**
      * Retrieves the data located at the given datasource pointer.
@@ -66,5 +66,5 @@ public interface IContiguousStorage
      *
      * @return The data.
      */
-    byte[] retrieve(StoragePointer pointer);
+    byte[] retrieve(StoragePointer pointer) throws StorageException;
 }

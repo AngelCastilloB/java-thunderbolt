@@ -28,6 +28,7 @@ package com.thunderbolt;
 
 import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.persistence.PersistenceManager;
+import com.thunderbolt.persistence.datasource.StorageException;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.*;
 import com.thunderbolt.transaction.*;
@@ -60,7 +61,7 @@ public class Main
      *
      * @param args Arguments.
      */
-    public static void main(String[] args) throws IOException, GeneralSecurityException, CloneNotSupportedException
+    public static void main(String[] args) throws IOException, GeneralSecurityException, CloneNotSupportedException, StorageException
     {
         //PersistenceManager.getInstance().persist(NetworkParameters.createGenesis(), 0);
         Transaction spentXT = PersistenceManager.getInstance().getTransaction(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"));
