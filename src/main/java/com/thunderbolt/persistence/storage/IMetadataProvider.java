@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.thunderbolt.persistence.datasource;
+package com.thunderbolt.persistence.storage;
 
 /* IMPORTS *******************************************************************/
 
@@ -33,68 +33,77 @@ import com.thunderbolt.security.Hash;
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Contains all the relevant blockchain related information. Blocks, transactions, inputs, outputs etc...
+ * Contains all the relevant blockchain related metadata. Blocks, transactions, spent outputs etc...
  */
-public interface IBlockchainDatasource
+public interface IMetadataProvider
 {
     /**
-     * Gets the metadata entry from the data source.
+     * Gets the block metadata entry from the provider.
      *
      * @param id The hash of the block header.
      *
      * @return The block metadata.
      */
-    BlockMetadata getBlockMetadata(Hash id);
+    BlockMetadata getBlockMetadata(Hash id) throws StorageException;
 
     /**
-     * Adds a block metadata entry to the data source.
+     * Adds a block metadata entry to the provider.
      *
      * @param metadata The metadata to be added.
      */
-    boolean addBlockMetadata(BlockMetadata metadata);
+    boolean addBlockMetadata(BlockMetadata metadata) throws StorageException;
 
     /**
-     * Sets the block chain head in the data source.
+     * Sets the block chain head in the provider.
      *
      * @param metadata The metadata of the block chain head.
      */
-    boolean setChainHead(BlockMetadata metadata);
+    boolean setChainHead(BlockMetadata metadata) throws StorageException;
 
     /**
-     * Gets the block chain head metadata entry from the data source.
+     * Gets the block chain head metadata entry from the provider.
      *
      * @return The block metadata.
      */
-    BlockMetadata getChainHead();
+    BlockMetadata getChainHead() throws StorageException;
 
     /**
-     * Adds a transaction metadata entry to the data source.
+     * Adds a transaction metadata entry to the provider.
      *
      * @param metadata The metadata to be added.
      */
-    void addTransactionMetadata(TransactionMetadata metadata);
+    void addTransactionMetadata(TransactionMetadata metadata) throws StorageException;
 
     /**
-     * Gets the metadata entry from the data source.
+     * Gets the metadata entry from the provider.
      *
      * @param id The hash of the transaction.
      *
      * @return The transaction metadata.
      */
-    TransactionMetadata getTransactionMetadata(Hash id);
+    TransactionMetadata getTransactionMetadata(Hash id) throws StorageException;
 
     /**
-     * Adds an unspent transaction to the data source.
+     * Adds an unspent transaction to the provider. This outputs is now spendable by any other transaction in
+     * the mem pool.
      *
      * @param output The unspent outputs to be added.
      */
-    void addUnspentOutput(UnspentTransactionOutput output);
+    boolean addUnspentOutput(UnspentTransactionOutput output) throws StorageException;
 
     /**
-     * Gets an unspent transaction from the data source.
+     * Gets an unspent transaction from the provider.
      *
-     * @param id    The transaction id that contains the unspent output.
+     * @param id    The id of the transaction that contains the unspent output.
      * @param index The index of the output inside the transaction.
      */
-    UnspentTransactionOutput getUnspentOutput(Hash id, int index);
+    UnspentTransactionOutput getUnspentOutput(Hash id, int index) throws StorageException;
+
+    /**
+     * Removes the unspent output transaction from the metadata provider.
+     *
+     * @param id    The id of the transaction that contains the unspent output.
+     * @param index The index of the output inside the transaction.
+     */
+    boolean removeUnspentOutput(Hash id, int index) throws StorageException;
 }

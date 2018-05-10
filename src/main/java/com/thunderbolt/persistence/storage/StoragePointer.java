@@ -21,17 +21,17 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.thunderbolt.persistence.datasource;
+package com.thunderbolt.persistence.storage;
 
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * This structure is useful for locating data entries in a contiguous datasource.
+ * This structure is useful for locating data entries in a contiguous storage.
  */
 public class StoragePointer
 {
     /**
-     * In which segment the data is located in the contiguous datasource.
+     * In which segment the data is located in the contiguous storage.
      */
     public int segment;
 

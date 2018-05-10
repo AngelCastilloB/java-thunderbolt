@@ -28,8 +28,9 @@ package com.thunderbolt;
 
 import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.persistence.PersistenceManager;
-import com.thunderbolt.persistence.datasource.StorageException;
-import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
+import com.thunderbolt.persistence.storage.DiskContiguousStorage;
+import com.thunderbolt.persistence.storage.LevelDbMetadataProvider;
+import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.security.*;
 import com.thunderbolt.transaction.*;
 import org.slf4j.Logger;
@@ -37,6 +38,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.math.BigInteger;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.util.HashMap;
 
@@ -47,6 +50,16 @@ import java.util.HashMap;
  */
 public class Main
 {
+    // Constants
+    static private final String USER_HOME_PATH   = System.getProperty("user.home");
+    static private final String DATA_FOLDER_NAME = ".thunderbolt";
+    static private final Path   DEFAULT_PATH     = Paths.get(USER_HOME_PATH, DATA_FOLDER_NAME);
+    static private final Path   BLOCKS_PATH      = Paths.get(DEFAULT_PATH.toString(), "blocks");
+    static private final Path   REVERT_PATH      = Paths.get(DEFAULT_PATH.toString(), "reverts");
+    static private final Path   METADATA_PATH    = Paths.get(DEFAULT_PATH.toString(), "metadata");
+    static private final String BLOCK_PATTERN    = "block%05d.bin";
+    static private final String REVERT_PATTERN   = "revert%05d.bin";
+
     private static final Logger s_logger = LoggerFactory.getLogger(Main.class);
 
     static EllipticCurveKeyPair s_genesisKeyPair     = new EllipticCurveKeyPair();
@@ -63,10 +76,12 @@ public class Main
      */
     public static void main(String[] args) throws IOException, GeneralSecurityException, CloneNotSupportedException, StorageException
     {
+        initializePersistenceManager();
+
         //PersistenceManager.getInstance().persist(NetworkParameters.createGenesis(), 0);
         Transaction spentXT = PersistenceManager.getInstance().getTransaction(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"));
         Block block = PersistenceManager.getInstance().getBlock(new Hash("00000004063B34C6FE99D1DB8A8C7F041B46487E64B0ED74C0EE8B7D4FA8F4E9"));
-        UnspentTransactionOutput uxto = PersistenceManager.getInstance().getUnspentOutput(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"), 0);
+        //UnspentTransactionOutput uxto = PersistenceManager.getInstance().getUnspentOutput(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"), 0);
         int a = 3;
         ++a;
 /*
@@ -294,5 +309,19 @@ public class Main
         PersistenceManager.getInstance().persist(deserializedGenesis, 0);
         s_logger.debug(String.format("Block solved! hash is lower than target difficulty (%d): %s > %s", deserializedGenesis.getHeader().getNonce(), genesisBlock.getHeaderHash(), Convert.toHexString(block2.getTargetDifficultyAsInteger().toByteArray())));
         */
+    }
+
+    /**
+     * Initializes the persistence manager.
+     *
+     * @throws StorageException If there is any error opening the storage.
+     */
+    static void initializePersistenceManager() throws StorageException
+    {
+        DiskContiguousStorage   blockStorage = new DiskContiguousStorage(BLOCKS_PATH, BLOCK_PATTERN);
+        DiskContiguousStorage   revertsStorage = new DiskContiguousStorage(REVERT_PATH, REVERT_PATTERN);
+        LevelDbMetadataProvider metadataProvider = new LevelDbMetadataProvider(METADATA_PATH.toString());
+
+        PersistenceManager.getInstance().initialize(blockStorage, revertsStorage, metadataProvider);
     }
 }

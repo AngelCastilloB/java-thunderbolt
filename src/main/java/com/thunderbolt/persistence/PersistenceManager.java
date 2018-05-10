@@ -27,7 +27,7 @@ package com.thunderbolt.persistence;
 
 import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.common.NumberSerializer;
-import com.thunderbolt.persistence.datasource.*;
+import com.thunderbolt.persistence.storage.*;
 import com.thunderbolt.persistence.structures.BlockMetadata;
 import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
@@ -62,25 +62,14 @@ public class PersistenceManager
 {
     private static final Logger s_logger = LoggerFactory.getLogger(PersistenceManager.class);
 
-    // Constants
-    static public final String USER_HOME_PATH       = System.getProperty("user.home");
-    static public final String DATA_FOLDER_NAME     = ".thunderbolt";
-    static public final Path   DEFAULT_PATH         = Paths.get(USER_HOME_PATH, DATA_FOLDER_NAME);
-    static public final Path   BLOCKS_PATH          = Paths.get(DEFAULT_PATH.toString(), "blocks");
-    static public final Path   REVERT_PATH          = Paths.get(DEFAULT_PATH.toString(), "reverts");
-    static public final Path   BLOCKS_METADATA_PATH = Paths.get(BLOCKS_PATH.toString(), "manifest");
-    static public final Path   STATE_PATH           = Paths.get(DEFAULT_PATH.toString(), "state");
-    static public final long   BLOCKS_FILE_SIZE     = 1024 * 1000 * 128 ; // 128 MB
-    static private final int   BLOCKS_FILE_MAGIC    = 0xAAAAAAAA; // This magic needs to be the network magic.
-
     // Singleton Instance
     private static final PersistenceManager instance = new PersistenceManager();
 
     // Instance fields
-    private boolean               m_isInitialized  = false;
-    private IContiguousStorage    m_blockStorage   = null;
-    private IContiguousStorage    m_revertsStorage = null;
-    private IBlockchainDatasource m_datasource     = null;
+    private boolean            m_isInitialized    = false;
+    private IContiguousStorage m_blockStorage     = null;
+    private IContiguousStorage m_revertsStorage   = null;
+    private IMetadataProvider  m_metadataProvider = null;
     /**
      * Defeats instantiation of the PersistenceManager class.
      */
@@ -99,79 +88,94 @@ public class PersistenceManager
     }
 
     /**
+     * Initializes the persistence manager.
+     *
+     * @param blockStorage     The storage for the blocks.
+     * @param revertStorage    The storage for the revert data.
+     * @param metadataProvider The blockchain metadata provider.
+     */
+    public void initialize(IContiguousStorage blockStorage, IContiguousStorage revertStorage, IMetadataProvider metadataProvider)
+    {
+        s_logger.debug("Initializing persistence manager.");
+
+        m_blockStorage     = blockStorage;
+        m_revertsStorage   = revertStorage;
+        m_metadataProvider = metadataProvider;
+        m_isInitialized    = true;
+    }
+
+    /**
+     * Gets whether the persistence manager is initialized or not.
+     *
+     * @return True if initialized; otherwise; false.
+     */
+    public boolean isInitialized()
+    {
+        return m_isInitialized;
+    }
+
+    /**
      * Persist the given block. The block will be indexed by its block id (hash).
      *
+     * @param block  The block to persist.
      * @param height The height of this block.
      */
-    public void persist(Block block, int height) throws IOException, StorageException
+    public boolean persist(Block block, int height) throws StorageException
     {
-        byte[] serializedBlock = block.serialize();
-
-        // The list of unspent transaction outputs this blocks spends.
-        List<UnspentTransactionOutput> unspentTransactionOutputs = new ArrayList<>();
-
-        for (int i = 0; i < block.getTransactionsCount(); ++i)
+        if (!m_isInitialized)
+            throw new StorageException("The persistence manager is not initialized.");
+        try
         {
-            Transaction transaction = block.getTransaction(i);
+            byte[] serializedBlock = block.serialize();
+            byte[] revertData      = getRevertData(block, height);
 
-            // We ignore coinbase transactions since they dont spent any previous outputs.
-            if (transaction.isCoinBase())
-                continue;
+            StoragePointer blockPointer = m_blockStorage.store(serializedBlock);
+            StoragePointer revertPointer = m_revertsStorage.store(revertData);
 
-            for (TransactionInput input: transaction.getInputs())
+            BlockMetadata metadata = new BlockMetadata();
+
+            metadata.setHeader(block.getHeader());
+            metadata.setBlockFile(blockPointer.segment);
+            metadata.setBlockFilePosition(blockPointer.offset);
+            metadata.setSpentOutputsFile(revertPointer.segment);
+            metadata.setSpentOutputsPosition(revertPointer.offset);
+            metadata.setTransactionCount(block.getTransactionsCount());
+            metadata.setHeight(height);
+            metadata.setStatus((byte)0);
+
+            m_metadataProvider.addBlockMetadata(metadata);
+
+            // Create and store the transaction metadata for this block.
+            for (int i = 0; i < block.getTransactionsCount(); ++i)
             {
-                Hash transactionHash = input.getReferenceHash();
-                int  outputIndex     = input.getIndex();
+                Transaction transaction = block.getTransaction(i);
 
-                Transaction referencedTransaction = getTransaction(transactionHash);
+                TransactionMetadata transactionMetadata = new TransactionMetadata();
+                transactionMetadata.setBlockFile(blockPointer.segment);
+                transactionMetadata.setBlockPosition(blockPointer.offset);
+                transactionMetadata.setTransactionPosition(i);
+                transactionMetadata.setHash(transaction.getTransactionId());
 
-                UnspentTransactionOutput unspentOutput = new UnspentTransactionOutput();
-                unspentOutput.setBlockHeight(height);
-                unspentOutput.setVersion(referencedTransaction.getVersion());
-                unspentOutput.setIsCoinbase(referencedTransaction.isCoinBase());
-                unspentOutput.setHash(referencedTransaction.getTransactionId());
-                unspentOutput.setIndex(outputIndex);
-                unspentOutput.setOutput(referencedTransaction.getOutputs().get(outputIndex));
-
-                unspentTransactionOutputs.add(unspentOutput);
+                m_metadataProvider.addTransactionMetadata(transactionMetadata);
             }
         }
-
-        StoragePointer pointer = m_blockStorage.store(serializedBlock);
-
-        BlockMetadata metadata = new BlockMetadata();
-
-        metadata.setHeader(block.getHeader());
-        metadata.setBlockFile(pointer.segment);
-        metadata.setBlockFilePosition(pointer.offset);
-        metadata.setSpentOutputsPosition(pointer.offset + serializedBlock.length);
-        metadata.setTransactionCount(block.getTransactionsCount());
-        metadata.setHeight(height);
-        metadata.setStatus((byte)0);
-
-        m_datasource.addBlockMetadata(metadata);
-
-        // Create and store the transaction metadata for this block.
-        for (int i = 0; i < block.getTransactionsCount(); ++i)
+        catch (Exception exception)
         {
-            Transaction transaction = block.getTransaction(i);
-
-            TransactionMetadata transactionMetadata = new TransactionMetadata();
-            transactionMetadata.setBlockFile(pointer.segment);
-            transactionMetadata.setBlockPosition(pointer.offset);
-            transactionMetadata.setTransactionPosition(i);
-            transactionMetadata.setHash(transaction.getTransactionId());
-
-            m_datasource.addTransactionMetadata(transactionMetadata);
+            throw new StorageException(String.format("Unable to persist block '%s'", block.getHeaderHash()), exception);
         }
+
+        return true;
     }
 
     /**
      * Gets the Block with the given hash.
      */
-    public Block getBlock(Hash hash) throws IOException, StorageException
+    public Block getBlock(Hash hash) throws StorageException
     {
-        BlockMetadata metadata = m_datasource.getBlockMetadata(hash);
+        if (!m_isInitialized)
+            throw new StorageException("The persistence manager is not initialized.");
+
+        BlockMetadata metadata = m_metadataProvider.getBlockMetadata(hash);
 
         StoragePointer pointer = new StoragePointer();
         pointer.segment = metadata.getBlockFile();
@@ -189,26 +193,26 @@ public class PersistenceManager
      *
      * @return the spent outputs by this block.
      */
-    public List<UnspentTransactionOutput> getSpentOutputs(Hash hash) throws IOException
+    public List<UnspentTransactionOutput> getSpentOutputs(Hash hash) throws StorageException
     {
-        BlockMetadata metadata = BlocksManifest.getBlockMetadata(hash);
+        if (!m_isInitialized)
+            throw new StorageException("The persistence manager is not initialized.");
 
-        Path filePath = Paths.get(
-                PersistenceManager.BLOCKS_PATH.toString(),
-                String.format("block%05d.bin", metadata.getBlockFile()));
+        BlockMetadata metadata = m_metadataProvider.getBlockMetadata(hash);
 
-        InputStream data = Files.newInputStream(filePath);
-        data.skip(metadata.getSpentOutputsPosition());
+        StoragePointer pointer = new StoragePointer();
+        pointer.segment = metadata.getSpentOutputsFile();
+        pointer.offset  = metadata.getSpentOutputsPosition();
 
-        byte[] dataSize = new byte[Integer.BYTES];
-        data.read(dataSize, 0, Integer.BYTES);
+        byte[] revertData = m_revertsStorage.retrieve(pointer);
 
-        ByteBuffer buffer = ByteBuffer.wrap(dataSize);
-        int count  = buffer.getInt();
+        ByteBuffer buffer = ByteBuffer.wrap(revertData);
+
+        int transactionCount = buffer.getInt();
 
         ArrayList<UnspentTransactionOutput> outputs = new ArrayList<>();
 
-        for (int i = 0; i < count; ++i)
+        for (int i = 0; i < transactionCount; ++i)
             outputs.add(new UnspentTransactionOutput(buffer));
 
         return outputs;
@@ -219,9 +223,12 @@ public class PersistenceManager
      *
      * @return The block at the head of the blockchain.
      */
-    public BlockMetadata getChainHead() throws IOException
+    public BlockMetadata getChainHead() throws StorageException
     {
-        return BlocksManifest.getChainHead();
+        if (!m_isInitialized)
+            throw new StorageException("The persistence manager is not initialized.");
+
+        return m_metadataProvider.getChainHead();
     }
 
     /**
@@ -229,9 +236,12 @@ public class PersistenceManager
      *
      * @param metadata The block at the head of the blockchain.
      */
-    public void setChainHead(BlockMetadata metadata) throws IOException
+    public void setChainHead(BlockMetadata metadata) throws StorageException
     {
-        BlocksManifest.setChainHead(metadata);
+        if (!m_isInitialized)
+            throw new StorageException("The persistence manager is not initialized.");
+
+        m_metadataProvider.setChainHead(metadata);
     }
 
     /**
@@ -241,29 +251,18 @@ public class PersistenceManager
      *
      * @return The transaction.
      */
-    public Transaction getTransaction(Hash hash) throws IOException
+    public Transaction getTransaction(Hash hash) throws StorageException
     {
-        TransactionMetadata metadata = BlocksManifest.getTransactionMetadata(hash);
+        if (!m_isInitialized)
+            throw new StorageException("The persistence manager is not initialized.");
 
-        Path filePath = Paths.get(
-                PersistenceManager.BLOCKS_PATH.toString(),
-                String.format("block%05d.bin", metadata.getBlockFile()));
+        TransactionMetadata metadata = m_metadataProvider.getTransactionMetadata(hash);
 
-        InputStream data = Files.newInputStream(filePath);
-        data.skip(metadata.getBlockPosition());
+        StoragePointer pointer = new StoragePointer();
+        pointer.segment = metadata.getBlockFile();
+        pointer.offset = metadata.getBlockPosition();
 
-        byte[] entryHeader = new byte[Integer.BYTES * 2];
-        data.read(entryHeader, 0, Integer.BYTES * 2);
-
-        ByteBuffer buffer = ByteBuffer.wrap(entryHeader);
-        int magic = buffer.getInt();
-        int size  = buffer.getInt();
-
-        if (magic != BLOCKS_FILE_MAGIC)
-            throw new IOException("Invalid magic header.");
-
-        byte[] rawBlock = new byte[size];
-        data.read(rawBlock, 0, size);
+        byte[] rawBlock = m_blockStorage.retrieve(pointer);
 
         Block block = new Block(ByteBuffer.wrap(rawBlock));
 
@@ -277,9 +276,12 @@ public class PersistenceManager
      *
      * @return The transaction output, or null if the output is not available or was already spent.
      */
-    public UnspentTransactionOutput getUnspentOutput(Hash transactionId, int index) throws IOException
+    public UnspentTransactionOutput getUnspentOutput(Hash transactionId, int index) throws StorageException
     {
-        return BlocksManifest.getUnspentOutput(transactionId, index);
+        if (!m_isInitialized)
+            throw new StorageException("The persistence manager is not initialized.");
+
+        return m_metadataProvider.getUnspentOutput(transactionId, index);
     }
 
     /**
@@ -287,9 +289,87 @@ public class PersistenceManager
      *
      * @param output The unspent output to store in the system.
      */
-    public void addUnspentOutput(UnspentTransactionOutput output) throws IOException
+    public boolean addUnspentOutput(UnspentTransactionOutput output) throws StorageException
     {
-        s_logger.debug(String.format("Adding output %s for transaction %s", output.getIndex(), output.getHash().toString()));
-        BlocksManifest.addUnspentOutput(output);
+        if (!m_isInitialized)
+            throw new StorageException("The persistence manager is not initialized.");
+
+        return m_metadataProvider.addUnspentOutput(output);
+    }
+
+    /**
+     * Removes the unspent output transaction from the metadata provider.
+     *
+     * @param id    The id of the transaction that contains the unspent output.
+     * @param index The index of the output inside the transaction.
+     */
+    public boolean removeUnspentOutput(Hash id, int index) throws StorageException
+    {
+        if (!m_isInitialized)
+            throw new StorageException("The persistence manager is not initialized.");
+
+        return m_metadataProvider.removeUnspentOutput(id, index);
+    }
+
+    /**
+     * Gets the revert data for this block.
+     *
+     * The revert data consist of a list of all the outputs the transactions in this block spends, this transactions
+     * need to be added back to the UTXO pool.
+     *
+     * @param block  The block to get the revert data from.
+     * @param height The height of the block.
+     *
+     * @return Returns the list of spent outputs in a serialized form.
+     *
+     * @throws StorageException If there is an error querying the required metadata to create the revert data.
+     */
+    private byte[] getRevertData(Block block, int height) throws StorageException
+    {
+        ByteArrayOutputStream data = new ByteArrayOutputStream();
+
+        try
+        {
+            // The list of unspent transaction outputs this blocks spends.
+            List<UnspentTransactionOutput> unspentTransactionOutputs = new ArrayList<>();
+
+            for (int i = 0; i < block.getTransactionsCount(); ++i)
+            {
+                Transaction transaction = block.getTransaction(i);
+
+                // We ignore coinbase transactions since they dont spent any previous outputs.
+                if (transaction.isCoinBase())
+                    continue;
+
+                for (TransactionInput input: transaction.getInputs())
+                {
+                    Hash transactionHash = input.getReferenceHash();
+                    int  outputIndex     = input.getIndex();
+
+                    Transaction referencedTransaction = getTransaction(transactionHash);
+
+                    UnspentTransactionOutput unspentOutput = new UnspentTransactionOutput();
+                    unspentOutput.setBlockHeight(height);
+                    unspentOutput.setVersion(referencedTransaction.getVersion());
+                    unspentOutput.setIsCoinbase(referencedTransaction.isCoinBase());
+                    unspentOutput.setHash(referencedTransaction.getTransactionId());
+                    unspentOutput.setIndex(outputIndex);
+                    unspentOutput.setOutput(referencedTransaction.getOutputs().get(outputIndex));
+
+                    unspentTransactionOutputs.add(unspentOutput);
+                }
+            }
+
+            data.write(NumberSerializer.serialize(unspentTransactionOutputs.size()));
+
+            for (UnspentTransactionOutput unspentTransactionOutput : unspentTransactionOutputs)
+                data.write(unspentTransactionOutput.serialize());
+        }
+        catch (Exception exception)
+        {
+            throw new StorageException(String.format("Unable to serialize the revert data for block '%s'", block.getHeaderHash()), exception);
+        }
+
+        return data.toByteArray();
     }
 }

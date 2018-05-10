@@ -49,6 +49,7 @@ public class BlockMetadata implements ISerializable
     private byte        m_status;
     private int         m_blockFile;
     private long        m_blockPosition;
+    private int         m_spentOutputsFile;
     private long        m_spentOutputsPosition;
 
     /**
@@ -71,6 +72,7 @@ public class BlockMetadata implements ISerializable
         m_status               = buffer.get();
         m_blockFile            = buffer.getInt();
         m_blockPosition        = buffer.getLong();
+        m_spentOutputsFile     = buffer.getInt();
         m_spentOutputsPosition = buffer.getLong();
     }
 
@@ -205,6 +207,26 @@ public class BlockMetadata implements ISerializable
     }
 
     /**
+     * Gets the block file number where this block is stored.
+     *
+     * @return The block file number.
+     */
+    public int getSpentOutputsFile()
+    {
+        return m_spentOutputsFile;
+    }
+
+    /**
+     * Sets the spent output file number where the spent outputs byt this block are stored.
+     *
+     * @param file The spent outputs file number.
+     */
+    public void setSpentOutputsFile(int file)
+    {
+        m_spentOutputsFile = file;
+    }
+
+    /**
      * Gets the spent outputs position.
      *
      * @return The spent outputs position.
@@ -242,6 +264,7 @@ public class BlockMetadata implements ISerializable
             data.write(m_status);
             data.write(NumberSerializer.serialize(m_blockFile));
             data.write(NumberSerializer.serialize(m_blockPosition));
+            data.write(NumberSerializer.serialize(m_spentOutputsFile));
             data.write(NumberSerializer.serialize(m_spentOutputsPosition));
         }
         catch (IOException e)
