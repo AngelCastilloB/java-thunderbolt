@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import static org.iq80.leveldb.impl.Iq80DBFactory.factory;
@@ -67,15 +68,15 @@ public class LevelDbMetadataProvider implements IMetadataProvider
      *
      * @param path The path where the databases are located.
      */
-    public LevelDbMetadataProvider(String path) throws StorageException
+    public LevelDbMetadataProvider(Path path) throws StorageException
     {
         Options options = new Options();
         options.createIfMissing(true);
 
         try
         {
-            m_metadataDatabase = factory.open(Paths.get(path, METADATA_DB_NAME).toFile(), options);
-            m_stateDatabase = factory.open(Paths.get(path, STATE_DB_NAME).toFile(), options);
+            m_metadataDatabase = factory.open(Paths.get(path.toString(), METADATA_DB_NAME).toFile(), options);
+            m_stateDatabase = factory.open(Paths.get(path.toString(), STATE_DB_NAME).toFile(), options);
         }
         catch (Exception exception)
         {

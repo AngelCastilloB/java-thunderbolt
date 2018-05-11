@@ -321,7 +321,7 @@ public class Main
     {
         DiskContiguousStorage   blockStorage = new DiskContiguousStorage(BLOCKS_PATH, BLOCK_PATTERN);
         DiskContiguousStorage   revertsStorage = new DiskContiguousStorage(REVERT_PATH, REVERT_PATTERN);
-        LevelDbMetadataProvider metadataProvider = new LevelDbMetadataProvider(METADATA_PATH.toString());
+        LevelDbMetadataProvider metadataProvider = new LevelDbMetadataProvider(METADATA_PATH);
 
         PersistenceManager.getInstance().initialize(blockStorage, revertsStorage, metadataProvider);
     }
