@@ -37,7 +37,7 @@ import java.nio.ByteBuffer;
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Represents metadata about a block persisted in the disk. In which file is stored, at what position and several other
+ * Represents metadata about a block persisted in the disk. In which segment and offset is stored and several other
  * details.
  */
 public class BlockMetadata implements ISerializable
@@ -47,10 +47,10 @@ public class BlockMetadata implements ISerializable
     private long        m_height;
     private int         m_transactionCount;
     private byte        m_status;
-    private int         m_blockFile;
-    private long        m_blockPosition;
-    private int         m_spentOutputsFile;
-    private long        m_spentOutputsPosition;
+    private int         m_blockSegment;
+    private long        m_blockOffset;
+    private int         m_revertSegment;
+    private long        m_revertOffset;
 
     /**
      * Creates a new instance of the BlockMetadata class.
@@ -66,14 +66,14 @@ public class BlockMetadata implements ISerializable
      */
     public BlockMetadata(ByteBuffer buffer)
     {
-        m_header               = new BlockHeader(buffer);
-        m_height               = buffer.getLong();
-        m_transactionCount     = buffer.getInt();
-        m_status               = buffer.get();
-        m_blockFile            = buffer.getInt();
-        m_blockPosition        = buffer.getLong();
-        m_spentOutputsFile     = buffer.getInt();
-        m_spentOutputsPosition = buffer.getLong();
+        m_header           = new BlockHeader(buffer);
+        m_height           = buffer.getLong();
+        m_transactionCount = buffer.getInt();
+        m_status           = buffer.get();
+        m_blockSegment     = buffer.getInt();
+        m_blockOffset      = buffer.getLong();
+        m_revertSegment    = buffer.getInt();
+        m_revertOffset     = buffer.getLong();
     }
 
     /**
@@ -167,83 +167,83 @@ public class BlockMetadata implements ISerializable
     }
 
     /**
-     * Gets the block file number where this block is stored.
+     * Gets the block segment where this block is stored.
      *
-     * @return The block file number.
+     * @return The segment number.
      */
-    public int getBlockFile()
+    public int getBlockSegment()
     {
-        return m_blockFile;
+        return m_blockSegment;
     }
 
     /**
-     * Sets the block file number where this block is stored.
+     * Sets the block segment where this block is stored.
      *
-     * @param blockFile The block file number.
+     * @param segment The block segment number.
      */
-    public void setBlockFile(int blockFile)
+    public void setBlockSegment(int segment)
     {
-        m_blockFile = blockFile;
+        m_blockSegment = segment;
     }
 
     /**
-     * Gets the position inside the file where this block is stored.
+     * Gets the offset inside the segment where this block is stored.
      *
-     * @return The position in the file where this block is stored.
+     * @return The offset in the segment where this block is stored.
      */
-    public long getBlockFilePosition()
+    public long getBlockOffset()
     {
-        return m_blockPosition;
+        return m_blockOffset;
     }
 
     /**
-     * Sets the position inside the file where this block is stored.
+     * Sets the offset inside the segment where this block is stored.
      *
-     * @param position The position in the file where this block is stored.
+     * @param offset The offset in the segment where this block is stored.
      */
-    public void setBlockFilePosition(long position)
+    public void setBlockOffset(long offset)
     {
-        m_blockPosition = position;
+        m_blockOffset = offset;
     }
 
     /**
-     * Gets the block file number where this block is stored.
+     * Gets the segment number where this revert data is stored.
      *
-     * @return The block file number.
+     * @return The segment number.
      */
-    public int getSpentOutputsFile()
+    public int getRevertSegment()
     {
-        return m_spentOutputsFile;
+        return m_revertSegment;
     }
 
     /**
-     * Sets the spent output file number where the spent outputs byt this block are stored.
+     * Sets the segment number where the revert data of this block is stored.
      *
-     * @param file The spent outputs file number.
+     * @param segment The segment number.
      */
-    public void setSpentOutputsFile(int file)
+    public void setRevertSegment(int segment)
     {
-        m_spentOutputsFile = file;
+        m_revertSegment = segment;
     }
 
     /**
-     * Gets the spent outputs position.
+     * Gets the segment offset where this revert data is stored.
      *
-     * @return The spent outputs position.
+     * @return The revert data offset in the segment.
      */
-    public long getSpentOutputsPosition()
+    public long getRevertOffset()
     {
-        return m_spentOutputsPosition;
+        return m_revertOffset;
     }
 
     /**
-     * Sets the spent outputs position.
+     * Sets tthe segment offset where this revert data is stored.
      *
-     * @param position The spent outputs position.
+     * @param offset he revert data offset in the segment.
      */
-    public void setSpentOutputsPosition(long position)
+    public void setRevertOffset(long offset)
     {
-        m_spentOutputsPosition = position;
+        m_revertOffset = offset;
     }
 
     /**
@@ -262,10 +262,10 @@ public class BlockMetadata implements ISerializable
             data.write(NumberSerializer.serialize(m_height));
             data.write(NumberSerializer.serialize(m_transactionCount));
             data.write(m_status);
-            data.write(NumberSerializer.serialize(m_blockFile));
-            data.write(NumberSerializer.serialize(m_blockPosition));
-            data.write(NumberSerializer.serialize(m_spentOutputsFile));
-            data.write(NumberSerializer.serialize(m_spentOutputsPosition));
+            data.write(NumberSerializer.serialize(m_blockSegment));
+            data.write(NumberSerializer.serialize(m_blockOffset));
+            data.write(NumberSerializer.serialize(m_revertSegment));
+            data.write(NumberSerializer.serialize(m_revertOffset));
         }
         catch (IOException e)
         {

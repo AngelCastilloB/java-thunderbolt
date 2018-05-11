@@ -27,6 +27,7 @@ package com.thunderbolt;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.blockchain.Block;
+import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.persistence.PersistenceManager;
 import com.thunderbolt.persistence.storage.DiskContiguousStorage;
 import com.thunderbolt.persistence.storage.LevelDbMetadataProvider;
@@ -176,7 +177,7 @@ public class Main
         metadata.setHeader(genesisBlock.getHeader());
 
         metadata.setHeight(20);
-        metadata.setBlockFile(32);
+        metadata.setBlockSegment(32);
 
         s_logger.debug(String.format("Adding block %s metadata to db", metadata.getHash().toString()));
         BlocksManifest.addBlockMetadata(metadata);

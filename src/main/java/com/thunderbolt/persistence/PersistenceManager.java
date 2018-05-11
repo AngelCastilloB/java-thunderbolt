@@ -39,9 +39,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,11 +49,6 @@ import java.util.List;
  * and transaction artifacts). We will need to improve upon this in the future.
  *
  * All the items are indexed by the ID in the system (the hash of the serialized data).
- *
- * At initialization time this class will load in memory the list of available blocks and unspent transaction outputs.
- *
- * TODO: We need to improve this class to make it unit testable. Right now is just a bunch of naive methods for storing
- * and retrieving blocks.
  */
 public class PersistenceManager
 {
@@ -70,6 +62,7 @@ public class PersistenceManager
     private IContiguousStorage m_blockStorage     = null;
     private IContiguousStorage m_revertsStorage   = null;
     private IMetadataProvider  m_metadataProvider = null;
+
     /**
      * Defeats instantiation of the PersistenceManager class.
      */
@@ -135,10 +128,10 @@ public class PersistenceManager
             BlockMetadata metadata = new BlockMetadata();
 
             metadata.setHeader(block.getHeader());
-            metadata.setBlockFile(blockPointer.segment);
-            metadata.setBlockFilePosition(blockPointer.offset);
-            metadata.setSpentOutputsFile(revertPointer.segment);
-            metadata.setSpentOutputsPosition(revertPointer.offset);
+            metadata.setBlockSegment(blockPointer.segment);
+            metadata.setBlockOffset(blockPointer.offset);
+            metadata.setRevertSegment(revertPointer.segment);
+            metadata.setRevertOffset(revertPointer.offset);
             metadata.setTransactionCount(block.getTransactionsCount());
             metadata.setHeight(height);
             metadata.setStatus((byte)0);
@@ -178,8 +171,8 @@ public class PersistenceManager
         BlockMetadata metadata = m_metadataProvider.getBlockMetadata(hash);
 
         StoragePointer pointer = new StoragePointer();
-        pointer.segment = metadata.getBlockFile();
-        pointer.offset = metadata.getBlockFilePosition();
+        pointer.segment = metadata.getBlockSegment();
+        pointer.offset = metadata.getBlockOffset();
 
         byte[] rawBlock = m_blockStorage.retrieve(pointer);
 
@@ -201,8 +194,8 @@ public class PersistenceManager
         BlockMetadata metadata = m_metadataProvider.getBlockMetadata(hash);
 
         StoragePointer pointer = new StoragePointer();
-        pointer.segment = metadata.getSpentOutputsFile();
-        pointer.offset  = metadata.getSpentOutputsPosition();
+        pointer.segment = metadata.getRevertSegment();
+        pointer.offset  = metadata.getRevertOffset();
 
         byte[] revertData = m_revertsStorage.retrieve(pointer);
 
