@@ -32,6 +32,7 @@ import com.thunderbolt.security.EncryptedPrivateKey;
 import com.thunderbolt.security.Hash;
 
 import java.io.ByteArrayOutputStream;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.util.HashMap;
@@ -114,6 +115,24 @@ public class Wallet implements ISerializable
         {
             m_unspentOutputs.put(output.getHash(), output);
         }
+    }
+
+    /**
+     * Gets the balance in this wallet.
+     *
+     * @return The balance.
+     */
+    public BigInteger getBalance()
+    {
+        BigInteger total = BigInteger.ZERO;
+
+        for (Map.Entry<Hash, UnspentTransactionOutput> entry : m_unspentOutputs.entrySet())
+        {
+            UnspentTransactionOutput value = entry.getValue();
+            total = total.add(value.getOutput().getAmount());
+        }
+
+        return total;
     }
 
     /**
