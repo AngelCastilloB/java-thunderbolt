@@ -28,6 +28,7 @@ package com.thunderbolt.persistence.structures;
 import com.thunderbolt.common.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
+import com.thunderbolt.security.Sha256Digester;
 import com.thunderbolt.transaction.TransactionOutput;
 
 import java.io.ByteArrayOutputStream;
@@ -71,11 +72,33 @@ public class UnspentTransactionOutput implements ISerializable
     }
 
     /**
+     * Gets the unique hash for this unspent transaction output.
+     *
+     * @return The hash.
+     */
+    public Hash getHash()
+    {
+        ByteArrayOutputStream data = new ByteArrayOutputStream();
+
+        try
+        {
+            data.write(m_transactionHash.serialize());
+            data.write(NumberSerializer.serialize(m_index));
+        }
+        catch (Exception exception)
+        {
+            exception.printStackTrace();
+        }
+
+        return Sha256Digester.digest(data.toByteArray());
+    }
+
+    /**
      * Gets the transaction hash for this outputs.
      *
      * @return The transaction hash.
      */
-    public Hash getHash()
+    public Hash getTransactionHash()
     {
         return m_transactionHash;
     }
@@ -85,7 +108,7 @@ public class UnspentTransactionOutput implements ISerializable
      *
      * @param hash The transaction hash.
      */
-    public void setHash(Hash hash)
+    public void setTransactionHash(Hash hash)
     {
         m_transactionHash = hash;
     }

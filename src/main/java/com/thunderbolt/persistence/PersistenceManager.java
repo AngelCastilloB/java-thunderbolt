@@ -345,7 +345,7 @@ public class PersistenceManager
                     unspentOutput.setBlockHeight(height);
                     unspentOutput.setVersion(referencedTransaction.getVersion());
                     unspentOutput.setIsCoinbase(referencedTransaction.isCoinBase());
-                    unspentOutput.setHash(referencedTransaction.getTransactionId());
+                    unspentOutput.setTransactionHash(referencedTransaction.getTransactionId());
                     unspentOutput.setIndex(outputIndex);
                     unspentOutput.setOutput(referencedTransaction.getOutputs().get(outputIndex));
 

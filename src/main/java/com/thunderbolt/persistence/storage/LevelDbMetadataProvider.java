@@ -235,16 +235,16 @@ public class LevelDbMetadataProvider implements IMetadataProvider
         try
         {
             ByteArrayOutputStream key = new ByteArrayOutputStream();
-            key.write(output.getHash().serialize());
+            key.write(output.getTransactionHash().serialize());
             key.write(NumberSerializer.serialize(output.getIndex()));
 
             m_stateDatabase.put(key.toByteArray(), output.serialize());
 
-            s_logger.debug(String.format("Unspent output %s added for transaction '%s'", output.getIndex(), output.getHash()));
+            s_logger.debug(String.format("Unspent output %s added for transaction '%s'", output.getIndex(), output.getTransactionHash()));
         }
         catch (Exception exception)
         {
-            throw new StorageException(String.format("Unable to add unspent output %s for transaction '%s'", output.getIndex(), output.getHash()), exception);
+            throw new StorageException(String.format("Unable to add unspent output %s for transaction '%s'", output.getIndex(), output.getTransactionHash()), exception);
         }
 
         return true;

@@ -89,7 +89,7 @@ public class Main
         ++a;
 /*
         UnspentTransactionOutput uxto = new UnspentTransactionOutput();
-        uxto.setHash(spentXT.getTransactionId());
+        uxto.setTransactionHash(spentXT.getTransactionId());
         uxto.setVersion(spentXT.getVersion());
         uxto.setIndex(0);
         uxto.setBlockHeight(0);
@@ -117,7 +117,7 @@ public class Main
         /*
         UnspentTransactionOutput spentXT = PersistenceManager.getInstance().getUnspentOutput(new Hash("E2DBE246FEEAFD8B57CB2C08A6C62DA2F2CF98BE9BA21CD5CE3E6FD485D21E8D"));
 
-        s_logger.debug(String.format("%s", spentXT.getHash()));
+        s_logger.debug(String.format("%s", spentXT.getTransactionHash()));
 
         TransactionInput outpoint = new TransactionInput(new Hash("E2DBE246FEEAFD8B57CB2C08A6C62DA2F2CF98BE9BA21CD5CE3E6FD485D21E8D"), 0);
         TransactionInput input = new TransactionInput(outpoint, 0);
@@ -165,7 +165,7 @@ public class Main
 
         PersistenceManager.getInstance().persist(newBlock, 0);
 
-        s_logger.debug(String.format("Added Block %s, with transaction %s", newBlock.getHeader().getHash(), newBlock.getTransaction(0).getTransactionId()));
+        s_logger.debug(String.format("Added Block %s, with transaction %s", newBlock.getHeader().getTransactionHash(), newBlock.getTransaction(0).getTransactionId()));
 
         /*
         Block genesisBlock = NetworkParameters.createGenesis();
@@ -181,11 +181,11 @@ public class Main
         metadata.setHeight(20);
         metadata.setBlockSegment(32);
 
-        s_logger.debug(String.format("Adding block %s metadata to db", metadata.getHash().toString()));
+        s_logger.debug(String.format("Adding block %s metadata to db", metadata.getTransactionHash().toString()));
         BlocksManifest.addBlockMetadata(metadata);
 
-        BlockMetadata metadata2 = BlocksManifest.getBlockMetadata(metadata.getHeader().getHash());
-        s_logger.debug(String.format("Read block %s metadata from db", metadata2.getHash().toString()));
+        BlockMetadata metadata2 = BlocksManifest.getBlockMetadata(metadata.getHeader().getTransactionHash());
+        s_logger.debug(String.format("Read block %s metadata from db", metadata2.getTransactionHash().toString()));
 
 
         NetworkParameters params = NetworkParameters.mainNet();
