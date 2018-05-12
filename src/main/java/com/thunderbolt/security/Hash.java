@@ -110,7 +110,7 @@ public class Hash implements ISerializable
     @Override
     public boolean equals(Object other)
     {
-        return (other!=null && (other instanceof Hash) && Arrays.equals(m_data, ((Hash) other).m_data));
+        return ((other instanceof Hash) && Arrays.equals(m_data, ((Hash) other).m_data));
     }
 
     /**

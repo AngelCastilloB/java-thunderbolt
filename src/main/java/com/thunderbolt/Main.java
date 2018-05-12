@@ -82,6 +82,8 @@ public class Main
         //PersistenceManager.getInstance().persist(NetworkParameters.createGenesis(), 0);
         Transaction spentXT = PersistenceManager.getInstance().getTransaction(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"));
         Block block = PersistenceManager.getInstance().getBlock(new Hash("00000004063B34C6FE99D1DB8A8C7F041B46487E64B0ED74C0EE8B7D4FA8F4E9"));
+
+        s_logger.debug(String.format("Block is valid: %s", block.isValid()));
         //UnspentTransactionOutput uxto = PersistenceManager.getInstance().getUnspentOutput(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"), 0);
         int a = 3;
         ++a;

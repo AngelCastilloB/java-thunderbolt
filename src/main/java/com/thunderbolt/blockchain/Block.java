@@ -31,11 +31,14 @@ import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
 import com.thunderbolt.security.Sha256Digester;
 import com.thunderbolt.transaction.Transaction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -51,7 +54,10 @@ import java.util.List;
  */
 public class Block implements ISerializable
 {
-    public static final BigInteger LARGEST_HASH = BigInteger.ONE.shiftLeft(256);
+    private static final Logger s_logger = LoggerFactory.getLogger(Block.class);
+
+    public  static final BigInteger LARGEST_HASH       = BigInteger.ONE.shiftLeft(256);
+    private static final long       ALLOWED_TIME_DRIFT = 2 * 60 * 60;
 
     private BlockHeader            m_header       = new BlockHeader();
     private ArrayList<Transaction> m_transactions = new ArrayList<>();
@@ -280,4 +286,120 @@ public class Block implements ISerializable
 
         return tree;
     }
+
+    /**
+     * Performs basic non contextual validations over the block data. This validations are naive and are not complete.
+     * We need the context of the blockchain to make all the necessary validations. However we can rule out invalid
+     * blocks very quick by checking a set of simple rules first.
+     *
+     * @return True if the block is valid; otherwise; false
+     */
+    public boolean isValid()
+    {
+        boolean isValid = isProofOfWorkValid();
+
+        isValid &= isTimestampValid();
+
+        if (m_transactions != null && m_transactions.size() > 0)
+        {
+            isValid &= areTransactionsValid();
+            isValid &= isMerkleRootValid();
+        }
+
+        return isValid;
+    }
+
+    /**
+     * Gets whether the proof of work for the block is valid.
+     *
+     * This function prove that the block was as difficult to create as it claims. However this is a naive validation,
+     * since we need the context of the blockchain to prove that the difficulty of this block is correct.
+     *
+     * @return True if the proof of work matches the claimed difficulty target.
+     */
+    private boolean isProofOfWorkValid()
+    {
+        BigInteger target = getTargetDifficultyAsInteger();
+
+        BigInteger hash = m_header.getHash().toBigInteger();
+
+        if (hash.compareTo(target) > 0)
+        {
+            String.format("Hash is higher than target. Current hash %s; target %s",
+                    m_header.getHash().toString(),
+                    target.toString(16));
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Gets whether the block timestamp is valid. A valid timestamp can not be two hours ahead of the current system time.
+     *
+     * @return True if the timestamp is valid; otherwise; false.
+     */
+    private boolean isTimestampValid()
+    {
+        long currentTime = System.currentTimeMillis();
+
+        if (m_header.getTimeStamp() > currentTime + ALLOWED_TIME_DRIFT)
+        {
+            s_logger.error(String.format("Timestamp too far ahead in the future: Current time %s; Block time %s",
+                    (new Date(currentTime).toLocalDate().toString()),
+                    (new Date(m_header.getTimeStamp()).toLocalDate().toString())));
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Gets whether the current Markle root is valid.
+     *
+     * @return true if the Markle root is valid; otherwise; false.
+     */
+    private boolean isMerkleRootValid()
+    {
+        Hash expectedRoot = calculateMerkleRoot();
+
+        if (!expectedRoot.equals(m_header.getMarkleRoot()))
+        {
+            s_logger.error(String.format("Merkle hash invalid. Expected %s; Actual %s", expectedRoot, m_header.getMarkleRoot()));
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Naive validation over the list fo transaction of this block.
+     *
+     * This function validates that the first transaction of the block is a coinbase transaction and that the rest
+     * are not.
+     *
+     * @return True if the list of transaction are valid; otherwise; false.
+     */
+    private boolean areTransactionsValid()
+    {
+        if (!m_transactions.get(0).isCoinBase())
+        {
+            s_logger.error("First transaction is not a coinbase transaction.");
+            return false;
+        }
+
+        for (int i = 1; i < m_transactions.size(); i++)
+        {
+            if (m_transactions.get(i).isCoinBase())
+            {
+                s_logger.error(String.format("Transaction %s is coinbase when it should not be.", i));
+                return false;
+            }
+        }
+
+        return true;
+    }
+
 }
