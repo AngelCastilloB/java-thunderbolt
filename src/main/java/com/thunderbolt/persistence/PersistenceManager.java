@@ -38,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -110,13 +111,19 @@ public class PersistenceManager
     /**
      * Persist the given block. The block will be indexed by its block id (hash).
      *
-     * @param block  The block to persist.
-     * @param height The height of this block.
+     * @param block     The block to persist.
+     * @param height    The height of this block.
+     * @param totalWork The total amount of work on the chain up to this point.
+     *
+     * @return The newly created BlockMetadata.
      */
-    public boolean persist(Block block, int height) throws StorageException
+    public BlockMetadata persist(Block block, long height, BigInteger totalWork) throws StorageException
     {
         if (!m_isInitialized)
             throw new StorageException("The persistence manager is not initialized.");
+
+        BlockMetadata metadata = new BlockMetadata();
+
         try
         {
             byte[] serializedBlock = block.serialize();
@@ -124,8 +131,6 @@ public class PersistenceManager
 
             StoragePointer blockPointer = m_blockStorage.store(serializedBlock);
             StoragePointer revertPointer = m_revertsStorage.store(revertData);
-
-            BlockMetadata metadata = new BlockMetadata();
 
             metadata.setHeader(block.getHeader());
             metadata.setBlockSegment(blockPointer.segment);
@@ -135,6 +140,7 @@ public class PersistenceManager
             metadata.setTransactionCount(block.getTransactionsCount());
             metadata.setHeight(height);
             metadata.setStatus((byte)0);
+            metadata.setTotalWork(totalWork);
 
             m_metadataProvider.addBlockMetadata(metadata);
 
@@ -157,7 +163,7 @@ public class PersistenceManager
             throw new StorageException(String.format("Unable to persist block '%s'", block.getHeaderHash()), exception);
         }
 
-        return true;
+        return metadata;
     }
 
     /**
@@ -177,6 +183,21 @@ public class PersistenceManager
         byte[] rawBlock = m_blockStorage.retrieve(pointer);
 
         return new Block(ByteBuffer.wrap(rawBlock));
+    }
+
+    /**
+     * Gets the Block metadata with the given hash.
+     *
+     * @param hash The hash of the block.
+     *
+     * @return The block metadata.
+     */
+    public BlockMetadata getBlockMetadata(Hash hash) throws StorageException
+    {
+        if (!m_isInitialized)
+            throw new StorageException("The persistence manager is not initialized.");
+
+        return m_metadataProvider.getBlockMetadata(hash);
     }
 
     /**
@@ -317,7 +338,7 @@ public class PersistenceManager
      *
      * @throws StorageException If there is an error querying the required metadata to create the revert data.
      */
-    private byte[] getRevertData(Block block, int height) throws StorageException
+    private byte[] getRevertData(Block block, long height) throws StorageException
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 

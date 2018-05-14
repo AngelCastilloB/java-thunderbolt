@@ -117,6 +117,16 @@ public class Block implements ISerializable
     }
 
     /**
+     * Gets the block transactions.
+     *
+     * @return The transactions in this block.
+     */
+    public List<Transaction> getTransactions()
+    {
+        return m_transactions;
+    }
+
+    /**
      * Gets the block transaction at the given index..
      *
      * @param index The transaction index in the block.

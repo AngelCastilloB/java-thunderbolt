@@ -127,6 +127,26 @@ public class NetworkParameters implements Serializable
     }
 
     /**
+     * Gets the blocks pass between difficulty adjustment periods.
+     *
+     * @return How many blocks pass between difficulty adjustment periods.
+     */
+    public int getDifficulAdjustmentInterval()
+    {
+        return m_interval;
+    }
+
+    /**
+     * How much time in seconds is supposed to pass between "interval" blocks.
+     *
+     * @return Time in seconds is supposed to pass between "interval" blocks.
+     */
+    public int getTargetTimespan()
+    {
+        return m_targetTimespan;
+    }
+
+    /**
      * Gets the genesis block for this network.
      *
      * @return The genesis block.

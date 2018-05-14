@@ -34,6 +34,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -297,5 +298,23 @@ public class BlockMetadata implements ISerializable
         }
 
         return data.toByteArray();
+    }
+
+    /**
+     * Compares this instance to another one
+     *
+     * @param other The object to compare.
+     *
+     * @return True if the instances are equal; otherwise; false.
+     */
+    @Override
+    public boolean equals(Object other)
+    {
+        if (!(other instanceof BlockMetadata))
+            return false;
+
+        BlockMetadata otherMetadata = (BlockMetadata)other;
+
+        return otherMetadata.m_header.equals(this.m_header);
     }
 }

@@ -45,7 +45,7 @@ public class UnspentTransactionOutput implements ISerializable
     private Hash                    m_transactionHash = new Hash();
     private int                     m_index           = 0;
     private int                     m_version         = 0;
-    private int                     m_blockHeight     = 0;
+    private long                    m_blockHeight     = 0;
     private boolean                 m_isCoinbase      = false;
     private TransactionOutput       m_output          = new TransactionOutput();
 
@@ -178,7 +178,7 @@ public class UnspentTransactionOutput implements ISerializable
      *
      * @return The block height.
      */
-    public int getBlockHeight()
+    public long getBlockHeight()
     {
         return m_blockHeight;
     }
@@ -188,7 +188,7 @@ public class UnspentTransactionOutput implements ISerializable
      *
      * @param blockHeight The block height.
      */
-    public void setBlockHeight(int blockHeight)
+    public void setBlockHeight(long blockHeight)
     {
         this.m_blockHeight = blockHeight;
     }

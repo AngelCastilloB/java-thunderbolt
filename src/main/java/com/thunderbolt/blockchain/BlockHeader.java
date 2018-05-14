@@ -34,6 +34,7 @@ import java.awt.font.NumericShaper;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Objects;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -277,5 +278,23 @@ public class BlockHeader implements ISerializable
         }
 
         return data.toByteArray();
+    }
+
+    /**
+     * Compares this instance to another one
+     *
+     * @param other The object to compare.
+     *
+     * @return True if the instances are equal; otherwise; false.
+     */
+    @Override
+    public boolean equals(Object other)
+    {
+        if (!(other instanceof BlockHeader))
+            return false;
+
+        BlockHeader otherMetadata = (BlockHeader)other;
+
+        return Objects.equals(Sha256Digester.digest(otherMetadata.serialize()), Sha256Digester.digest(this.serialize()));
     }
 }
