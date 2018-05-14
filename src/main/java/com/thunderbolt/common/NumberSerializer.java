@@ -25,6 +25,8 @@ package com.thunderbolt.common;
 
 /* IMPORTS *******************************************************************/
 
+import java.io.ByteArrayOutputStream;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 
 /* IMPLEMENTATION ************************************************************/
@@ -80,5 +82,30 @@ public class NumberSerializer
     static public byte[] serialize(short number)
     {
         return ByteBuffer.allocate(Short.BYTES).putShort(number).array();
+    }
+
+    /**
+     * Serializes a BigInteger into a byte array.
+     *
+     * @param number The number to be serialized.
+     *
+     * @return The serialized number.
+     */
+    static public byte[] serialize(BigInteger number)
+    {
+        ByteArrayOutputStream data = new ByteArrayOutputStream();
+
+        byte[] numberBytes = number.toByteArray();
+
+        if (numberBytes.length > 8)
+            throw new IllegalStateException("Number value is too big.");
+
+        if (numberBytes.length < 8)
+        {
+            for (int i = 0; i < 8 - numberBytes.length; i++)
+                data.write(0);
+        }
+
+        return data.toByteArray();
     }
 }

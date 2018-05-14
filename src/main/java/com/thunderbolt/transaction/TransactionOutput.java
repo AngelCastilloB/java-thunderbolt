@@ -150,22 +150,11 @@ public class TransactionOutput implements ISerializable
     @Override
     public byte[] serialize()
     {
-        byte[] amountBytes = m_amount.toByteArray();
-
         ByteArrayOutputStream data = new ByteArrayOutputStream();
-
-        if (amountBytes.length > 8)
-            throw new IllegalStateException("Output value is too big.");
-
-        if (amountBytes.length < 8)
-        {
-            for (int i = 0; i < 8 - amountBytes.length; i++)
-                data.write(0);
-        }
 
         try
         {
-            data.write(amountBytes);
+            data.write(NumberSerializer.serialize(m_amount));
             data.write(m_type.getValue());
             data.write(NumberSerializer.serialize(m_lockingParameters.length));
             data.write(m_lockingParameters);

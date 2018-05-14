@@ -32,6 +32,7 @@ import com.thunderbolt.security.Hash;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 
 /* IMPLEMENTATION ************************************************************/
@@ -45,6 +46,7 @@ public class BlockMetadata implements ISerializable
     // Instance fields.
     private BlockHeader m_header = new BlockHeader();
     private long        m_height;
+    private BigInteger  m_totalWork = BigInteger.ZERO;
     private int         m_transactionCount;
     private byte        m_status;
     private int         m_blockSegment;
@@ -68,6 +70,7 @@ public class BlockMetadata implements ISerializable
     {
         m_header           = new BlockHeader(buffer);
         m_height           = buffer.getLong();
+        m_totalWork        = BigInteger.valueOf(buffer.getLong());
         m_transactionCount = buffer.getInt();
         m_status           = buffer.get();
         m_blockSegment     = buffer.getInt();
@@ -104,6 +107,26 @@ public class BlockMetadata implements ISerializable
     public void setHeader(BlockHeader header)
     {
         m_header = header;
+    }
+
+    /**
+     * Gets the total work done in this chain up to this block.
+     *
+     * @return The total work done.
+     */
+    public BigInteger getTotalWork()
+    {
+        return m_totalWork;
+    }
+
+    /**
+     * Sets tthe total work done in this chain up to this block.
+     *
+     * @param work The total work done.
+     */
+    public void setTotalWork(BigInteger work)
+    {
+        m_totalWork = work;
     }
 
     /**
@@ -260,6 +283,7 @@ public class BlockMetadata implements ISerializable
         {
             data.write(m_header.serialize());
             data.write(NumberSerializer.serialize(m_height));
+            data.write(NumberSerializer.serialize(m_totalWork));
             data.write(NumberSerializer.serialize(m_transactionCount));
             data.write(m_status);
             data.write(NumberSerializer.serialize(m_blockSegment));
