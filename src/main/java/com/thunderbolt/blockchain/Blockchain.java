@@ -26,29 +26,35 @@ package com.thunderbolt.blockchain;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.Convert;
+import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.persistence.PersistenceManager;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.BlockMetadata;
+import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
+import com.thunderbolt.security.Hash;
 import com.thunderbolt.transaction.Transaction;
+import com.thunderbolt.transaction.TransactionInput;
+import com.thunderbolt.transaction.TransactionOutput;
 import com.thunderbolt.wallet.Wallet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
 
 /**
  * A blockchain is a digitized, decentralized, public ledger of all cryptocurrency transactions. Constantly growing as
- * ‘completed’ blocks (the most recent transactions) are recorded and added to it in chronological order, it allows
- * market participants to keep track of digital currency transactions without central recordkeeping.
+ * ‘completed’ blocks (the most recent transactions) are recorded and added to it in chronological order.
  */
 public class Blockchain
 {
-    private static final Logger s_logger = LoggerFactory.getLogger(Blockchain.class);
+    private static final Logger             s_logger      = LoggerFactory.getLogger(Blockchain.class);
+    private static final PersistenceManager s_persistence = PersistenceManager.getInstance();
 
     private BlockMetadata        m_headBlock;
     private List<Block>          m_unconnectedBlocks = new ArrayList<>();
@@ -92,7 +98,7 @@ public class Blockchain
         }
 
         // Try linking it to a place in the currently known blocks.
-        BlockMetadata parent = PersistenceManager.getInstance().getBlockMetadata(
+        BlockMetadata parent = s_persistence.getBlockMetadata(
                 block.getHeader().getParentBlockHash());
 
         if (parent == null)
@@ -107,15 +113,17 @@ public class Blockchain
             //
             // Create a new StoredBlock from this block. It will throw away the transaction data so when block goes
             // out of scope we will reclaim the used memory.
-            BigInteger workSoFar   = parent.getTotalWork().add(block.getWork());
-            long       newHeight   = parent.getHeight() + 1;
+            BigInteger workSoFar = parent.getTotalWork().add(block.getWork());
+            long       newHeight = parent.getHeight() + 1;
 
             if (!isTargetDifficultyValid(parent, block))
                 return false;
 
-            BlockMetadata newMetadata = PersistenceManager.getInstance().persist(block, newHeight, workSoFar);
+            // TODO: Perform contextual validations over the transactions.
 
-            connectBlock(newMetadata, parent, block.getTransactions());
+            BlockMetadata newMetadata = s_persistence.persist(block, newHeight, workSoFar);
+
+            connect(newMetadata, parent, block.getTransactions());
         }
 
         //tryConnectingUnconnected();
@@ -123,37 +131,41 @@ public class Blockchain
         return true;
     }
 
-    private void connectBlock(BlockMetadata newBlock, BlockMetadata parent, List<Transaction> transactions) throws StorageException
+    /**
+     * Connects a block to he bloc chain.
+     * @param newBlock     The new block to be connected.
+     * @param parent       The parent of the block.
+     * @param transactions The list of transactions in this block.
+     *
+     * @throws StorageException if there is any error finding the blocks.
+     */
+    private void connect(BlockMetadata newBlock, BlockMetadata parent, List<Transaction> transactions) throws StorageException
     {
         if (parent.getHeader().equals(m_headBlock.getHeader()))
         {
-            PersistenceManager.getInstance().setChainHead(newBlock);
+            s_persistence.setChainHead(newBlock);
 
             s_logger.trace("Chain is now {} blocks high", m_headBlock.getHeight());
 
-            // Apply block
-            //m_wallet.updateOutputs(getChanges());
+            applyBlockChanges(newBlock);
         }
         else
         {
-            boolean haveNewBestChain = false; //newBlock.moreWorkThan(m_headBlock);
+            boolean sideChainHasMoreWork = newBlock.getTotalWork().compareTo(m_headBlock.getTotalWork()) > 0;
 
-            if (haveNewBestChain)
+            if (sideChainHasMoreWork)
             {
                 s_logger.info("Block is causing a re-organize");
+
+                // Re-org and revert/apply block changes accordingly. Also must update the wallet.
+                reorganizeChain(newBlock);
             }
             else
             {
-                //BlockMetadata splitPoint = findSplit(newStoredBlock, chainHead);
-                //String splitPointHash = splitPoint != null ? splitPoint.getHeader().getHash().toString() : "?";
+                BlockMetadata fork = findFork(newBlock);
+                String forkHash = fork != null ? fork.getHeader().getHash().toString() : "?";
 
-                //s_logger.info("Block forks the chain at {}, but it did not cause a reorganize:\n{}", splitPointHash, newBlock);
-            }
-
-            if (haveNewBestChain)
-            {
-                // Re-org and revert/apply block changes accordingly. Also must update the wallet.
-                //handleNewBestChain(newStoredBlock);
+                s_logger.info("Block forks the chain at {}, but it did not cause a reorganize:\n{}", forkHash, newBlock);
             }
         }
     }
@@ -180,8 +192,12 @@ public class Blockchain
             return true;
         }
 
-        // If so, calculate the new difficulty.
-        BlockMetadata cursor = PersistenceManager.getInstance().getBlockMetadata(current.getHash());
+        Stopwatch watch = new Stopwatch();
+
+        watch.start();
+
+        // Find the block at the beginning of the interval and verify that we are using the correct difficulty.
+        BlockMetadata cursor = s_persistence.getBlockMetadata(current.getHash());
         for (int i = 0; i < m_params.getDifficulAdjustmentInterval() - 1; i++)
         {
             if (cursor == null)
@@ -190,24 +206,25 @@ public class Blockchain
                 return false;
             }
 
-            cursor = PersistenceManager.getInstance().getBlockMetadata(cursor.getHash());
+            cursor = s_persistence.getBlockMetadata(cursor.getHash());
         }
 
-        //s_logger.info("Difficulty transition traversal took {} msec", Stopwatch.getElapsed().getTotalMilliseconds());
+        watch.stop();
+        s_logger.info("Difficulty transition traversal took {} msec", watch.getElapsedTime().getTotalMilliseconds());
 
         BlockHeader blockIntervalAgo = cursor.getHeader();
 
-        int timespan = (int) (current.getTimeStamp() - blockIntervalAgo.getTimeStamp());
+        int timeSpan = (int) (current.getTimeStamp() - blockIntervalAgo.getTimeStamp());
 
         // Limit the adjustment step.
-        if (timespan < m_params.getTargetTimespan() / 4)
-            timespan = m_params.getTargetTimespan() / 4;
+        if (timeSpan < m_params.getTargetTimespan() / 4)
+            timeSpan = m_params.getTargetTimespan() / 4;
 
-        if (timespan > m_params.getTargetTimespan() * 4)
-            timespan = m_params.getTargetTimespan() * 4;
+        if (timeSpan > m_params.getTargetTimespan() * 4)
+            timeSpan = m_params.getTargetTimespan() * 4;
 
         BigInteger newDifficulty = Convert.decodeCompactBits(blockIntervalAgo.getBits());
-        newDifficulty = newDifficulty.multiply(BigInteger.valueOf(timespan));
+        newDifficulty = newDifficulty.multiply(BigInteger.valueOf(timeSpan));
         newDifficulty = newDifficulty.divide(BigInteger.valueOf(m_params.getTargetTimespan()));
 
         if (newDifficulty.compareTo(m_params.getProofOfWorkLimit()) > 0) {
@@ -230,6 +247,177 @@ public class Blockchain
             return false;
         }
 
+        return true;
+    }
+
+    /**
+     * Finds a common point in the blockchain for both branches (fork).
+     *
+     * @param sideChainHead The head of the side chain.
+     *
+     * @return The forking point between the two branches.
+     *
+     * @throws StorageException If there is an error retrieving the blocks.
+     */
+    private BlockMetadata findFork(BlockMetadata sideChainHead) throws StorageException
+    {
+        BlockMetadata mainChainCursor = m_headBlock;
+        BlockMetadata sideChainCursor = sideChainHead;
+
+        while (!mainChainCursor.equals(sideChainCursor))
+        {
+            if (mainChainCursor.getHeight() > sideChainCursor.getHeight())
+            {
+                mainChainCursor = s_persistence.getBlockMetadata(
+                        mainChainCursor.getHeader().getParentBlockHash());
+            }
+            else
+            {
+                sideChainCursor = s_persistence.getBlockMetadata(
+                        sideChainCursor.getHeader().getParentBlockHash());
+            }
+        }
+
+        return mainChainCursor;
+    }
+
+    /**
+     * Reorganize the blockchain to follow a new branch. This happens when a branch with more work is detected. The blockchain
+     * must always follow the branch with more work put into it.
+     *
+     * @param newChainHead The new blockchain head.
+     *
+     * @throws StorageException If there is an error retrieving block related data.
+     */
+    private void reorganizeChain(BlockMetadata newChainHead) throws StorageException
+    {
+        BlockMetadata fork = findFork(newChainHead);
+        s_logger.info("Re-organize after split at height {}", fork.getHeight());
+        s_logger.info("Old chain head: {}", m_headBlock.getHeader().getHash());
+        s_logger.info("New chain head: {}", newChainHead.getHeader().getHash());
+        s_logger.info("Split at block: {}", fork.getHeader().getHash());
+
+        List<BlockMetadata> oldBlocks = getChainSegment(m_headBlock, fork);
+        List<BlockMetadata> newBlocks = getChainSegment(newChainHead, fork);
+
+        // Revert all (now) side chain blocks.
+
+        for (BlockMetadata metadata : oldBlocks)
+            revertBlockChanges(metadata);
+
+        // Apply all new blocks to the state.
+        for (BlockMetadata metadata : newBlocks)
+            applyBlockChanges(metadata);
+
+        // Update the pointer to the best known block.
+        s_persistence.setChainHead(newChainHead);
+    }
+
+    /**
+     * Gets a segment of the blockchain that is encompassed by the two given blocks.
+     *
+     * @param upper The upper bound block.
+     * @param lower The lower bound block.
+     *
+     * @return The list of blocks between the given two blocks.
+     *
+     * @throws StorageException If there is an error retrieving the blocks.
+     */
+    private List<BlockMetadata> getChainSegment(BlockMetadata upper, BlockMetadata lower) throws StorageException
+    {
+        LinkedList<BlockMetadata> results = new LinkedList<>();
+        BlockMetadata             cursor  = upper;
+
+        do
+        {
+            results.add(cursor);
+            cursor = s_persistence.getBlockMetadata(cursor.getHeader().getParentBlockHash());
+
+        } while (!cursor.equals(lower));
+
+        return results;
+    }
+
+    /**
+     * Applies all the changes made by this block to the current state.
+     *
+     * 1.- Update the valid transactions pool
+     * 2.- Update unspent transaction outputs database (coins).
+     * 3.- Update spendable transactions and balance.
+     *
+     * @param metadata The metadata of the block we are going to apply the changes for.
+     *
+     * @return True if the changes were applied; otherwise; false.
+     */
+    private boolean applyBlockChanges(BlockMetadata metadata) throws StorageException
+    {
+        // First we retrieve the whole block since we need the list of transactions.
+        Block block = s_persistence.getBlock(metadata.getHash());
+
+        // Now we must remove all transactions referenced in this block from the mem pool.
+        List<UnspentTransactionOutput> newOutputs     = new ArrayList<>();
+        List<Hash>                     removedOutputs = new ArrayList<>();
+
+        for (Transaction transaction: block.getTransactions())
+        {
+            boolean removed = s_persistence.getTransactionPool().removeTransaction(transaction.getTransactionId());
+
+            if (!removed)
+                s_logger.warn("The transaction {} was not available in our valid transaction pool.", transaction.getTransactionId());
+
+            // Create all the new Unspent outputs added from this block.
+            int index = 0;
+            for (TransactionOutput output : transaction.getOutputs())
+            {
+                UnspentTransactionOutput unspentOutput = new UnspentTransactionOutput();
+
+                unspentOutput.setOutput(output);
+                unspentOutput.setTransactionHash(transaction.getTransactionId());
+                unspentOutput.setIsCoinbase(transaction.isCoinBase());
+                unspentOutput.setBlockHeight(metadata.getHeight());
+                unspentOutput.setVersion(transaction.getVersion());
+                unspentOutput.setIndex(index);
+
+                // Add output to the UXTO data base.
+                s_persistence.addUnspentOutput(unspentOutput);
+                ++index;
+            }
+
+            // Create a list of the consumed spendable outputs, we only need to reconstruct the hash so the UTXO database
+            // and the wallet can remove them.
+            for (TransactionInput input : transaction.getInputs())
+            {
+                UnspentTransactionOutput consumedOutput = new UnspentTransactionOutput();
+
+                consumedOutput.setTransactionHash(input.getReferenceHash());
+                consumedOutput.setIndex(input.getIndex());
+
+                removedOutputs.add(consumedOutput.getHash());
+
+                // Remove spent outputs from the UTXO database.
+                s_persistence.removeUnspentOutput(input.getReferenceHash(), input.getIndex());
+            }
+        }
+
+        // Update the wallet.
+        m_wallet.updateOutputs(newOutputs, removedOutputs);
+
+        return true;
+    }
+
+    /**
+     * Reverts all the changes previously made by this block to the current state.
+     *
+     * 1.- Re-insert all the transactions to the valid transactions pool. This transactions must now wait to be mined again by another block.
+     * 2.- Remove all newly created unspent transaction outputs created by this block from the wallet and database (coins).
+     * 3.- Re-insert spent transaction outputs to the wallet and database.
+     *
+     * @param metadata The metadata of the block we are going to revert the changes for.
+     *
+     * @return True if the changes were reverted; otherwise; false.
+     */
+    private boolean revertBlockChanges(BlockMetadata metadata) throws StorageException
+    {
         return true;
     }
 }

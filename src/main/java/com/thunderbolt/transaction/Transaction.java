@@ -189,7 +189,7 @@ public class Transaction implements ISerializable
      *
      * @return The transaction id.
      */
-    public Hash getTransactionId() throws IOException
+    public Hash getTransactionId()
     {
         return Sha256Digester.digest(serializeWithoutWitnesses());
     }
@@ -202,24 +202,31 @@ public class Transaction implements ISerializable
      *
      * @return The serialized object without the witness data. This method is useful for calculating the transaction id.
      */
-    public byte[] serializeWithoutWitnesses() throws IOException
+    public byte[] serializeWithoutWitnesses()
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        data.write(NumberSerializer.serialize(m_version));
-        data.write(NumberSerializer.serialize(getInputs().size()));
+        try
+        {
+            data.write(NumberSerializer.serialize(m_version));
+            data.write(NumberSerializer.serialize(getInputs().size()));
 
-        // The serialization method of the input transactions will skip the unlocking parameters (signature)
-        // we need to make sure to serialize them at the end. We do this to remove the signatures from the
-        // transaction id to avoid transaction malleability.
-        for (int i = 0; i < getInputs().size(); ++i)
-            data.write(m_inputs.get(i).serialize());
+            // The serialization method of the input transactions will skip the unlocking parameters (signature)
+            // we need to make sure to serialize them at the end. We do this to remove the signatures from the
+            // transaction id to avoid transaction malleability.
+            for (int i = 0; i < getInputs().size(); ++i)
+                data.write(m_inputs.get(i).serialize());
 
-        data.write(NumberSerializer.serialize(getOutputs().size()));
-        for (int i = 0; i < getOutputs().size(); ++i)
-            data.write(m_outputs.get(i).serialize());
+            data.write(NumberSerializer.serialize(getOutputs().size()));
+            for (int i = 0; i < getOutputs().size(); ++i)
+                data.write(m_outputs.get(i).serialize());
 
-        data.write(NumberSerializer.serialize(m_lockTime));
+            data.write(NumberSerializer.serialize(m_lockTime));
+        }
+        catch (Exception exception)
+        {
+            exception.printStackTrace();
+        }
 
         return data.toByteArray();
     }

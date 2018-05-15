@@ -59,10 +59,13 @@ public class PersistenceManager
     private static final PersistenceManager instance = new PersistenceManager();
 
     // Instance fields
-    private boolean            m_isInitialized    = false;
-    private IContiguousStorage m_blockStorage     = null;
-    private IContiguousStorage m_revertsStorage   = null;
-    private IMetadataProvider  m_metadataProvider = null;
+    private boolean                m_isInitialized    = false;
+    private IContiguousStorage     m_blockStorage     = null;
+    private IContiguousStorage     m_revertsStorage   = null;
+    private IMetadataProvider      m_metadataProvider = null;
+
+    // TODO: This doesn't belongs here.
+    private IValidTransactionsPool m_memPool = new MemoryValidTransactionsPool();
 
     /**
      * Defeats instantiation of the PersistenceManager class.
@@ -323,6 +326,17 @@ public class PersistenceManager
             throw new StorageException("The persistence manager is not initialized.");
 
         return m_metadataProvider.removeUnspentOutput(id, index);
+    }
+
+    /**
+     * Gets the valid transactions pool instance.
+     *
+     * TODO: We will add this here for the time being, however, this clearly doesn't belong here.
+     * @return The mem pool
+     */
+    public IValidTransactionsPool getTransactionPool()
+    {
+        return m_memPool;
     }
 
     /**
