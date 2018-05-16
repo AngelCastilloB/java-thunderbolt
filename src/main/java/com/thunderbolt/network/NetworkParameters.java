@@ -81,6 +81,8 @@ public class NetworkParameters implements Serializable
 
         output.setAmount(MAIN_NET_SUBSIDY_STARTING_VALUE);
         output.setLockType(OutputLockType.SingleSignature);
+
+        // TODO: Keep the first four bytes for block height in coinbase transactions
         output.setLockingParameters(Hex.decode("022050C8868389B80FA27575412CF8D4C7C4BA5438FD86C98D6F93CB439426508E"));
 
         transaction.getInputs().add(input);

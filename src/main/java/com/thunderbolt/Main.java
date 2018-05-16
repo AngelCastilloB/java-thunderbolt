@@ -27,6 +27,7 @@ package com.thunderbolt;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.blockchain.Block;
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.persistence.PersistenceManager;
 import com.thunderbolt.persistence.storage.DiskContiguousStorage;
@@ -77,6 +78,15 @@ public class Main
      */
     public static void main(String[] args) throws IOException, GeneralSecurityException, CloneNotSupportedException, StorageException
     {
+        initializePersistenceManager();
+        /*
+        Block genesisBlock = NetworkParameters.createGenesis();
+        PersistenceManager.getInstance().persist(genesisBlock, 0, genesisBlock.getWork());
+        */
+
+        Transaction xt = PersistenceManager.getInstance().getTransaction(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"));
+        s_logger.debug("Valid: {}", xt.isValid());
+        /*
         initializePersistenceManager();
 
         //PersistenceManager.getInstance().persist(NetworkParameters.createGenesis(), 0);

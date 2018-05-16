@@ -42,7 +42,7 @@ public class TransactionOutput implements ISerializable
 {
     // Instance Fields
     private BigInteger     m_amount;
-    private byte[]         m_lockingParameters;
+    private byte[]         m_lockingParameters = new byte[0];
     private OutputLockType m_type;
 
     /**

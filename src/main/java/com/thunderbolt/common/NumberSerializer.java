@@ -26,6 +26,7 @@ package com.thunderbolt.common;
 /* IMPORTS *******************************************************************/
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 
@@ -104,6 +105,15 @@ public class NumberSerializer
         {
             for (int i = 0; i < 8 - numberBytes.length; i++)
                 data.write(0);
+        }
+
+        try
+        {
+            data.write(numberBytes);
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
         }
 
         return data.toByteArray();

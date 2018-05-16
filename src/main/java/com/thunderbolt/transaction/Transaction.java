@@ -29,11 +29,16 @@ import com.thunderbolt.common.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
 import com.thunderbolt.security.Sha256Digester;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 // IMPLEMENTATION ************************************************************/
 
@@ -42,6 +47,15 @@ import java.util.ArrayList;
  */
 public class Transaction implements ISerializable
 {
+    private static final Logger s_logger = LoggerFactory.getLogger(Transaction.class);
+
+    // Constants
+    // TODO: Move this constants to the network parameters. Add a way to acces the network parameters (service locator?).
+    private static final long MAX_BLOCK_SIZE    = 1000000;
+    private static final long COIN              = 100000000;
+    private static final long MAX_MONEY         = 21000000L * COIN;
+    private static final long MAX_COINBASE_SIZE = 100;
+
     // Instance Fields
     private int                          m_version             = 0;
     private ArrayList<TransactionInput>  m_inputs              = new ArrayList<>();
@@ -232,9 +246,125 @@ public class Transaction implements ISerializable
     }
 
     /**
+     * Performs basic non contextual validations over the transaction data. This validations are naive and are not complete.
+     * We need the context of the blockchain to make all the necessary validations. However we can rule out invalid
+     * transaction very quick by checking a set of simple rules first.
+     *
+     * @return True if the transaction is valid; otherwise; false
+     */
+    public boolean isValid()
+    {
+        s_logger.debug("Validating transaction: {}", getTransactionId());
+
+        if (m_inputs.isEmpty())
+        {
+            s_logger.debug("The transaction contains no inputs. All transactions must at least have one input.");
+            return false;
+        }
+
+        if (m_outputs.isEmpty())
+        {
+            s_logger.debug("The transaction contains no outputs. All transactions must at least have one input.");
+            return false;
+        }
+
+        byte[] serializedData = serialize();
+
+        if (serializedData.length > MAX_BLOCK_SIZE)
+        {
+            s_logger.debug("The transaction data is bigger than the maximum size allowed({} > {}).", serializedData.length, MAX_BLOCK_SIZE);
+            return false;
+        }
+
+        BigInteger totalMoney = BigInteger.ZERO;
+
+        int index = 0;
+        for (TransactionOutput out : m_outputs)
+        {
+            if (out.getAmount().longValue() < 0)
+            {
+                s_logger.debug("Output ({}) of transaction {}, has negative value: {}", index, getTransactionId(), out.getAmount().longValue());
+                return false;
+            }
+
+            if (out.getAmount().longValue() > MAX_MONEY)
+            {
+                s_logger.debug("Output ({}) of transaction {}, has more value than allowed: {}", index, getTransactionId(), out.getAmount().longValue());
+                return false;
+            }
+
+            totalMoney = totalMoney.add(out.getAmount());
+        }
+
+        if (totalMoney.longValue() > MAX_MONEY)
+        {
+            s_logger.debug("Total value of transaction {}, has more value than allowed: {}", getTransactionId(), totalMoney.longValue());
+            return false;
+        }
+
+        if ((getLockTime() < 0) || (getLockTime() > Integer.MAX_VALUE))
+        {
+            s_logger.debug("Lock time of transaction {}, is not in valid range: {}", getTransactionId(), getLockTime());
+            return false;
+        }
+
+        if (isCoinbase())
+        {
+            int coinbaseSize = m_unlockingParameters.get(0).length;
+
+            if (coinbaseSize > 100)
+            {
+                s_logger.debug("Unlocking parameters in coinbase transaction {}, has an invalid size: {}", getTransactionId(), MAX_COINBASE_SIZE);
+                return false;
+            }
+        }
+        else
+        {
+            int inputIndex = 0;
+            for (TransactionInput input : m_inputs)
+            {
+                if (input.getIndex() < 0 || input.getReferenceHash().equals(new Hash()))
+                {
+                    s_logger.debug("Input {} for transaction ({}) has wrong reference to previous transaction", inputIndex, getTransactionId());
+                    return false;
+                }
+                 ++inputIndex;
+            }
+        }
+
+        Set<String> usedOuts = new HashSet<>();
+        for (TransactionInput in : m_inputs)
+        {
+            String referredOut = String.format("%s-%s",in.getReferenceHash(), in.getIndex());
+
+            if (usedOuts.contains(referredOut))
+            {
+                s_logger.debug("Transaction {} refers twice to the same output: {}", getTransactionId(), referredOut);
+                return false;
+            }
+
+            usedOuts.add(referredOut);
+        }
+
+        int inputIndex = 0;
+        for (TransactionInput in : getInputs() )
+        {
+            if (getTransactionId().equals(in.getReferenceHash()))
+            {
+                s_logger.debug("Transaction input {} refers to the containing transaction: {}", inputIndex, getTransactionId());
+                return false;
+            }
+
+            ++inputIndex;
+        }
+
+        return true;
+    }
+
+    /**
      * A coinbase transaction is one that creates a new coin.
      */
-    public boolean isCoinBase()
+    public boolean isCoinbase()
     {
         return m_inputs.get(0).isCoinBase();
     }

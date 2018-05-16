@@ -25,7 +25,6 @@ package com.thunderbolt.blockchain;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.persistence.PersistenceManager;
@@ -56,10 +55,9 @@ public class Blockchain
     private static final Logger             s_logger      = LoggerFactory.getLogger(Blockchain.class);
     private static final PersistenceManager s_persistence = PersistenceManager.getInstance();
 
-    private BlockMetadata        m_headBlock;
-    private List<Block>          m_unconnectedBlocks = new ArrayList<>();
-    private Wallet               m_wallet;
-    private NetworkParameters    m_params;
+    private BlockMetadata     m_headBlock;
+    private Wallet            m_wallet;
+    private NetworkParameters m_params;
 
     /**
      * Creates a new instance of the blockchain.
@@ -103,36 +101,31 @@ public class Blockchain
 
         if (parent == null)
         {
+            // This should never happen. We just discard unconnected blocks. We only add blocks of which we know the
+            // parent and we explicitly ask for them to the peers.
             s_logger.warn("The given block is orphan: {}", block.getHeaderHash());
-            m_unconnectedBlocks.add(block);
             return false;
         }
-        else
-        {
-            // It connects to somewhere on the chain. Not necessarily the top of the best known chain.
-            //
-            // Create a new StoredBlock from this block. It will throw away the transaction data so when block goes
-            // out of scope we will reclaim the used memory.
-            BigInteger workSoFar = parent.getTotalWork().add(block.getWork());
-            long       newHeight = parent.getHeight() + 1;
 
-            if (!isTargetDifficultyValid(parent, block))
-                return false;
+        BigInteger workSoFar = parent.getTotalWork().add(block.getWork());
+        long       newHeight = parent.getHeight() + 1;
 
-            // TODO: Perform contextual validations over the transactions.
+        if (!isTargetDifficultyValid(parent, block))
+            return false;
 
-            BlockMetadata newMetadata = s_persistence.persist(block, newHeight, workSoFar);
+        if (!areTransactionsValid(block.getTransactions()))
+            return false;
 
-            connect(newMetadata, parent, block.getTransactions());
-        }
+        BlockMetadata newMetadata = s_persistence.persist(block, newHeight, workSoFar);
 
-        //tryConnectingUnconnected();
+        connect(newMetadata, parent, block.getTransactions());
 
         return true;
     }
 
     /**
-     * Connects a block to he bloc chain.
+     * Connects a block to he block chain.
+     *
      * @param newBlock     The new block to be connected.
      * @param parent       The parent of the block.
      * @param transactions The list of transactions in this block.
@@ -174,6 +167,8 @@ public class Blockchain
      * Verifies that the difficulty reported by the block is correct.
      *
      * @return True if the difficulty is correct; otherwise; false.
+     *
+     * TODO: Refactor this method.
      */
     private boolean isTargetDifficultyValid(BlockMetadata parent, Block newBlock) throws StorageException
     {
@@ -223,7 +218,7 @@ public class Blockchain
         if (timeSpan > m_params.getTargetTimespan() * 4)
             timeSpan = m_params.getTargetTimespan() * 4;
 
-        BigInteger newDifficulty = Convert.decodeCompactBits(blockIntervalAgo.getBits());
+        BigInteger newDifficulty = Block.unpackDifficulty(blockIntervalAgo.getBits());
         newDifficulty = newDifficulty.multiply(BigInteger.valueOf(timeSpan));
         newDifficulty = newDifficulty.divide(BigInteger.valueOf(m_params.getTargetTimespan()));
 
@@ -233,7 +228,7 @@ public class Blockchain
         }
 
         int accuracyBytes = (int) (next.getBits() >>> 24) - 3;
-        BigInteger receivedDifficulty = Convert.decodeCompactBits(next.getBits());
+        BigInteger receivedDifficulty = Block.unpackDifficulty(next.getBits());
 
         // The calculated difficulty is to a higher precision than received, so reduce here.
         BigInteger mask = BigInteger.valueOf(0xFFFFFFL).shiftLeft(accuracyBytes * 8);
@@ -365,7 +360,7 @@ public class Blockchain
             if (!removed)
                 s_logger.warn("The transaction {} was not available in our valid transaction pool.", transaction.getTransactionId());
 
-            // Create all the new Unspent outputs added from this block.
+            // Create all the new Unspent outputs added by this block.
             int index = 0;
             for (TransactionOutput output : transaction.getOutputs())
             {
@@ -373,7 +368,7 @@ public class Blockchain
 
                 unspentOutput.setOutput(output);
                 unspentOutput.setTransactionHash(transaction.getTransactionId());
-                unspentOutput.setIsCoinbase(transaction.isCoinBase());
+                unspentOutput.setIsCoinbase(transaction.isCoinbase());
                 unspentOutput.setBlockHeight(metadata.getHeight());
                 unspentOutput.setVersion(transaction.getVersion());
                 unspentOutput.setIndex(index);
@@ -418,6 +413,81 @@ public class Blockchain
      */
     private boolean revertBlockChanges(BlockMetadata metadata) throws StorageException
     {
+        // First we retrieve the whole block and the outputs it spent, since we need the list of transactions and
+        // re add the consumed outputs.
+        Block                          block        = s_persistence.getBlock(metadata.getHash());
+        List<UnspentTransactionOutput> spentOutputs = s_persistence.getSpentOutputs(metadata.getHash());
+
+        // Re-add all transactions referenced in this block to the mem pool.
+        List<Hash> removedOutputs = new ArrayList<>();
+
+        for (Transaction transaction: block.getTransactions())
+        {
+            boolean added = s_persistence.getTransactionPool().addTransaction(transaction);
+
+            if (!added)
+                s_logger.warn("The transaction {} could not be added to our valid transaction pool.", transaction.getTransactionId());
+
+            // Remove all the Unspent outputs added by this block.
+            int index = 0;
+            for (TransactionOutput output : transaction.getOutputs())
+            {
+                UnspentTransactionOutput consumedOutput = new UnspentTransactionOutput();
+
+                consumedOutput.setTransactionHash(transaction.getTransactionId());
+                consumedOutput.setIndex(index);
+
+                removedOutputs.add(consumedOutput.getHash());
+
+                // Remove spent outputs from the UTXO database.
+                s_persistence.removeUnspentOutput(transaction.getTransactionId(), index);
+
+                ++index;
+            }
+
+            // Add all previously removed unspent outputs from the mem pool and the wallet.
+            for (UnspentTransactionOutput output : spentOutputs)
+                s_persistence.addUnspentOutput(output);
+        }
+
+        // Update the wallet.
+        m_wallet.updateOutputs(spentOutputs, removedOutputs);
+
+        return true;
+    }
+
+    /**
+     * Performs all the contextual validations over the transactions in this block.
+     *
+     * @param transactions The transaction to be validated.
+     *
+     * @return True if all the transactions are valid; otherwise; false.
+     */
+    boolean areTransactionsValid(List<Transaction> transactions)
+    {
+        for (Transaction transaction: transactions)
+        {
+            // Perform context less validations.
+            if (!transaction.isValid())
+                return false;
+
+            // Using the referenced output transactions to get input values, check that each input value, as well as
+            // the sum, are in legal money range
+
+            // Reject if the sum of input values < sum of output values
+
+            // For each input, look in the branch to find the
+            // referenced output transaction. Reject if the output transaction is missing or has been spent for any input.
+
+            // For each input, if we are using the nth output of the
+            // earlier transaction, but it has fewer than n+1 outputs, reject.
+
+            // For each input, if the referenced output transaction is coinbase,
+            // it must have at least COINBASE_MATURITY confirmations; else reject.
+
+            // Verify crypto signatures for each input; reject if any are bad
+        }
+
         return true;
     }
 }

@@ -366,7 +366,7 @@ public class PersistenceManager
                 Transaction transaction = block.getTransaction(i);
 
                 // We ignore coinbase transactions since they dont spent any previous outputs.
-                if (transaction.isCoinBase())
+                if (transaction.isCoinbase())
                     continue;
 
                 for (TransactionInput input: transaction.getInputs())
@@ -379,7 +379,7 @@ public class PersistenceManager
                     UnspentTransactionOutput unspentOutput = new UnspentTransactionOutput();
                     unspentOutput.setBlockHeight(height);
                     unspentOutput.setVersion(referencedTransaction.getVersion());
-                    unspentOutput.setIsCoinbase(referencedTransaction.isCoinBase());
+                    unspentOutput.setIsCoinbase(referencedTransaction.isCoinbase());
                     unspentOutput.setTransactionHash(referencedTransaction.getTransactionId());
                     unspentOutput.setIndex(outputIndex);
                     unspentOutput.setOutput(referencedTransaction.getOutputs().get(outputIndex));

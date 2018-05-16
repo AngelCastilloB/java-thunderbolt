@@ -25,7 +25,6 @@ package com.thunderbolt.blockchain;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
@@ -177,8 +176,7 @@ public class Block implements ISerializable
      */
     public Hash getHeaderHash()
     {
-        Hash headerHash = m_header.getHash();
-        return headerHash;
+        return m_header.getHash();
     }
 
     /**
@@ -199,9 +197,35 @@ public class Block implements ISerializable
      */
     public BigInteger getTargetDifficultyAsInteger()
     {
-        return Convert.decodeCompactBits(m_header.getBits());
+        return Block.unpackDifficulty(m_header.getBits());
     }
 
+    /**
+     * Decompress the difficulty target.
+     *
+     * Each block stores a packed representation (called "Bits") for its actual hexadecimal target. The target can be
+     * derived from it via a predefined formula.
+     *
+     * For example, if the packed target in the block is 0x1b0404cb, the hexadecimal target is
+     *
+     * 0x0404cb * 2**(8*(0x1b - 3)) = 0x00000000000404CB000000000000000000000000000000000000000000000000
+     *
+     * Note that the 0x0404cb value is a signed value in this format. The largest legal value for this field
+     * is 0x7fffff. To make a larger value you must shift it down one full byte. Also 0x008000 is the smallest
+     * positive valid value.
+     *
+     * @param packedTarget The compressed difficulty target.
+     *
+     * @return The uncompressed difficulty target.
+     */
+    static public BigInteger unpackDifficulty(long packedTarget)
+    {
+        // Get the first 3 bytes of the difficulty.
+        BigInteger last24bits = BigInteger.valueOf(packedTarget & 0x007FFFFFL);
+        int        first8bits = (int)(packedTarget >> 24);
+
+        return last24bits.shiftLeft(8 * (first8bits - 3));
+    }
     /**
      * Returns the work represented by this block
      *
@@ -394,7 +418,7 @@ public class Block implements ISerializable
      */
     private boolean areTransactionsValid()
     {
-        if (!m_transactions.get(0).isCoinBase())
+        if (!m_transactions.get(0).isCoinbase())
         {
             s_logger.error("First transaction is not a coinbase transaction.");
             return false;
@@ -402,7 +426,7 @@ public class Block implements ISerializable
 
         for (int i = 1; i < m_transactions.size(); i++)
         {
-            if (m_transactions.get(i).isCoinBase())
+            if (m_transactions.get(i).isCoinbase())
             {
                 s_logger.error(String.format("Transaction %s is coinbase when it should not be.", i));
                 return false;
