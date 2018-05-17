@@ -46,69 +46,32 @@ import java.util.List;
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * The persistence manager is a naive approach at storing and retrieving data (and metadata) for the network state (block
+ * The persistence service is a naive approach at storing and retrieving data (and metadata) for the network state (block
  * and transaction artifacts). We will need to improve upon this in the future.
  *
  * All the items are indexed by the ID in the system (the hash of the serialized data).
  */
-public class PersistenceManager
+public class StandardPersistenceService implements IPersistenceService
 {
-    private static final Logger s_logger = LoggerFactory.getLogger(PersistenceManager.class);
-
-    // Singleton Instance
-    private static final PersistenceManager instance = new PersistenceManager();
+    private static final Logger s_logger = LoggerFactory.getLogger(StandardPersistenceService.class);
 
     // Instance fields
-    private boolean                m_isInitialized    = false;
     private IContiguousStorage     m_blockStorage     = null;
     private IContiguousStorage     m_revertsStorage   = null;
     private IMetadataProvider      m_metadataProvider = null;
 
-    // TODO: This doesn't belongs here.
-    private IValidTransactionsPool m_memPool = new MemoryValidTransactionsPool();
-
     /**
-     * Defeats instantiation of the PersistenceManager class.
-     */
-    private PersistenceManager()
-    {
-    }
-
-    /**
-     * Gets the singleton instance of the persistence manager.
-     *
-     * @return The singleton instance of the persistence manager.
-     */
-    public static PersistenceManager getInstance()
-    {
-        return instance;
-    }
-
-    /**
-     * Initializes the persistence manager.
+     * Initializes an instance of the persistence service.
      *
      * @param blockStorage     The storage for the blocks.
      * @param revertStorage    The storage for the revert data.
      * @param metadataProvider The blockchain metadata provider.
      */
-    public void initialize(IContiguousStorage blockStorage, IContiguousStorage revertStorage, IMetadataProvider metadataProvider)
+    public StandardPersistenceService(IContiguousStorage blockStorage, IContiguousStorage revertStorage, IMetadataProvider metadataProvider)
     {
-        s_logger.debug("Initializing persistence manager.");
-
         m_blockStorage     = blockStorage;
         m_revertsStorage   = revertStorage;
         m_metadataProvider = metadataProvider;
-        m_isInitialized    = true;
-    }
-
-    /**
-     * Gets whether the persistence manager is initialized or not.
-     *
-     * @return True if initialized; otherwise; false.
-     */
-    public boolean isInitialized()
-    {
-        return m_isInitialized;
     }
 
     /**
@@ -122,9 +85,6 @@ public class PersistenceManager
      */
     public BlockMetadata persist(Block block, long height, BigInteger totalWork) throws StorageException
     {
-        if (!m_isInitialized)
-            throw new StorageException("The persistence manager is not initialized.");
-
         BlockMetadata metadata = new BlockMetadata();
 
         try
@@ -174,9 +134,6 @@ public class PersistenceManager
      */
     public Block getBlock(Hash hash) throws StorageException
     {
-        if (!m_isInitialized)
-            throw new StorageException("The persistence manager is not initialized.");
-
         BlockMetadata metadata = m_metadataProvider.getBlockMetadata(hash);
 
         StoragePointer pointer = new StoragePointer();
@@ -197,9 +154,6 @@ public class PersistenceManager
      */
     public BlockMetadata getBlockMetadata(Hash hash) throws StorageException
     {
-        if (!m_isInitialized)
-            throw new StorageException("The persistence manager is not initialized.");
-
         return m_metadataProvider.getBlockMetadata(hash);
     }
 
@@ -212,9 +166,6 @@ public class PersistenceManager
      */
     public List<UnspentTransactionOutput> getSpentOutputs(Hash hash) throws StorageException
     {
-        if (!m_isInitialized)
-            throw new StorageException("The persistence manager is not initialized.");
-
         BlockMetadata metadata = m_metadataProvider.getBlockMetadata(hash);
 
         StoragePointer pointer = new StoragePointer();
@@ -242,9 +193,6 @@ public class PersistenceManager
      */
     public BlockMetadata getChainHead() throws StorageException
     {
-        if (!m_isInitialized)
-            throw new StorageException("The persistence manager is not initialized.");
-
         return m_metadataProvider.getChainHead();
     }
 
@@ -255,9 +203,6 @@ public class PersistenceManager
      */
     public void setChainHead(BlockMetadata metadata) throws StorageException
     {
-        if (!m_isInitialized)
-            throw new StorageException("The persistence manager is not initialized.");
-
         m_metadataProvider.setChainHead(metadata);
     }
 
@@ -270,9 +215,6 @@ public class PersistenceManager
      */
     public Transaction getTransaction(Hash hash) throws StorageException
     {
-        if (!m_isInitialized)
-            throw new StorageException("The persistence manager is not initialized.");
-
         TransactionMetadata metadata = m_metadataProvider.getTransactionMetadata(hash);
 
         StoragePointer pointer = new StoragePointer();
@@ -295,9 +237,6 @@ public class PersistenceManager
      */
     public UnspentTransactionOutput getUnspentOutput(Hash transactionId, int index) throws StorageException
     {
-        if (!m_isInitialized)
-            throw new StorageException("The persistence manager is not initialized.");
-
         return m_metadataProvider.getUnspentOutput(transactionId, index);
     }
 
@@ -308,9 +247,6 @@ public class PersistenceManager
      */
     public boolean addUnspentOutput(UnspentTransactionOutput output) throws StorageException
     {
-        if (!m_isInitialized)
-            throw new StorageException("The persistence manager is not initialized.");
-
         return m_metadataProvider.addUnspentOutput(output);
     }
 
@@ -322,21 +258,7 @@ public class PersistenceManager
      */
     public boolean removeUnspentOutput(Hash id, int index) throws StorageException
     {
-        if (!m_isInitialized)
-            throw new StorageException("The persistence manager is not initialized.");
-
         return m_metadataProvider.removeUnspentOutput(id, index);
-    }
-
-    /**
-     * Gets the valid transactions pool instance.
-     *
-     * TODO: We will add this here for the time being, however, this clearly doesn't belong here.
-     * @return The mem pool
-     */
-    public IValidTransactionsPool getTransactionPool()
-    {
-        return m_memPool;
     }
 
     /**
@@ -352,7 +274,7 @@ public class PersistenceManager
      *
      * @throws StorageException If there is an error querying the required metadata to create the revert data.
      */
-    private byte[] getRevertData(Block block, long height) throws StorageException
+    public byte[] getRevertData(Block block, long height) throws StorageException
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 

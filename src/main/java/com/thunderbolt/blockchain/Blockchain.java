@@ -25,9 +25,12 @@ package com.thunderbolt.blockchain;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.ServiceLocator;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.network.NetworkParameters;
-import com.thunderbolt.persistence.PersistenceManager;
+import com.thunderbolt.persistence.IPersistenceService;
+import com.thunderbolt.persistence.StandardPersistenceService;
+import com.thunderbolt.persistence.storage.IValidTransactionsPool;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.BlockMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
@@ -52,13 +55,14 @@ import java.util.List;
  */
 public class Blockchain
 {
-    private static final Logger             s_logger      = LoggerFactory.getLogger(Blockchain.class);
-    private static final PersistenceManager s_persistence = PersistenceManager.getInstance();
+    private static final Logger s_logger      = LoggerFactory.getLogger(Blockchain.class);
 
-    private BlockMetadata     m_headBlock;
-    private Wallet            m_wallet;
-    private NetworkParameters m_params;
-
+    private BlockMetadata          m_headBlock;
+    private Wallet                 m_wallet;
+    private NetworkParameters      m_params;
+    private IPersistenceService    m_persistence = ServiceLocator.getService(IPersistenceService.class);
+    private IValidTransactionsPool m_memPool     = ServiceLocator.getService(IValidTransactionsPool.class);
+    
     /**
      * Creates a new instance of the blockchain.
      *
@@ -67,7 +71,7 @@ public class Blockchain
      */
     public Blockchain(NetworkParameters params, Wallet wallet) throws StorageException
     {
-        m_headBlock = PersistenceManager.getInstance().getChainHead();
+        m_headBlock = m_persistence.getChainHead();
         s_logger.debug(String.format("Current blockchain tip: %s", m_headBlock.getHeader().getHash().toString()));
 
         m_params = params;
@@ -96,7 +100,7 @@ public class Blockchain
         }
 
         // Try linking it to a place in the currently known blocks.
-        BlockMetadata parent = s_persistence.getBlockMetadata(
+        BlockMetadata parent = m_persistence.getBlockMetadata(
                 block.getHeader().getParentBlockHash());
 
         if (parent == null)
@@ -116,7 +120,7 @@ public class Blockchain
         if (!areTransactionsValid(block.getTransactions()))
             return false;
 
-        BlockMetadata newMetadata = s_persistence.persist(block, newHeight, workSoFar);
+        BlockMetadata newMetadata = m_persistence.persist(block, newHeight, workSoFar);
 
         connect(newMetadata, parent, block.getTransactions());
 
@@ -136,7 +140,7 @@ public class Blockchain
     {
         if (parent.getHeader().equals(m_headBlock.getHeader()))
         {
-            s_persistence.setChainHead(newBlock);
+            m_persistence.setChainHead(newBlock);
 
             s_logger.trace("Chain is now {} blocks high", m_headBlock.getHeight());
 
@@ -192,7 +196,7 @@ public class Blockchain
         watch.start();
 
         // Find the block at the beginning of the interval and verify that we are using the correct difficulty.
-        BlockMetadata cursor = s_persistence.getBlockMetadata(current.getHash());
+        BlockMetadata cursor = m_persistence.getBlockMetadata(current.getHash());
         for (int i = 0; i < m_params.getDifficulAdjustmentInterval() - 1; i++)
         {
             if (cursor == null)
@@ -201,7 +205,7 @@ public class Blockchain
                 return false;
             }
 
-            cursor = s_persistence.getBlockMetadata(cursor.getHash());
+            cursor = m_persistence.getBlockMetadata(cursor.getHash());
         }
 
         watch.stop();
@@ -263,12 +267,12 @@ public class Blockchain
         {
             if (mainChainCursor.getHeight() > sideChainCursor.getHeight())
             {
-                mainChainCursor = s_persistence.getBlockMetadata(
+                mainChainCursor = m_persistence.getBlockMetadata(
                         mainChainCursor.getHeader().getParentBlockHash());
             }
             else
             {
-                sideChainCursor = s_persistence.getBlockMetadata(
+                sideChainCursor = m_persistence.getBlockMetadata(
                         sideChainCursor.getHeader().getParentBlockHash());
             }
         }
@@ -305,7 +309,7 @@ public class Blockchain
             applyBlockChanges(metadata);
 
         // Update the pointer to the best known block.
-        s_persistence.setChainHead(newChainHead);
+        m_persistence.setChainHead(newChainHead);
     }
 
     /**
@@ -326,7 +330,7 @@ public class Blockchain
         do
         {
             results.add(cursor);
-            cursor = s_persistence.getBlockMetadata(cursor.getHeader().getParentBlockHash());
+            cursor = m_persistence.getBlockMetadata(cursor.getHeader().getParentBlockHash());
 
         } while (!cursor.equals(lower));
 
@@ -347,7 +351,7 @@ public class Blockchain
     private boolean applyBlockChanges(BlockMetadata metadata) throws StorageException
     {
         // First we retrieve the whole block since we need the list of transactions.
-        Block block = s_persistence.getBlock(metadata.getHash());
+        Block block = m_persistence.getBlock(metadata.getHash());
 
         // Now we must remove all transactions referenced in this block from the mem pool.
         List<UnspentTransactionOutput> newOutputs     = new ArrayList<>();
@@ -355,7 +359,7 @@ public class Blockchain
 
         for (Transaction transaction: block.getTransactions())
         {
-            boolean removed = s_persistence.getTransactionPool().removeTransaction(transaction.getTransactionId());
+            boolean removed = m_memPool.removeTransaction(transaction.getTransactionId());
 
             if (!removed)
                 s_logger.warn("The transaction {} was not available in our valid transaction pool.", transaction.getTransactionId());
@@ -374,7 +378,7 @@ public class Blockchain
                 unspentOutput.setIndex(index);
 
                 // Add output to the UXTO data base.
-                s_persistence.addUnspentOutput(unspentOutput);
+                m_persistence.addUnspentOutput(unspentOutput);
                 ++index;
             }
 
@@ -390,7 +394,7 @@ public class Blockchain
                 removedOutputs.add(consumedOutput.getHash());
 
                 // Remove spent outputs from the UTXO database.
-                s_persistence.removeUnspentOutput(input.getReferenceHash(), input.getIndex());
+                m_persistence.removeUnspentOutput(input.getReferenceHash(), input.getIndex());
             }
         }
 
@@ -415,15 +419,15 @@ public class Blockchain
     {
         // First we retrieve the whole block and the outputs it spent, since we need the list of transactions and
         // re add the consumed outputs.
-        Block                          block        = s_persistence.getBlock(metadata.getHash());
-        List<UnspentTransactionOutput> spentOutputs = s_persistence.getSpentOutputs(metadata.getHash());
+        Block                          block        = m_persistence.getBlock(metadata.getHash());
+        List<UnspentTransactionOutput> spentOutputs = m_persistence.getSpentOutputs(metadata.getHash());
 
         // Re-add all transactions referenced in this block to the mem pool.
         List<Hash> removedOutputs = new ArrayList<>();
 
         for (Transaction transaction: block.getTransactions())
         {
-            boolean added = s_persistence.getTransactionPool().addTransaction(transaction);
+            boolean added = m_memPool.addTransaction(transaction);
 
             if (!added)
                 s_logger.warn("The transaction {} could not be added to our valid transaction pool.", transaction.getTransactionId());
@@ -440,14 +444,14 @@ public class Blockchain
                 removedOutputs.add(consumedOutput.getHash());
 
                 // Remove spent outputs from the UTXO database.
-                s_persistence.removeUnspentOutput(transaction.getTransactionId(), index);
+                m_persistence.removeUnspentOutput(transaction.getTransactionId(), index);
 
                 ++index;
             }
 
             // Add all previously removed unspent outputs from the mem pool and the wallet.
             for (UnspentTransactionOutput output : spentOutputs)
-                s_persistence.addUnspentOutput(output);
+                m_persistence.addUnspentOutput(output);
         }
 
         // Update the wallet.

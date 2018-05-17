@@ -27,12 +27,11 @@ package com.thunderbolt;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.blockchain.Block;
-import com.thunderbolt.common.Convert;
+import com.thunderbolt.common.ServiceLocator;
 import com.thunderbolt.network.NetworkParameters;
-import com.thunderbolt.persistence.PersistenceManager;
-import com.thunderbolt.persistence.storage.DiskContiguousStorage;
-import com.thunderbolt.persistence.storage.LevelDbMetadataProvider;
-import com.thunderbolt.persistence.storage.StorageException;
+import com.thunderbolt.persistence.IPersistenceService;
+import com.thunderbolt.persistence.StandardPersistenceService;
+import com.thunderbolt.persistence.storage.*;
 import com.thunderbolt.security.*;
 import com.thunderbolt.transaction.*;
 import org.slf4j.Logger;
@@ -78,23 +77,25 @@ public class Main
      */
     public static void main(String[] args) throws IOException, GeneralSecurityException, CloneNotSupportedException, StorageException
     {
-        initializePersistenceManager();
-        /*
-        Block genesisBlock = NetworkParameters.createGenesis();
-        PersistenceManager.getInstance().persist(genesisBlock, 0, genesisBlock.getWork());
-        */
+        initializeServices();
+        //Block genesisBlock = NetworkParameters.createGenesis();
+        //ServiceLocator.getService(IPersistenceService.class).persist(genesisBlock, 0, genesisBlock.getWork());
 
-        Transaction xt = PersistenceManager.getInstance().getTransaction(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"));
+        Transaction xt = ServiceLocator.getService(IPersistenceService.class).getTransaction(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"));
+
+        ServiceLocator.register(Transaction.class, xt);
+        Transaction copy = ServiceLocator.getService(Transaction.class);
+
         s_logger.debug("Valid: {}", xt.isValid());
         /*
-        initializePersistenceManager();
+        initializeServices();
 
-        //PersistenceManager.getInstance().persist(NetworkParameters.createGenesis(), 0);
-        Transaction spentXT = PersistenceManager.getInstance().getTransaction(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"));
-        Block block = PersistenceManager.getInstance().getBlock(new Hash("00000004063B34C6FE99D1DB8A8C7F041B46487E64B0ED74C0EE8B7D4FA8F4E9"));
+        //StandardPersistenceService.getInstance().persist(NetworkParameters.createGenesis(), 0);
+        Transaction spentXT = StandardPersistenceService.getInstance().getTransaction(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"));
+        Block block = StandardPersistenceService.getInstance().getBlock(new Hash("00000004063B34C6FE99D1DB8A8C7F041B46487E64B0ED74C0EE8B7D4FA8F4E9"));
 
         s_logger.debug(String.format("Block is valid: %s", block.isValid()));
-        //UnspentTransactionOutput uxto = PersistenceManager.getInstance().getUnspentOutput(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"), 0);
+        //UnspentTransactionOutput uxto = StandardPersistenceService.getInstance().getUnspentOutput(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"), 0);
         int a = 3;
         ++a;
 /*
@@ -106,7 +107,7 @@ public class Main
         uxto.setIsCoinbase(uxto.isIsCoinbase());
         uxto.setOutput(spentXT.getOutputs().get(0));
 
-        PersistenceManager.getInstance().addUnspentOutput(uxto);*/
+        StandardPersistenceService.getInstance().addUnspentOutput(uxto);*/
         /*
         Block newBlock = NetworkParameters.createGenesis();
         BigInteger hash = newBlock.getHeaderHash().toBigInteger();
@@ -125,7 +126,7 @@ public class Main
 */
 
         /*
-        UnspentTransactionOutput spentXT = PersistenceManager.getInstance().getUnspentOutput(new Hash("E2DBE246FEEAFD8B57CB2C08A6C62DA2F2CF98BE9BA21CD5CE3E6FD485D21E8D"));
+        UnspentTransactionOutput spentXT = StandardPersistenceService.getInstance().getUnspentOutput(new Hash("E2DBE246FEEAFD8B57CB2C08A6C62DA2F2CF98BE9BA21CD5CE3E6FD485D21E8D"));
 
         s_logger.debug(String.format("%s", spentXT.getTransactionHash()));
 
@@ -173,7 +174,7 @@ public class Main
 
         s_logger.debug(String.format("Block solved! hash is lower than target difficulty (%d): %s > %s", newBlock.getHeader().getNonce(), newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
 
-        PersistenceManager.getInstance().persist(newBlock, 0);
+        StandardPersistenceService.getInstance().persist(newBlock, 0);
 
         s_logger.debug(String.format("Added Block %s, with transaction %s", newBlock.getHeader().getTransactionHash(), newBlock.getTransaction(0).getTransactionId()));
 
@@ -181,9 +182,9 @@ public class Main
         Block genesisBlock = NetworkParameters.createGenesis();
         s_genesisTransaction.getOutputs().add(s_genesisOutput);
 
-        PersistenceManager.getInstance().persist(genesisBlock, 0);
+        StandardPersistenceService.getInstance().persist(genesisBlock, 0);
 
-        Block loaded = PersistenceManager.getInstance().getBlock(genesisBlock.getHeaderHash());
+        Block loaded = StandardPersistenceService.getInstance().getBlock(genesisBlock.getHeaderHash());
 
         BlockMetadata metadata = new BlockMetadata();
         metadata.setHeader(genesisBlock.getHeader());
@@ -319,7 +320,7 @@ public class Main
             deserializedGenesis.getHeader().setNonce(deserializedGenesis.getHeader().getNonce() + 1);
             hash = deserializedGenesis.getHeaderHash().toBigInteger();
         }
-        PersistenceManager.getInstance().persist(deserializedGenesis, 0);
+        StandardPersistenceService.getInstance().persist(deserializedGenesis, 0);
         s_logger.debug(String.format("Block solved! hash is lower than target difficulty (%d): %s > %s", deserializedGenesis.getHeader().getNonce(), genesisBlock.getHeaderHash(), Convert.toHexString(block2.getTargetDifficultyAsInteger().toByteArray())));
         */
     }
@@ -329,12 +330,16 @@ public class Main
      *
      * @throws StorageException If there is any error opening the storage.
      */
-    static void initializePersistenceManager() throws StorageException
+    static void initializeServices() throws StorageException
     {
         DiskContiguousStorage   blockStorage = new DiskContiguousStorage(BLOCKS_PATH, BLOCK_PATTERN);
         DiskContiguousStorage   revertsStorage = new DiskContiguousStorage(REVERT_PATH, REVERT_PATTERN);
         LevelDbMetadataProvider metadataProvider = new LevelDbMetadataProvider(METADATA_PATH);
 
-        PersistenceManager.getInstance().initialize(blockStorage, revertsStorage, metadataProvider);
+        StandardPersistenceService persistenceService =
+                new StandardPersistenceService(blockStorage, revertsStorage, metadataProvider);
+
+        ServiceLocator.register(IPersistenceService.class, persistenceService);
+        ServiceLocator.register(IValidTransactionsPool.class, new MemoryValidTransactionsPool());
     }
 }
