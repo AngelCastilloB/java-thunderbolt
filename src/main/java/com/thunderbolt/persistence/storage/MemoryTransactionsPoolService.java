@@ -41,7 +41,7 @@ import java.util.Set;
  *
  * TODO: Make this class thread safe.
  */
-public class MemoryValidTransactionsPool implements IValidTransactionsPool
+public class MemoryTransactionsPoolService implements ITransactionsPoolService
 {
     // Static fields and function necessary for instrumentation.
     // TODO: Move to a class?

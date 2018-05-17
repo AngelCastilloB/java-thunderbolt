@@ -36,7 +36,7 @@ import com.thunderbolt.transaction.Transaction;
  *
  * This is the source of transactions that the miners use for adding to the blocks.
  */
-public interface IValidTransactionsPool
+public interface ITransactionsPoolService
 {
     /**
      * Gets the size of the pool in bytes.

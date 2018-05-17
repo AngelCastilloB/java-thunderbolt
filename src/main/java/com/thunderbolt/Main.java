@@ -26,9 +26,7 @@ package com.thunderbolt;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.common.ServiceLocator;
-import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.persistence.IPersistenceService;
 import com.thunderbolt.persistence.StandardPersistenceService;
 import com.thunderbolt.persistence.storage.*;
@@ -332,14 +330,16 @@ public class Main
      */
     static void initializeServices() throws StorageException
     {
-        DiskContiguousStorage   blockStorage = new DiskContiguousStorage(BLOCKS_PATH, BLOCK_PATTERN);
-        DiskContiguousStorage   revertsStorage = new DiskContiguousStorage(REVERT_PATH, REVERT_PATTERN);
+        DiskContiguousStorage   blockStorage     = new DiskContiguousStorage(BLOCKS_PATH, BLOCK_PATTERN);
+        DiskContiguousStorage   revertsStorage   = new DiskContiguousStorage(REVERT_PATH, REVERT_PATTERN);
         LevelDbMetadataProvider metadataProvider = new LevelDbMetadataProvider(METADATA_PATH);
 
-        StandardPersistenceService persistenceService =
-                new StandardPersistenceService(blockStorage, revertsStorage, metadataProvider);
+        ServiceLocator.register(
+                IPersistenceService.class,
+                new StandardPersistenceService(blockStorage, revertsStorage, metadataProvider));
 
-        ServiceLocator.register(IPersistenceService.class, persistenceService);
-        ServiceLocator.register(IValidTransactionsPool.class, new MemoryValidTransactionsPool());
+        ServiceLocator.register(
+                ITransactionsPoolService.class,
+                new MemoryTransactionsPoolService());
     }
 }

@@ -29,8 +29,7 @@ import com.thunderbolt.common.ServiceLocator;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.persistence.IPersistenceService;
-import com.thunderbolt.persistence.StandardPersistenceService;
-import com.thunderbolt.persistence.storage.IValidTransactionsPool;
+import com.thunderbolt.persistence.storage.ITransactionsPoolService;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.BlockMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
@@ -61,7 +60,7 @@ public class Blockchain
     private Wallet                 m_wallet;
     private NetworkParameters      m_params;
     private IPersistenceService    m_persistence = ServiceLocator.getService(IPersistenceService.class);
-    private IValidTransactionsPool m_memPool     = ServiceLocator.getService(IValidTransactionsPool.class);
+    private ITransactionsPoolService m_memPool     = ServiceLocator.getService(ITransactionsPoolService.class);
     
     /**
      * Creates a new instance of the blockchain.
