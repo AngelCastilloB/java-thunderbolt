@@ -29,7 +29,7 @@ import com.thunderbolt.common.ServiceLocator;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.persistence.IPersistenceService;
-import com.thunderbolt.persistence.storage.ITransactionsPoolService;
+import com.thunderbolt.transaction.ITransactionsPoolService;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.BlockMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;

@@ -21,12 +21,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.thunderbolt.persistence.storage;
+package com.thunderbolt.transaction;
 
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.security.Hash;
-import com.thunderbolt.transaction.Transaction;
 
 import java.lang.instrument.Instrumentation;
 import java.util.HashMap;
