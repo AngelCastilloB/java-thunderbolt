@@ -4,5 +4,8 @@ os:
   - linux
 jdk:
   - oraclejdk9
-  
+notifications:
+  email:
+    on_success: never
+
 script: mvn clean verify
