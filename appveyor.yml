@@ -1,5 +1,4 @@
 version: '{build}'
-os: Windows Server 2012
 install:
   - cmd: cinst jdk9 -params 'installdir=C:\\jdk9'
   - cmd: SET JAVA_HOME=C:\jdk9
