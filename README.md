@@ -7,7 +7,7 @@ Thunderbolt is a peer-to-peer trustless digital currency implemented from scratc
 
 Operating system | Status
 ---------------- | ----------
-Ubuntu and macOS | [![TravisCI](https://img.shields.io/travis/AngelCastilloB/java-thunderbolt/master.svg)](https://travis-ci.org/AngelCastilloB/java-thunderbolt)
+Linux            | [![TravisCI](https://img.shields.io/travis/AngelCastilloB/java-thunderbolt/master.svg)](https://travis-ci.org/AngelCastilloB/java-thunderbolt)
 Windows          | [![AppVeyor](https://img.shields.io/appveyor/ci/AngelCastilloB/java-thunderbolt/master.svg)](https://ci.appveyor.com/project/AngelCastilloB/java-thunderbolt)
 
 Build
