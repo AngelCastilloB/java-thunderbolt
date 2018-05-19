@@ -25,26 +25,30 @@ package com.thunderbolt.blockchain;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.common.ServiceLocator;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.persistence.IPersistenceService;
-import com.thunderbolt.transaction.ITransactionsPoolService;
+import com.thunderbolt.security.EllipticCurveProvider;
+import com.thunderbolt.security.Sha256Digester;
+import com.thunderbolt.transaction.*;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.BlockMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Hash;
-import com.thunderbolt.transaction.Transaction;
-import com.thunderbolt.transaction.TransactionInput;
-import com.thunderbolt.transaction.TransactionOutput;
 import com.thunderbolt.wallet.Wallet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -466,31 +470,167 @@ public class Blockchain
      *
      * @return True if all the transactions are valid; otherwise; false.
      */
-    boolean areTransactionsValid(List<Transaction> transactions)
+    boolean areTransactionsValid(List<Transaction> transactions) throws StorageException
     {
+        // TODO: Using the referenced output transactions to get input values, check that each input value, as well as
+        // the sum, are in legal money range
         for (Transaction transaction: transactions)
         {
             // Perform context less validations.
             if (!transaction.isValid())
                 return false;
 
-            // Using the referenced output transactions to get input values, check that each input value, as well as
-            // the sum, are in legal money range
+            BigInteger totalInputValue  = BigInteger.ZERO;
+            BigInteger totalOutputValue = BigInteger.ZERO;
 
-            // Reject if the sum of input values < sum of output values
+            int inputIndex = 0;
+            for (TransactionInput input: transaction.getInputs())
+            {
+                UnspentTransactionOutput unspentOutput = m_persistence.getUnspentOutput(input.getReferenceHash(), input.getIndex());
 
-            // For each input, look in the branch to find the
-            // referenced output transaction. Reject if the output transaction is missing or has been spent for any input.
+                if (unspentOutput == null)
+                {
+                    s_logger.debug(
+                            "The transaction {} references an output ({}) that is not present in the UTXO database.",
+                            input.getReferenceHash(), input.getIndex());
 
-            // For each input, if we are using the nth output of the
-            // earlier transaction, but it has fewer than n+1 outputs, reject.
+                    return false;
+                }
 
-            // For each input, if the referenced output transaction is coinbase,
-            // it must have at least COINBASE_MATURITY confirmations; else reject.
+                // Check that the provided parameters can spend the referenced output.
+                byte[] unlockingParameters = transaction.getUnlockingParameters().get(inputIndex);
 
-            // Verify crypto signatures for each input; reject if any are bad
+                boolean canUnlock = checkUnlockingParameters(unspentOutput.getOutput(), input, unlockingParameters);
+
+                if (!canUnlock)
+                {
+                    s_logger.debug(
+                            "The input {} in transaction {} cant spent the reference output ({}).",
+                            inputIndex, transaction, input.getReferenceHash());
+
+                    return false;
+
+                }
+
+                totalInputValue = totalInputValue.add(unspentOutput.getOutput().getAmount());
+
+                ++inputIndex;
+            }
+
+            for (TransactionOutput output: transaction.getOutputs())
+            {
+                totalOutputValue = totalOutputValue.add(output.getAmount());
+
+                // TODO: Add output validations.
+
+                ++inputIndex;
+            }
+
+            if (totalOutputValue.longValue() > totalInputValue.longValue())
+            {
+                s_logger.debug(
+                        "The sum of the outputs ({}) is bigger than the sum of the inputs ({}).",
+                        totalOutputValue.longValue(), totalInputValue.longValue());
+
+                return false;
+            }
         }
 
         return true;
+    }
+
+    /**
+     * Verifies that the unlocking parameters from this input can unlock the referenced output.
+     *
+     * @param output              The output being spent.
+     * @param input               The input trying to spend the output.
+     * @param unlockingParameters The unlocking parameters.
+     *
+     * @return True if the input can unlock the referenced output; otherwise; false.
+     */
+    private boolean checkUnlockingParameters(TransactionOutput output, TransactionInput input, byte[] unlockingParameters)
+    {
+        // TODO: For each input, if the referenced output transaction is coinbase, it must have at least COINBASE_MATURITY
+        // confirmations; else reject.
+        boolean result = true;
+
+        ByteArrayOutputStream data = new ByteArrayOutputStream();
+
+        try
+        {
+            data.write(input.serialize());
+            data.write(output.getLockType().getValue());
+            data.write(output.getLockingParameters());
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+
+        switch (output.getLockType())
+        {
+            case SingleSignature:
+
+                // To validate this type of lock, we just need to reconstruct the data that was signed and validate the
+                // signature on said data. The unlocking parameters for this output lock should be the signature and
+                // the locking parameters the public key.
+
+                result = EllipticCurveProvider.verify(data.toByteArray(), unlockingParameters, output.getLockingParameters());
+                break;
+            case MultiSignature:
+                // The locking parameter is the hash of the actual locking parameters, this is done this way
+                // because it would be too complicated to get the sender to construct the transaction. So we just
+                // give the sender a multi signature address which is just the hash of the locking parameters of our
+                // multi signature wallet. Then when we want to spent, we need to provide both the locking parameters
+                // and the unlocking parameters. Of course the locking parameters when hashed need to match the hash
+                // provided by the output lock.
+
+                MultiSignatureParameters parameters = new MultiSignatureParameters(ByteBuffer.wrap(unlockingParameters));
+
+                Hash outputLockingParametersHash = new Hash(output.getLockingParameters());
+                Hash inputLockingParametersHash  = parameters.getHash();
+
+                if (outputLockingParametersHash != inputLockingParametersHash)
+                {
+                    s_logger.debug("The provided hashed locking parameters provided by the input do not match the hash provided by the output.\n" +
+                            "Output: {}\n" +
+                            "Input: {}", outputLockingParametersHash, inputLockingParametersHash);
+                    result = false;
+                }
+
+                if (parameters.getNeededSignatures() != parameters.getSignatures().size())
+                {
+                    s_logger.debug(
+                            "Not enough signatures provided. Need {}, provide {}",
+                            parameters.getNeededSignatures(),
+                            parameters.getSignatures().size());
+                    result = false;
+                }
+
+                for (Map.Entry<Byte, byte[]> entry : parameters.getSignatures().entrySet())
+                {
+                    if (!EllipticCurveProvider
+                            .verify(
+                                    data.toByteArray(),
+                                    entry.getValue(),
+                                    parameters.getPublicKeys().get(entry.getKey())))
+                    {
+                        s_logger.debug("One of the signatures is invalid.");
+                        result = false;
+                    }
+                }
+                break;
+            case Unlockable:
+                // This kind of outputs cant be spent. They are use for proof of burn or for committing data to the
+                // blockchain.
+                s_logger.debug("One of the referenced outputs by the transaction is not spendable.");
+                result = false;
+                break;
+            default:
+                s_logger.debug("Unsupported output lock type.");
+                result = false;
+        }
+
+        return result;
     }
 }

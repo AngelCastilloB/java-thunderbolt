@@ -134,7 +134,7 @@ public class Main
         // When we sign the transaction input plus the locking parameters of the referenced output.
         ByteArrayOutputStream signatureData = new ByteArrayOutputStream();
         signatureData.write(input.serialize());
-        signatureData.write(spentXT.getOutputs().get(0).getTransactionType().getValue());
+        signatureData.write(spentXT.getOutputs().get(0).getLockType().getValue());
         signatureData.write(spentXT.getOutputs().get(0).getLockingParameters());
 
         // The signature in DER format is the unlocking parameter of the referenced output. We need to add this to the unlocking parameters
@@ -228,7 +228,7 @@ public class Main
         // When we sign the transaction input plus the locking parameters of the referenced output.
         ByteArrayOutputStream signatureData = new ByteArrayOutputStream();
         signatureData.write(input.serialize());
-        signatureData.write(referencedUxto.getTransactionType().getValue());
+        signatureData.write(referencedUxto.getLockType().getValue());
         signatureData.write(referencedUxto.getLockingParameters());
 
 
@@ -270,7 +270,7 @@ public class Main
         // To validate the signature we need to sign the transaction with the locking parameters in the unlocking parameters field.
         ByteArrayOutputStream signatureData2 = new ByteArrayOutputStream();
         signatureData2.write(input1.serialize());
-        signatureData2.write(out1.getTransactionType().getValue());
+        signatureData2.write(out1.getLockType().getValue());
         signatureData2.write(out1.getLockingParameters());
 
         boolean isValid = EllipticCurveProvider.verify(signatureData2.toByteArray(), signature1, out1.getLockingParameters());

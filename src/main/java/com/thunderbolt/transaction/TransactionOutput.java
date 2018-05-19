@@ -107,7 +107,7 @@ public class TransactionOutput implements ISerializable
      *
      * @return The transaction type.
      */
-    public OutputLockType getTransactionType()
+    public OutputLockType getLockType()
     {
         return m_type;
     }

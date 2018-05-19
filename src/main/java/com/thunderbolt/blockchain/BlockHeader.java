@@ -30,11 +30,10 @@ import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
 import com.thunderbolt.security.Sha256Digester;
 
-import java.awt.font.NumericShaper;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Objects;
+import java.util.Arrays;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -238,8 +237,6 @@ public class BlockHeader implements ISerializable
      * Gets the hash of the block header.
      *
      * @return The hash of this block header.
-     *
-     * @throws IOException If there is an error reading the serialized data.
      */
     public Hash getHash()
     {
@@ -247,7 +244,7 @@ public class BlockHeader implements ISerializable
     }
 
     /**
-     * Serializes an object in ray byte format.
+     * Serializes an object in raw byte format.
      *
      * @return The serialized object.
      */
@@ -295,6 +292,6 @@ public class BlockHeader implements ISerializable
 
         BlockHeader otherMetadata = (BlockHeader)other;
 
-        return Objects.equals(Sha256Digester.digest(otherMetadata.serialize()), Sha256Digester.digest(this.serialize()));
+        return Arrays.equals(otherMetadata.serialize(), this.serialize());
     }
 }

@@ -31,7 +31,7 @@ package com.thunderbolt.common;
 public interface ISerializable
 {
     /**
-     * Serializes an object in ray byte format.
+     * Serializes an object in raw byte format.
      *
      * @return The serialized object.
      */
