@@ -25,13 +25,11 @@ package com.thunderbolt.blockchain;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.common.ServiceLocator;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.persistence.IPersistenceService;
 import com.thunderbolt.security.EllipticCurveProvider;
-import com.thunderbolt.security.Sha256Digester;
 import com.thunderbolt.transaction.*;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.BlockMetadata;
@@ -58,12 +56,12 @@ import java.util.Map;
  */
 public class Blockchain
 {
-    private static final Logger s_logger      = LoggerFactory.getLogger(Blockchain.class);
+    private static final Logger s_logger = LoggerFactory.getLogger(Blockchain.class);
 
-    private BlockMetadata          m_headBlock;
-    private Wallet                 m_wallet;
-    private NetworkParameters      m_params;
-    private IPersistenceService    m_persistence = ServiceLocator.getService(IPersistenceService.class);
+    private BlockMetadata            m_headBlock;
+    private Wallet                   m_wallet;
+    private NetworkParameters        m_params;
+    private IPersistenceService      m_persistence = ServiceLocator.getService(IPersistenceService.class);
     private ITransactionsPoolService m_memPool     = ServiceLocator.getService(ITransactionsPoolService.class);
     
     /**
@@ -125,7 +123,7 @@ public class Blockchain
 
         BlockMetadata newMetadata = m_persistence.persist(block, newHeight, workSoFar);
 
-        connect(newMetadata, parent, block.getTransactions());
+        connect(newMetadata, parent);
 
         return true;
     }
@@ -135,11 +133,10 @@ public class Blockchain
      *
      * @param newBlock     The new block to be connected.
      * @param parent       The parent of the block.
-     * @param transactions The list of transactions in this block.
      *
      * @throws StorageException if there is any error finding the blocks.
      */
-    private void connect(BlockMetadata newBlock, BlockMetadata parent, List<Transaction> transactions) throws StorageException
+    private void connect(BlockMetadata newBlock, BlockMetadata parent) throws StorageException
     {
         if (parent.getHeader().equals(m_headBlock.getHeader()))
         {
@@ -621,9 +618,9 @@ public class Blockchain
                 }
                 break;
             case Unlockable:
-                // This kind of outputs cant be spent. They are use for proof of burn or for committing data to the
+                // This kind of output cant be spent. They are use for proof of burn or for committing data to the
                 // blockchain.
-                s_logger.debug("One of the referenced outputs by the transaction is not spendable.");
+                s_logger.debug("One of the referenced output by the transaction is not spendable.");
                 result = false;
                 break;
             default:
