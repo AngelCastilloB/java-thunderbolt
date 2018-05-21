@@ -9,3 +9,6 @@ notifications:
     on_success: never
 
 script: mvn clean verify
+
+after_success:
+  - mvn clean cobertura:cobertura coveralls:cobertura
