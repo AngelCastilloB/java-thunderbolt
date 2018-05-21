@@ -11,4 +11,4 @@ notifications:
 script: mvn clean verify
 
 after_success:
-  - mvn clean cobertura:cobertura coveralls:cobertura
+  - mvn clean test jacoco:report coveralls:report
