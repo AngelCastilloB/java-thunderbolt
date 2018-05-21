@@ -13,7 +13,10 @@ cache:
   - C:\Users\appveyor\.m2
 on_finish:
   - ps: |
+      $pathToSearch = (Resolve-Path '.\target\surefire-reports')
+      $pathArray=Get-ChildItem $pathToSearch -Filter "*.xml" -file | get-item | select Name, FullName
       $url = "https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)"
-      $file = '.\junit\TESTS-TestSuites.xml'
       $webclient = New-Object 'System.Net.WebClient'
-      try { $webclient.UploadFile($url, (Resolve-Path $file)) } catch { $_ }
+      $pathArray | %  { try { $webclient.UploadFile($url, (Resolve-Path $_.FullName)) } catch { $_ } }
+
+
