@@ -52,6 +52,7 @@ public class NetworkParameters implements Serializable
     static private final long       MAIN_NET_PACKET_MAGIC                 = 0x746e6470;
     static private final long       MAIN_NET_SUBSIDY_HALVING_INTERVAL     = 210000;
     static private final BigInteger MAIN_NET_SUBSIDY_STARTING_VALUE       = BigInteger.valueOf(5000000000L);
+    public static final long        MAIN_NET_COINBASE_MATURITY            = 100;
 
     // Instance fields
     private Block      m_genesisBlock;
@@ -64,6 +65,7 @@ public class NetworkParameters implements Serializable
     private int        m_targetTimespan;
     private int        m_protocol;
     private long       m_blockSize;
+    private long       m_coinbaseMaturity;
 
     /**
      * Creates the Genesis block.
@@ -120,6 +122,7 @@ public class NetworkParameters implements Serializable
         parameters.m_interval                     = MAIN_NET_INTERVAL;
         parameters.m_targetTimespan               = MAIN_NET_TARGET_TIMESPAN;
         parameters.m_genesisBlock                 = createGenesis();
+        parameters.m_coinbaseMaturity             = MAIN_NET_COINBASE_MATURITY;
 
         String genesisHash = parameters.getGenesisBlock().getHeaderHash().toString();
 
@@ -206,6 +209,17 @@ public class NetworkParameters implements Serializable
     public long getBlockMaxSize()
     {
         return m_blockSize;
+    }
+
+    /**
+     * Gets the coinbase maturity, this is the minimum amount of blocks that need to be added after
+     * a coinbase transaction was confirm to be able to spend the coinbase output..
+     *
+     * @return The coinbase maturity.
+     */
+    public long getCoinbaseMaturiry()
+    {
+        return m_coinbaseMaturity;
     }
 
     /**

@@ -25,6 +25,7 @@ package com.thunderbolt.blockchain;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.ServiceLocator;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.network.NetworkParameters;
@@ -43,10 +44,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -118,7 +116,7 @@ public class Blockchain
         if (!isTargetDifficultyValid(parent, block))
             return false;
 
-        if (!areTransactionsValid(block.getTransactions()))
+        if (!areTransactionsValid(block.getTransactions(), newHeight))
             return false;
 
         BlockMetadata newMetadata = m_persistence.persist(block, newHeight, workSoFar);
@@ -467,13 +465,10 @@ public class Blockchain
      *
      * @return True if all the transactions are valid; otherwise; false.
      */
-    boolean areTransactionsValid(List<Transaction> transactions) throws StorageException
+    boolean areTransactionsValid(List<Transaction> transactions, long height) throws StorageException
     {
-        // TODO: Using the referenced output transactions to get input values, check that each input value, as well as
-        // the sum, are in legal money range
         for (Transaction transaction: transactions)
         {
-            // Perform context less validations.
             if (!transaction.isValid())
                 return false;
 
@@ -490,6 +485,17 @@ public class Blockchain
                     s_logger.debug(
                             "The transaction {} references an output ({}) that is not present in the UTXO database.",
                             input.getReferenceHash(), input.getIndex());
+
+                    return false;
+                }
+
+                // Check coin base maturity.
+                long coinbaseMaturity = unspentOutput.getBlockHeight() + m_params.getCoinbaseMaturiry();
+                if (unspentOutput.isIsCoinbase() && coinbaseMaturity > height)
+                {
+                    s_logger.debug(
+                            "The coinbase transaction {} can not be spend until height {}.",
+                            unspentOutput.getTransactionHash(), coinbaseMaturity);
 
                     return false;
                 }
@@ -517,9 +523,6 @@ public class Blockchain
             for (TransactionOutput output: transaction.getOutputs())
             {
                 totalOutputValue = totalOutputValue.add(output.getAmount());
-
-                // TODO: Add output validations.
-
                 ++inputIndex;
             }
 
@@ -547,8 +550,6 @@ public class Blockchain
      */
     private boolean checkUnlockingParameters(TransactionOutput output, TransactionInput input, byte[] unlockingParameters)
     {
-        // TODO: For each input, if the referenced output transaction is coinbase, it must have at least COINBASE_MATURITY
-        // confirmations; else reject.
         boolean result = true;
 
         ByteArrayOutputStream data = new ByteArrayOutputStream();
@@ -567,14 +568,31 @@ public class Blockchain
         switch (output.getLockType())
         {
             case SingleSignature:
-
+            {
                 // To validate this type of lock, we just need to reconstruct the data that was signed and validate the
                 // signature on said data. The unlocking parameters for this output lock should be the signature and
                 // the locking parameters the public key.
 
-                result = EllipticCurveProvider.verify(data.toByteArray(), unlockingParameters, output.getLockingParameters());
+                SingleSignatureParameters parameters = new SingleSignatureParameters(ByteBuffer.wrap(unlockingParameters));
+
+                if (!Arrays.equals(output.getLockingParameters(), parameters.getPublicKeyHash()))
+                {
+                    s_logger.debug(
+                            "Public key does not match. Locking Public Key {}, Unlocking Public Key {}",
+                            Convert.toHexString(output.getLockingParameters()),
+                            Convert.toHexString(parameters.getPublicKeyHash()));
+
+                    result = false;
+                }
+                else
+                {
+                    result = EllipticCurveProvider.verify(data.toByteArray(), parameters.getSignature(), parameters.getPublicKey());
+                }
+
                 break;
+            }
             case MultiSignature:
+            {
                 // The locking parameter is the hash of the actual locking parameters, this is done this way
                 // because it would be too complicated to get the sender to construct the transaction. So we just
                 // give the sender a multi signature address which is just the hash of the locking parameters of our
@@ -617,12 +635,16 @@ public class Blockchain
                     }
                 }
                 break;
+            }
             case Unlockable:
+            {
                 // This kind of output cant be spent. They are use for proof of burn or for committing data to the
                 // blockchain.
+
                 s_logger.debug("One of the referenced output by the transaction is not spendable.");
                 result = false;
                 break;
+            }
             default:
                 s_logger.debug("Unsupported output lock type.");
                 result = false;
