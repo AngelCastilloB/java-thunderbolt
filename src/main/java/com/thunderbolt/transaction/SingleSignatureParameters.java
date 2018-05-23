@@ -26,8 +26,6 @@ package com.thunderbolt.transaction;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.ISerializable;
-import com.thunderbolt.common.NumberSerializer;
-import com.thunderbolt.security.Hash;
 import com.thunderbolt.security.Sha256Digester;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +42,9 @@ import java.nio.ByteBuffer;
 public class SingleSignatureParameters implements ISerializable
 {
     private static final Logger s_logger = LoggerFactory.getLogger(SingleSignatureParameters.class);
+
+    private static final int PUBLIC_KEY_SIZE    = 33;
+    private static final int MAX_SIGNATURE_SIZE = 72;
 
     private byte[] m_publicKey = null;
     private byte[] m_signature = null;
@@ -62,15 +63,12 @@ public class SingleSignatureParameters implements ISerializable
      */
     public SingleSignatureParameters(ByteBuffer buffer)
     {
-        int publicKeySize = buffer.getInt();
-
-        m_publicKey = new byte[publicKeySize];
-
-        int signatureSize = buffer.getInt();
-
-        m_signature = new byte[signatureSize];
+        m_publicKey = new byte[PUBLIC_KEY_SIZE];
 
         buffer.get(m_publicKey);
+
+        m_signature = new byte[buffer.get() & 0xFF];
+
         buffer.get(m_signature);
     }
 
@@ -148,18 +146,28 @@ public class SingleSignatureParameters implements ISerializable
 
         try
         {
-            data.write(NumberSerializer.serialize(m_publicKey.length));
+            if (m_publicKey.length != PUBLIC_KEY_SIZE)
+                throw new RuntimeException(
+                        String.format("Wrong public key size. Expected %s, actual %s",
+                                PUBLIC_KEY_SIZE,
+                                m_publicKey.length));
+
             data.write(m_publicKey);
 
-            data.write(NumberSerializer.serialize(m_signature.length));
-            data.write(m_signature);
+            if (m_signature.length > MAX_SIGNATURE_SIZE)
+                throw new RuntimeException(
+                        String.format("Wrong signature key size. Expected less than %s, actual %s",
+                                MAX_SIGNATURE_SIZE,
+                                m_signature.length));
 
+            data.write((byte)m_signature.length);
+            data.write(m_signature);
         }
         catch (IOException e)
         {
             e.printStackTrace();
-
         }
+
         return data.toByteArray();
     }
 }
