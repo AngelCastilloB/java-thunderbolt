@@ -1,6 +1,6 @@
 <p align="center">
   <img align="middle" src=
-  "https://00e9e64bacd40477bb98f8d55c667b7f2c3930c9f1e7268fea-apidata.googleusercontent.com/download/storage/v1/b/thunderboltcurrency/o/logo_github.png?qk=AD5uMEsk8DwGtpIhZcmGDcuYZmCoo5DR6guHINEN7234nTa5MZjCPDcPFi0K8DXAbHsxm1_b1swAWPTPhbMY0stRhVUrKdnNTGRBFAh2hFbfCHAv0muFoZuB7OzOMQxLqS5s_Kk-FzO3jiihHq4SgfQCL7EgT4Pm8AvwCRJxXYEfWFwQH8K_-gRNSdvvr6gKhEqv09IMYDhYGSlLHjDJbPliXO8prU_JOTQJmbhSTqhI2PtkZx6fnjYgjDED2_p8RZd--1RfIy7kOXfwnbqWuZABgF85QaSn1Jn-d5EbAeQsmmIWWq4VTZB7ZdhBKc7RZ4u1iTAnjbGs3T4-XYtUaySr8htfZVYLdxiX-c3QpHjj4EwHv_ilUP8PvD_nDKzGl-gyX0qifT-yp0JqAzTOhhIDb9rT727cl_NDqq4guET818NZTYLxyTji-yOgbju7BboblZLZgk0nG2WkvK0U40WzvBUXneOfb6G9CX8e41XqIJoC-_L0pOQ0HeHyf0WFXh1XXZlkVIfBFk8-hFc7-tT-knZFMPj2IHq1cTjtMcmA1X7gibx4cy-nOFSixghiHlmE-zsAcFhnD3xV2rb2h2iKyBCc_HF1WjNmhqiWB4gCydvhYBgokkw2B3ddjh6x2cssd-o6ItfAwzVJDV72ssxnaXb-Eb-EOQPCNB-rHwrh8B_8FvEF5LoHcMx96WREcSj-YsVVQLrUD3KaeEkVnAXHd3tNSnlSgJ100vupzuRlk2hAl1uS-yw"
+  "https://storage.googleapis.com/thunderboltcurrency/logo_github.png"
   height="150" /><br /><br />
   <sup><sup><sup><sup>The Thunderbolt logo is licensed under
   <a href="https://creativecommons.org/licenses/by/3.0/">Creative
