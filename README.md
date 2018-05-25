@@ -7,9 +7,9 @@
   Commons 3.0 Attributions license</a></sup></sup></sup></sup>
 </p>
  
-[![TravisCI](https://img.shields.io/travis/AngelCastilloB/java-thunderbolt/master.svg)](https://travis-ci.org/AngelCastilloB/java-thunderbolt) [![AppVeyor](https://img.shields.io/appveyor/ci/AngelCastilloB/java-thunderbolt/master.svg)](https://ci.appveyor.com/project/AngelCastilloB/java-thunderbolt) ![AppVeyor tests](https://img.shields.io/appveyor/tests/AngelCastilloB/java-thunderbolt.svg) [![Coverage Status](https://coveralls.io/repos/github/AngelCastilloB/java-thunderbolt/badge.svg?branch=master)](https://coveralls.io/github/AngelCastilloB/java-thunderbolt?branch=master) 
+![Build Status](https://travis-ci.org/AngelCastilloB/java-thunderbolt.svg?branch=master) [![Build status](https://ci.appveyor.com/api/projects/status/k5qa96tmn861qffu?svg=true)](https://ci.appveyor.com/project/AngelCastilloB/java-thunderbolt) [![Coverage Status](https://coveralls.io/repos/github/AngelCastilloB/java-thunderbolt/badge.svg?branch=master)](https://coveralls.io/github/AngelCastilloB/java-thunderbolt?branch=master) 
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/5fbfd0de8c044c22b25a3e5d272c429c)](https://www.codacy.com/app/AngelCastilloB/java-thunderbolt?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=AngelCastilloB/java-thunderbolt&amp;utm_campaign=Badge_Grade)
- ![GitHub last commit](https://img.shields.io/github/last-commit/AngelCastilloB/java-thunderbolt.svg) ![license](https://img.shields.io/badge/license-MIT-blue.svg?longCache=true&style=flat)
+ ![license](https://img.shields.io/badge/license-MIT-blue.svg?longCache=true&style=flat)
  
 Thunderbolt is a peer-to-peer trustless digital currency implemented from scratch in Java. The project is inspired by
 [Bitcoin](https://github.com/bitcoin/bitcoin) and was created as a learning tool for understanding the blockchain technology.
