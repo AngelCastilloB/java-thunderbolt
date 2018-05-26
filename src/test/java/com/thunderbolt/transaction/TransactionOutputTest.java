@@ -38,7 +38,7 @@ import static org.junit.Assert.*;
 public class TransactionOutputTest
 {
     @Test
-    public void canSetAmount()
+    public void setAmount_givenAnyAmount_newAmountIsReturnByGetAmount()
     {
         TransactionOutput output = new TransactionOutput();
         output.setAmount(BigInteger.valueOf(100));
