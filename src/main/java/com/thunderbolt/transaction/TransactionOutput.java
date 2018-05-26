@@ -41,6 +41,9 @@ import java.nio.ByteBuffer;
  */
 public class TransactionOutput implements ISerializable
 {
+    // Constants
+    private static final long ONE_COIN = 100000000;
+
     // Instance Fields
     private BigInteger     m_amount;
     private byte[]         m_lockingParameters = new byte[0];
@@ -183,8 +186,8 @@ public class TransactionOutput implements ISerializable
             "  \"lockType\":          \"%s\" \n" +
             "  \"lockingParameters\": \"%s\" \n" +
             "}",
-            getAmount().longValue() / 100000000,
-            getAmount().longValue() % 100000000,
+            getAmount().longValue() / ONE_COIN,
+            getAmount().longValue() % ONE_COIN,
             m_type.toString(),
             Convert.toHexString(m_lockingParameters));
     }

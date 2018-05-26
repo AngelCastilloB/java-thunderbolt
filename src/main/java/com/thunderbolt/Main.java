@@ -88,6 +88,8 @@ public class Main
         s_logger.debug("Valid: {}", xt.isValid());
         for (TransactionOutput output : copy.getOutputs())
             s_logger.debug("{}", output);
+        for (TransactionInput input : copy.getInputs())
+            s_logger.debug("{}", input);
         /*
         initializeServices();
 
