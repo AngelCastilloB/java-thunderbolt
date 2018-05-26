@@ -177,11 +177,11 @@ public class TransactionOutput implements ISerializable
     public String toString()
     {
         return String.format(
-            "                            \n" +
-            "{                           \n" +
-            "  amount:            %d.%08d\n" +
-            "  lockType:          %s     \n" +
-            "  lockingParameters: %s     \n" +
+            "                                \n" +
+            "{                               \n" +
+            "  \"amount\":            %d.%08d\n" +
+            "  \"lockType\":          \"%s\" \n" +
+            "  \"lockingParameters\": \"%s\" \n" +
             "}",
             getAmount().longValue() / 100000000,
             getAmount().longValue() % 100000000,
