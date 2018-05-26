@@ -25,7 +25,7 @@ package com.thunderbolt.transaction;
 
 // IMPORTS ************************************************************/
 
-import com.thunderbolt.common.ISerializable;
+import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
 import com.thunderbolt.security.Sha256Digester;
@@ -249,6 +249,20 @@ public class Transaction implements ISerializable
      * Performs basic non contextual validations over the transaction data. This validations are naive and are not complete.
      * We need the context of the blockchain to make all the necessary validations. However we can rule out invalid
      * transaction very quick by checking a set of simple rules first.
+     * 
+     * The following validations are performed by this methods:
+     * 
+     * <ol>
+     * 	<li>Check syntactic correctness</li>
+     * 	<li>Make sure neither in or out lists are empty</li>
+     * 	<li>Size in bytes <= MAX_BLOCK_SIZE</li>
+     * 	<li>Each output value, as well as the total, must be in legal money range</li>
+     * 	<li>Make sure none of the inputs have hash=0, n=-1 (coinbase transactions)</li>
+     * 	<li>Check that nLockTime <= INT_MAX</li>
+     * 	<li>Check that coinbase parameters size <= 100 bytes</li>
+     * 	<li>Check that no input reference the same output twice</li>
+     * 	<li>Check that the transaction does not refers back to itself</li>
+     * </ol>
      *
      * @return True if the transaction is valid; otherwise; false
      */

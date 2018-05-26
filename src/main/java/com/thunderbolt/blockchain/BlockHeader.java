@@ -25,7 +25,7 @@ package com.thunderbolt.blockchain;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.common.ISerializable;
+import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
 import com.thunderbolt.security.Sha256Digester;

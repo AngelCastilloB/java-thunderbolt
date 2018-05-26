@@ -25,7 +25,7 @@ package com.thunderbolt.blockchain;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.common.ISerializable;
+import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
 import com.thunderbolt.security.Sha256Digester;
@@ -321,6 +321,14 @@ public class Block implements ISerializable
         return tree;
     }
 
+    /*
+
+Block hash must satisfy claimed nBits proof of work
+Block timestamp must not be more than two hours in the future
+First transaction must be coinbase (i.e. only 1 input, with hash=0, n=-1), the rest must not be
+For each transaction, apply "tx" checks 2-4
+
+     */
     /**
      * Performs basic non contextual validations over the block data. This validations are naive and are not complete.
      * We need the context of the blockchain to make all the necessary validations. However we can rule out invalid
@@ -334,11 +342,14 @@ public class Block implements ISerializable
 
         isValid &= isTimestampValid();
 
-        if (m_transactions != null && m_transactions.size() > 0)
+        if (m_transactions != null && m_transactions.isEmpty())
         {
-            isValid &= areTransactionsValid();
-            isValid &= isMerkleRootValid();
+            s_logger.error("The transaction list is empty.");
+            return false;
         }
+
+        isValid &= areTransactionsValid();
+        isValid &= isMerkleRootValid();
 
         return isValid;
     }
@@ -429,6 +440,16 @@ public class Block implements ISerializable
             if (m_transactions.get(i).isCoinbase())
             {
                 s_logger.error(String.format("Transaction %s is coinbase when it should not be.", i));
+                return false;
+            }
+
+            if (m_transactions.get(i).isValid())
+            {
+                s_logger.error("Input '{}' of transaction '{}' in block '{}' is invalid.",
+                        i,
+                        m_transactions.get(i).getTransactionId(),
+                        m_header.getHash());
+
                 return false;
             }
         }

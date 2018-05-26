@@ -26,6 +26,7 @@ package com.thunderbolt.persistence.storage;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.NumberSerializer;
+import com.thunderbolt.persistence.contracts.IMetadataProvider;
 import com.thunderbolt.persistence.structures.BlockMetadata;
 import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;

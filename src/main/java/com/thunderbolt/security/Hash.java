@@ -26,7 +26,7 @@ package com.thunderbolt.security;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.Convert;
-import com.thunderbolt.common.ISerializable;
+import com.thunderbolt.common.contracts.ISerializable;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;

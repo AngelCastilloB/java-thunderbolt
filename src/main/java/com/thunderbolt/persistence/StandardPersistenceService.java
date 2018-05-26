@@ -27,6 +27,9 @@ package com.thunderbolt.persistence;
 
 import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.common.NumberSerializer;
+import com.thunderbolt.persistence.contracts.IContiguousStorage;
+import com.thunderbolt.persistence.contracts.IMetadataProvider;
+import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.storage.*;
 import com.thunderbolt.persistence.structures.BlockMetadata;
 import com.thunderbolt.persistence.structures.TransactionMetadata;
@@ -56,9 +59,9 @@ public class StandardPersistenceService implements IPersistenceService
     private static final Logger s_logger = LoggerFactory.getLogger(StandardPersistenceService.class);
 
     // Instance fields
-    private IContiguousStorage     m_blockStorage     = null;
+    private IContiguousStorage m_blockStorage     = null;
     private IContiguousStorage     m_revertsStorage   = null;
-    private IMetadataProvider      m_metadataProvider = null;
+    private IMetadataProvider m_metadataProvider = null;
 
     /**
      * Initializes an instance of the persistence service.

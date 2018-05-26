@@ -25,7 +25,7 @@ package com.thunderbolt.wallet;
 
 // IMPORTS *******************************************************************/
 
-import com.thunderbolt.common.ISerializable;
+import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.EllipticCurveKeyPair;
 import com.thunderbolt.security.EncryptedPrivateKey;

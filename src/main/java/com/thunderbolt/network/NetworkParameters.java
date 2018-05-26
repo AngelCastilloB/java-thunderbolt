@@ -212,6 +212,26 @@ public class NetworkParameters implements Serializable
     }
 
     /**
+     * Returns the maximum difficulty adjustment allowed.
+     *
+     * @return The maximum difficulty adjustment.
+     */
+    public int getMaxTimespanAdjustment()
+    {
+        return getTargetTimespan() * 4;
+    }
+
+    /**
+     * Returns the minimum difficulty adjustment allowed.
+     *
+     * @return The minimum difficulty adjustment.
+     */
+    public int getMinTimespanAdjustment()
+    {
+        return getTargetTimespan() / 4;
+    }
+
+    /**
      * Gets the coinbase maturity, this is the minimum amount of blocks that need to be added after
      * a coinbase transaction was confirm to be able to spend the coinbase output..
      *

@@ -26,6 +26,7 @@ package com.thunderbolt.transaction;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.security.Hash;
+import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
 
 import java.lang.instrument.Instrumentation;
 import java.util.HashMap;

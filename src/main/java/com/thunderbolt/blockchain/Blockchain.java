@@ -25,25 +25,21 @@ package com.thunderbolt.blockchain;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.common.Convert;
+import com.thunderbolt.blockchain.contracts.IBlockchainCommitter;
 import com.thunderbolt.common.ServiceLocator;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.network.NetworkParameters;
-import com.thunderbolt.persistence.IPersistenceService;
-import com.thunderbolt.security.EllipticCurveProvider;
+import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.transaction.*;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.BlockMetadata;
-import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
-import com.thunderbolt.security.Hash;
+import com.thunderbolt.transaction.contracts.ITransactionValidator;
+import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
 import com.thunderbolt.wallet.Wallet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.math.BigInteger;
-import java.nio.ByteBuffer;
 import java.util.*;
 
 /* IMPLEMENTATION ************************************************************/
@@ -59,9 +55,11 @@ public class Blockchain
     private BlockMetadata            m_headBlock;
     private Wallet                   m_wallet;
     private NetworkParameters        m_params;
+    private ITransactionValidator    m_transactionValidator;
+    private IBlockchainCommitter     m_committer;
     private IPersistenceService      m_persistence = ServiceLocator.getService(IPersistenceService.class);
     private ITransactionsPoolService m_memPool     = ServiceLocator.getService(ITransactionsPoolService.class);
-    
+
     /**
      * Creates a new instance of the blockchain.
      *
@@ -75,6 +73,10 @@ public class Blockchain
 
         m_params = params;
         m_wallet = wallet;
+
+        // TODO: Inject this services.
+        m_transactionValidator = new StandardTransactionValidator(m_persistence, m_params);
+        m_committer = new StandardBlockchainCommitter(m_wallet, m_persistence, m_memPool);
     }
 
     /**
@@ -129,20 +131,24 @@ public class Blockchain
     /**
      * Connects a block to he block chain.
      *
-     * @param newBlock     The new block to be connected.
-     * @param parent       The parent of the block.
+     * @param newBlock The new block to be connected.
+     * @param parent   The parent of the block.
      *
      * @throws StorageException if there is any error finding the blocks.
      */
     private void connect(BlockMetadata newBlock, BlockMetadata parent) throws StorageException
     {
+        // Add block into the tree. There are three cases:
+        //   1. block further extends the main branch;
+        //   2. block extends a side branch but does not add enough difficulty to make it become the new main branch;
+        //   3. block extends a side branch and makes it the new main branch.
         if (parent.getHeader().equals(m_headBlock.getHeader()))
         {
             m_persistence.setChainHead(newBlock);
 
             s_logger.trace("Chain is now {} blocks high", m_headBlock.getHeight());
 
-            applyBlockChanges(newBlock);
+            m_committer.commit(newBlock);
         }
         else
         {
@@ -214,11 +220,8 @@ public class Blockchain
         int timeSpan = (int) (current.getTimeStamp() - blockIntervalAgo.getTimeStamp());
 
         // Limit the adjustment step.
-        if (timeSpan < m_params.getTargetTimespan() / 4)
-            timeSpan = m_params.getTargetTimespan() / 4;
-
-        if (timeSpan > m_params.getTargetTimespan() * 4)
-            timeSpan = m_params.getTargetTimespan() * 4;
+        timeSpan = Math.min(
+                Math.max(timeSpan, m_params.getMinTimespanAdjustment()), m_params.getMaxTimespanAdjustment());
 
         BigInteger newDifficulty = Block.unpackDifficulty(blockIntervalAgo.getBits());
         newDifficulty = newDifficulty.multiply(BigInteger.valueOf(timeSpan));
@@ -289,22 +292,22 @@ public class Blockchain
     private void reorganizeChain(BlockMetadata newChainHead) throws StorageException
     {
         BlockMetadata fork = findFork(newChainHead);
-        s_logger.info("Re-organize after split at height {}", fork.getHeight());
-        s_logger.info("Old chain head: {}", m_headBlock.getHeader().getHash());
-        s_logger.info("New chain head: {}", newChainHead.getHeader().getHash());
-        s_logger.info("Split at block: {}", fork.getHeader().getHash());
+        s_logger.info("Re-organize after split at height {} (block {})",
+                fork.getHeight(), fork.getHeader().getHash());
+
+        s_logger.info("Old chain head {} - > New chain head: {}",
+                m_headBlock.getHeader().getHash(), newChainHead.getHeader().getHash());
 
         List<BlockMetadata> oldBlocks = getChainSegment(m_headBlock, fork);
         List<BlockMetadata> newBlocks = getChainSegment(newChainHead, fork);
 
-        // Revert all (now) side chain blocks.
-
+        // Rollback all (now) side chain blocks.
         for (BlockMetadata metadata : oldBlocks)
-            revertBlockChanges(metadata);
+            m_committer.rollback(metadata);
 
-        // Apply all new blocks to the state.
+        // Commit all new blocks to the state.
         for (BlockMetadata metadata : newBlocks)
-            applyBlockChanges(metadata);
+            m_committer.commit(metadata);
 
         // Update the pointer to the best known block.
         m_persistence.setChainHead(newChainHead);
@@ -336,129 +339,6 @@ public class Blockchain
     }
 
     /**
-     * Applies all the changes made by this block to the current state.
-     *
-     * 1.- Update the valid transactions pool
-     * 2.- Update unspent transaction outputs database (coins).
-     * 3.- Update spendable transactions and balance.
-     *
-     * @param metadata The metadata of the block we are going to apply the changes for.
-     *
-     * @return True if the changes were applied; otherwise; false.
-     */
-    private boolean applyBlockChanges(BlockMetadata metadata) throws StorageException
-    {
-        // First we retrieve the whole block since we need the list of transactions.
-        Block block = m_persistence.getBlock(metadata.getHash());
-
-        // Now we must remove all transactions referenced in this block from the mem pool.
-        List<UnspentTransactionOutput> newOutputs     = new ArrayList<>();
-        List<Hash>                     removedOutputs = new ArrayList<>();
-
-        for (Transaction transaction: block.getTransactions())
-        {
-            boolean removed = m_memPool.removeTransaction(transaction.getTransactionId());
-
-            if (!removed)
-                s_logger.warn("The transaction {} was not available in our valid transaction pool.", transaction.getTransactionId());
-
-            // Create all the new Unspent outputs added by this block.
-            int index = 0;
-            for (TransactionOutput output : transaction.getOutputs())
-            {
-                UnspentTransactionOutput unspentOutput = new UnspentTransactionOutput();
-
-                unspentOutput.setOutput(output);
-                unspentOutput.setTransactionHash(transaction.getTransactionId());
-                unspentOutput.setIsCoinbase(transaction.isCoinbase());
-                unspentOutput.setBlockHeight(metadata.getHeight());
-                unspentOutput.setVersion(transaction.getVersion());
-                unspentOutput.setIndex(index);
-
-                // Add output to the UXTO data base.
-                m_persistence.addUnspentOutput(unspentOutput);
-                ++index;
-            }
-
-            // Create a list of the consumed spendable outputs, we only need to reconstruct the hash so the UTXO database
-            // and the wallet can remove them.
-            for (TransactionInput input : transaction.getInputs())
-            {
-                UnspentTransactionOutput consumedOutput = new UnspentTransactionOutput();
-
-                consumedOutput.setTransactionHash(input.getReferenceHash());
-                consumedOutput.setIndex(input.getIndex());
-
-                removedOutputs.add(consumedOutput.getHash());
-
-                // Remove spent outputs from the UTXO database.
-                m_persistence.removeUnspentOutput(input.getReferenceHash(), input.getIndex());
-            }
-        }
-
-        // Update the wallet.
-        m_wallet.updateOutputs(newOutputs, removedOutputs);
-
-        return true;
-    }
-
-    /**
-     * Reverts all the changes previously made by this block to the current state.
-     *
-     * 1.- Re-insert all the transactions to the valid transactions pool. This transactions must now wait to be mined again by another block.
-     * 2.- Remove all newly created unspent transaction outputs created by this block from the wallet and database (coins).
-     * 3.- Re-insert spent transaction outputs to the wallet and database.
-     *
-     * @param metadata The metadata of the block we are going to revert the changes for.
-     *
-     * @return True if the changes were reverted; otherwise; false.
-     */
-    private boolean revertBlockChanges(BlockMetadata metadata) throws StorageException
-    {
-        // First we retrieve the whole block and the outputs it spent, since we need the list of transactions and
-        // re add the consumed outputs.
-        Block                          block        = m_persistence.getBlock(metadata.getHash());
-        List<UnspentTransactionOutput> spentOutputs = m_persistence.getSpentOutputs(metadata.getHash());
-
-        // Re-add all transactions referenced in this block to the mem pool.
-        List<Hash> removedOutputs = new ArrayList<>();
-
-        for (Transaction transaction: block.getTransactions())
-        {
-            boolean added = m_memPool.addTransaction(transaction);
-
-            if (!added)
-                s_logger.warn("The transaction {} could not be added to our valid transaction pool.", transaction.getTransactionId());
-
-            // Remove all the Unspent outputs added by this block.
-            int index = 0;
-            for (TransactionOutput output : transaction.getOutputs())
-            {
-                UnspentTransactionOutput consumedOutput = new UnspentTransactionOutput();
-
-                consumedOutput.setTransactionHash(transaction.getTransactionId());
-                consumedOutput.setIndex(index);
-
-                removedOutputs.add(consumedOutput.getHash());
-
-                // Remove spent outputs from the UTXO database.
-                m_persistence.removeUnspentOutput(transaction.getTransactionId(), index);
-
-                ++index;
-            }
-
-            // Add all previously removed unspent outputs from the mem pool and the wallet.
-            for (UnspentTransactionOutput output : spentOutputs)
-                m_persistence.addUnspentOutput(output);
-        }
-
-        // Update the wallet.
-        m_wallet.updateOutputs(spentOutputs, removedOutputs);
-
-        return true;
-    }
-
-    /**
      * Performs all the contextual validations over the transactions in this block.
      *
      * @param transactions The transaction to be validated.
@@ -469,187 +349,10 @@ public class Blockchain
     {
         for (Transaction transaction: transactions)
         {
-            if (!transaction.isValid())
+            if (!m_transactionValidator.validate(transaction, height))
                 return false;
-
-            BigInteger totalInputValue  = BigInteger.ZERO;
-            BigInteger totalOutputValue = BigInteger.ZERO;
-
-            int inputIndex = 0;
-            for (TransactionInput input: transaction.getInputs())
-            {
-                UnspentTransactionOutput unspentOutput = m_persistence.getUnspentOutput(input.getReferenceHash(), input.getIndex());
-
-                if (unspentOutput == null)
-                {
-                    s_logger.debug(
-                            "The transaction {} references an output ({}) that is not present in the UTXO database.",
-                            input.getReferenceHash(), input.getIndex());
-
-                    return false;
-                }
-
-                // Check coin base maturity.
-                long coinbaseMaturity = unspentOutput.getBlockHeight() + m_params.getCoinbaseMaturiry();
-                if (unspentOutput.isIsCoinbase() && coinbaseMaturity > height)
-                {
-                    s_logger.debug(
-                            "The coinbase transaction {} can not be spend until height {}.",
-                            unspentOutput.getTransactionHash(), coinbaseMaturity);
-
-                    return false;
-                }
-
-                // Check that the provided parameters can spend the referenced output.
-                byte[] unlockingParameters = transaction.getUnlockingParameters().get(inputIndex);
-
-                boolean canUnlock = checkUnlockingParameters(unspentOutput.getOutput(), input, unlockingParameters);
-
-                if (!canUnlock)
-                {
-                    s_logger.debug(
-                            "The input {} in transaction {} cant spent the reference output ({}).",
-                            inputIndex, transaction, input.getReferenceHash());
-
-                    return false;
-
-                }
-
-                totalInputValue = totalInputValue.add(unspentOutput.getOutput().getAmount());
-
-                ++inputIndex;
-            }
-
-            for (TransactionOutput output: transaction.getOutputs())
-            {
-                totalOutputValue = totalOutputValue.add(output.getAmount());
-                ++inputIndex;
-            }
-
-            if (totalOutputValue.longValue() > totalInputValue.longValue())
-            {
-                s_logger.debug(
-                        "The sum of the outputs ({}) is bigger than the sum of the inputs ({}).",
-                        totalOutputValue.longValue(), totalInputValue.longValue());
-
-                return false;
-            }
         }
 
         return true;
-    }
-
-    /**
-     * Verifies that the unlocking parameters from this input can unlock the referenced output.
-     *
-     * @param output              The output being spent.
-     * @param input               The input trying to spend the output.
-     * @param unlockingParameters The unlocking parameters.
-     *
-     * @return True if the input can unlock the referenced output; otherwise; false.
-     */
-    private boolean checkUnlockingParameters(TransactionOutput output, TransactionInput input, byte[] unlockingParameters)
-    {
-        boolean result = true;
-
-        ByteArrayOutputStream data = new ByteArrayOutputStream();
-
-        try
-        {
-            data.write(input.serialize());
-            data.write(output.getLockType().getValue());
-            data.write(output.getLockingParameters());
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-
-        switch (output.getLockType())
-        {
-            case SingleSignature:
-            {
-                // To validate this type of lock, we just need to reconstruct the data that was signed and validate the
-                // signature on said data. The unlocking parameters for this output lock should be the signature and
-                // the locking parameters the public key.
-
-                SingleSignatureParameters parameters = new SingleSignatureParameters(ByteBuffer.wrap(unlockingParameters));
-
-                if (!Arrays.equals(output.getLockingParameters(), parameters.getPublicKeyHash()))
-                {
-                    s_logger.debug(
-                            "Public key does not match. Locking Public Key {}, Unlocking Public Key {}",
-                            Convert.toHexString(output.getLockingParameters()),
-                            Convert.toHexString(parameters.getPublicKeyHash()));
-
-                    result = false;
-                }
-                else
-                {
-                    result = EllipticCurveProvider.verify(data.toByteArray(), parameters.getSignature(), parameters.getPublicKey());
-                }
-
-                break;
-            }
-            case MultiSignature:
-            {
-                // The locking parameter is the hash of the actual locking parameters, this is done this way
-                // because it would be too complicated to get the sender to construct the transaction. So we just
-                // give the sender a multi signature address which is just the hash of the locking parameters of our
-                // multi signature wallet. Then when we want to spent, we need to provide both the locking parameters
-                // and the unlocking parameters. Of course the locking parameters when hashed need to match the hash
-                // provided by the output lock.
-
-                MultiSignatureParameters parameters = new MultiSignatureParameters(ByteBuffer.wrap(unlockingParameters));
-
-                Hash outputLockingParametersHash = new Hash(output.getLockingParameters());
-                Hash inputLockingParametersHash  = parameters.getHash();
-
-                if (outputLockingParametersHash != inputLockingParametersHash)
-                {
-                    s_logger.debug("The provided hashed locking parameters provided by the input do not match the hash provided by the output.\n" +
-                            "Output: {}\n" +
-                            "Input: {}", outputLockingParametersHash, inputLockingParametersHash);
-                    result = false;
-                }
-
-                if (parameters.getNeededSignatures() != parameters.getSignatures().size())
-                {
-                    s_logger.debug(
-                            "Not enough signatures provided. Need {}, provide {}",
-                            parameters.getNeededSignatures(),
-                            parameters.getSignatures().size());
-                    result = false;
-                }
-
-                for (Map.Entry<Byte, byte[]> entry : parameters.getSignatures().entrySet())
-                {
-                    if (!EllipticCurveProvider
-                            .verify(
-                                    data.toByteArray(),
-                                    entry.getValue(),
-                                    parameters.getPublicKeys().get(entry.getKey())))
-                    {
-                        s_logger.debug("One of the signatures is invalid.");
-                        result = false;
-                    }
-                }
-                break;
-            }
-            case Unlockable:
-            {
-                // This kind of output cant be spent. They are use for proof of burn or for committing data to the
-                // blockchain.
-
-                s_logger.debug("One of the referenced output by the transaction is not spendable.");
-                result = false;
-                break;
-            }
-            default:
-                s_logger.debug("Unsupported output lock type.");
-                result = false;
-        }
-
-        return result;
     }
 }

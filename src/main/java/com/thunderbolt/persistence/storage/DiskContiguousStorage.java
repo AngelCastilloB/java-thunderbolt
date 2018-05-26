@@ -26,8 +26,8 @@ package com.thunderbolt.persistence.storage;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.NumberSerializer;
+import com.thunderbolt.persistence.contracts.IContiguousStorage;
 import org.iq80.leveldb.DB;
-import org.iq80.leveldb.DBException;
 import org.iq80.leveldb.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

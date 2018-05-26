@@ -25,7 +25,7 @@ package com.thunderbolt.persistence.structures;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.common.ISerializable;
+import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
 

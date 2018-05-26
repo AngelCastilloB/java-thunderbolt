@@ -27,11 +27,12 @@ package com.thunderbolt;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.ServiceLocator;
-import com.thunderbolt.persistence.IPersistenceService;
+import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.StandardPersistenceService;
 import com.thunderbolt.persistence.storage.*;
 import com.thunderbolt.security.*;
 import com.thunderbolt.transaction.*;
+import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
