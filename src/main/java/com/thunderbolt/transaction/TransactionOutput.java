@@ -25,6 +25,7 @@ package com.thunderbolt.transaction;
 
 // IMPORTS ************************************************************/
 
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
 
@@ -165,5 +166,26 @@ public class TransactionOutput implements ISerializable
         }
 
         return data.toByteArray();
+    }
+
+    /**
+     * Creates a string representation of the hash value of this object
+     *
+     * @return The string representation.
+     */
+    @Override
+    public String toString()
+    {
+        return String.format(
+            "                            \n" +
+            "{                           \n" +
+            "  amount:            %d.%08d\n" +
+            "  lockType:          %s     \n" +
+            "  lockingParameters: %s     \n" +
+            "}",
+            getAmount().longValue() / 100000000,
+            getAmount().longValue() % 100000000,
+            m_type.toString(),
+            Convert.toHexString(m_lockingParameters));
     }
 }

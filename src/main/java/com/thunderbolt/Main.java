@@ -86,6 +86,8 @@ public class Main
         Transaction copy = ServiceLocator.getService(Transaction.class);
 
         s_logger.debug("Valid: {}", xt.isValid());
+        for (TransactionOutput output : copy.getOutputs())
+            s_logger.debug("{}", output);
         /*
         initializeServices();
 
