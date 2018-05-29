@@ -180,11 +180,10 @@ public class TransactionOutput implements ISerializable
     public String toString()
     {
         return String.format(
-            "                                \n" +
-            "{                               \n" +
-            "  \"amount\":            %d.%08d\n" +
-            "  \"lockType\":          \"%s\" \n" +
-            "  \"lockingParameters\": \"%s\" \n" +
+            "{                                %n" +
+            "  \"amount\":            %d.%08d,%n" +
+            "  \"lockType\":          \"%s\", %n" +
+            "  \"lockingParameters\": \"%s\"  %n" +
             "}",
             getAmount().longValue() / ONE_COIN,
             getAmount().longValue() % ONE_COIN,

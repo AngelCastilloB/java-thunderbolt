@@ -163,11 +163,10 @@ public class TransactionInput implements ISerializable
     public String toString()
     {
         return String.format(
-                "                            \n" +
-                "{                           \n" +
-                "  \"isCoinbase\":    %s     \n" +
-                "  \"referenceHash\": \"%s\" \n" +
-                "  \"index\":         %s     \n" +
+                "{                            %n" +
+                "  \"isCoinbase\":    %s,     %n" +
+                "  \"referenceHash\": \"%s\", %n" +
+                "  \"index\":         %s      %n" +
                 "}",
             isCoinBase(),
             m_refHash,
