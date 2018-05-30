@@ -85,8 +85,13 @@ public class Main
         ServiceLocator.register(Transaction.class, xt);
         Transaction copy = ServiceLocator.getService(Transaction.class);
 
-        s_logger.debug("Valid: \n{}", xt);
-        s_logger.debug("Valid: \n{}", copy);
+        MemoryTransactionsPoolService service = new MemoryTransactionsPoolService();
+
+        service.addTransaction(xt);
+        //s_logger.debug("Valid: \n{}", xt);
+        //s_logger.debug("Valid: \n{}", copy);
+
+        s_logger.debug("\n{}", service.toString());
         //for (TransactionOutput output : copy.getOutputs())
         //    s_logger.debug("{}", output);
        // for (TransactionInput input : copy.getInputs())

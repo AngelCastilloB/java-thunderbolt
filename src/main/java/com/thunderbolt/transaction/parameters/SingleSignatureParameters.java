@@ -25,6 +25,7 @@ package com.thunderbolt.transaction.parameters;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.security.Sha256Digester;
 import org.slf4j.Logger;
@@ -169,5 +170,22 @@ public class SingleSignatureParameters implements ISerializable
         }
 
         return data.toByteArray();
+    }
+
+    /**
+     * Creates a string representation of the hash value of this object
+     *
+     * @return The string representation.
+     */
+    @Override
+    public String toString()
+    {
+        return String.format(
+                "{                          %n" +
+                "  \"publicKey\":   \"%s\", %n" +
+                "  \"signature\":   \"%s\"  %n" +
+                "}",
+                Convert.toHexString(m_publicKey),
+                Convert.toHexString(m_signature));
     }
 }
