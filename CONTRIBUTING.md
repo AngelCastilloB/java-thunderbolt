@@ -1,6 +1,8 @@
 # Contributing to Thunderbolt
 We want to make contributing to this project as easy and transparent as possible.
 
+You can learn how from this *free* series [How to Contribute to an Open Source Project on GitHub](https://egghead.io/series/how-to-contribute-to-an-open-source-project-on-github)
+
 ## We Develop with Github
 We use github to host code, to track issues and feature requests, as well as accept pull requests.
 
