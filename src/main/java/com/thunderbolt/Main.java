@@ -27,15 +27,18 @@ package com.thunderbolt;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.blockchain.Block;
+import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.common.ServiceLocator;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.StandardPersistenceService;
 import com.thunderbolt.persistence.storage.*;
+import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.*;
 import com.thunderbolt.transaction.*;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
 import com.thunderbolt.transaction.parameters.MultiSignatureParameters;
+import com.thunderbolt.wallet.Wallet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,7 +85,13 @@ public class Main
         initializeServices();
         Block genesisBlock = NetworkParameters.createGenesis();
         //ServiceLocator.getService(IPersistenceService.class).persist(genesisBlock, 0, genesisBlock.getWork());
+        Wallet myWallet = new Wallet("asd");
+        Blockchain chai2n = new Blockchain(NetworkParameters.mainNet(), myWallet);
+        chai2n.add(genesisBlock);
 
+        UnspentTransactionOutput uxto = ServiceLocator.getService(IPersistenceService.class).getUnspentOutput(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"), 0);
+
+        s_logger.debug("\n{}", uxto);
         s_logger.debug("\n{}", genesisBlock);
 
         Transaction xt = ServiceLocator.getService(IPersistenceService.class).getTransaction(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"));
@@ -118,6 +127,8 @@ public class Main
 
         s_logger.debug("\n{}", parameters);
 
+
+        s_logger.debug("Balance: {}", myWallet.getBalance().longValue());
         //for (TransactionOutput output : copy.getOutputs())
         //    s_logger.debug("{}", output);
        // for (TransactionInput input : copy.getInputs())

@@ -25,6 +25,7 @@ package com.thunderbolt.persistence.structures;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
@@ -66,7 +67,7 @@ public class UnspentTransactionOutput implements ISerializable
         m_transactionHash = new Hash(buffer);
         m_index           = buffer.getInt();
         m_version         = buffer.getInt();
-        m_blockHeight     = buffer.getInt();
+        m_blockHeight     = buffer.getLong();
         m_isCoinbase      = buffer.get() > 0;
         m_output          = new TransactionOutput(buffer);
     }
@@ -229,7 +230,7 @@ public class UnspentTransactionOutput implements ISerializable
             data.write(NumberSerializer.serialize(m_index));
             data.write(NumberSerializer.serialize(m_version));
             data.write(NumberSerializer.serialize(m_blockHeight));
-            data.write(m_isCoinbase ? 1 : 0);
+            data.write((byte)(m_isCoinbase ? 1 : 0));
             data.write(m_output.serialize());
         }
         catch (IOException e)
@@ -238,5 +239,38 @@ public class UnspentTransactionOutput implements ISerializable
         }
 
         return data.toByteArray();
+    }
+
+
+    /**
+     * Creates a string representation of the hash value of this object
+     *
+     * @return The string representation.
+     */
+    @Override
+    public String toString()
+    {
+        final int tabs = 3;
+
+        StringBuilder stringBuilder = new StringBuilder();
+
+        stringBuilder.append(
+                String.format(
+                        "{                    %n" +
+                        "  \"transaction\":   %s,%n" +
+                        "  \"index\":         %d,%n" +
+                        "  \"version\":       %d,%n" +
+                        "  \"blockHeight\":   %d,%n" +
+                        "  \"isCoinbase\":    %s,%n" +
+                        "  \"output\":%s%n",
+                        m_transactionHash,
+                        m_index,
+                        m_version,
+                        m_blockHeight,
+                        m_isCoinbase,
+                        Convert.toTabbedString(m_output.toString(), tabs)));
+        stringBuilder.append("}");
+
+        return stringBuilder.toString();
     }
 }
