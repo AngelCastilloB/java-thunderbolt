@@ -33,6 +33,8 @@ import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.StandardPersistenceService;
 import com.thunderbolt.persistence.storage.*;
+import com.thunderbolt.persistence.structures.BlockMetadata;
+import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.*;
 import com.thunderbolt.transaction.*;
@@ -91,6 +93,10 @@ public class Main
 
         UnspentTransactionOutput uxto = ServiceLocator.getService(IPersistenceService.class).getUnspentOutput(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"), 0);
 
+        BlockMetadata blockMetadata = ServiceLocator.getService(IPersistenceService.class).getBlockMetadata(NetworkParameters.createGenesis().getHeaderHash());
+        TransactionMetadata  metadata = new TransactionMetadata();
+
+        s_logger.debug("metadata \n{}", blockMetadata);
         s_logger.debug("\n{}", uxto);
         s_logger.debug("\n{}", genesisBlock);
 
