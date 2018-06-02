@@ -26,7 +26,9 @@ package com.thunderbolt;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.common.ServiceLocator;
+import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.StandardPersistenceService;
 import com.thunderbolt.persistence.storage.*;
@@ -78,8 +80,10 @@ public class Main
     public static void main(String[] args) throws IOException, GeneralSecurityException, CloneNotSupportedException, StorageException
     {
         initializeServices();
-        //Block genesisBlock = NetworkParameters.createGenesis();
+        Block genesisBlock = NetworkParameters.createGenesis();
         //ServiceLocator.getService(IPersistenceService.class).persist(genesisBlock, 0, genesisBlock.getWork());
+
+        s_logger.debug("\n{}", genesisBlock);
 
         Transaction xt = ServiceLocator.getService(IPersistenceService.class).getTransaction(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"));
 

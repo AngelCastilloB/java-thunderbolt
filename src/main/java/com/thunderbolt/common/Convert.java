@@ -141,4 +141,25 @@ public class Convert
 
         return builder.toString();
     }
+
+    /**
+     * Pads the given string to the left using the given pad character.
+     *
+     * @param originalString The string ot be padded.
+     * @param length         The length of the final string (including padding).
+     * @param padCharacter   The character to be use as padding.
+     *
+     * @return The new padded string.
+     */
+    public static String padLeft(String originalString, int length, char padCharacter)
+    {
+        StringBuilder sb = new StringBuilder();
+
+        while (sb.length() + originalString.length() < length)
+            sb.append(padCharacter);
+
+        sb.append(originalString);
+
+        return sb.toString();
+    }
 }
