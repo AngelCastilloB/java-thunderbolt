@@ -297,18 +297,30 @@ public class MultiSignatureParameters implements ISerializable
                 m_totalSigners,
                 m_neededSignatures));
 
-        stringBuilder.append(Convert.toJsonArrayLikeString(m_publicKeys, firstLevelTabs));
+        stringBuilder.append(Convert.toJsonArrayLikeString(
+                Convert.toHexStringArray(m_publicKeys),
+                firstLevelTabs));
+
         stringBuilder.append(",");
         stringBuilder.append(System.lineSeparator());
 
-        stringBuilder.append("  \"signatures\":  [%n");
+        stringBuilder.append(String.format("  \"signatures\":  [%n"));
 
+        int index = 0;
         for (Map.Entry<Byte, byte[]> entry : m_signatures.entrySet())
+        {
             stringBuilder.append(
-                    String.format("    {  \"position\":  %s, \"signature\":  %s },%n",
+                    String.format("      {%n        \"position\":   %s,%n        \"signature\":  %s%n      }",
                             entry.getKey(),
                             Convert.toHexString(entry.getValue())));
 
+            if (index != m_signatures.entrySet().size() - 1)
+                stringBuilder.append(String.format(",%n"));
+
+            ++index;
+        }
+
+        stringBuilder.append(System.lineSeparator());
         stringBuilder.append("  ]");
         stringBuilder.append(System.lineSeparator());
         stringBuilder.append("}");

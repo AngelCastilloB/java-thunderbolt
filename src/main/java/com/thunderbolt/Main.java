@@ -33,6 +33,7 @@ import com.thunderbolt.persistence.storage.*;
 import com.thunderbolt.security.*;
 import com.thunderbolt.transaction.*;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
+import com.thunderbolt.transaction.parameters.MultiSignatureParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,6 +93,27 @@ public class Main
         //s_logger.debug("Valid: \n{}", copy);
 
         s_logger.debug("\n{}", service.toString());
+
+        MultiSignatureParameters parameters = new MultiSignatureParameters();
+
+        EllipticCurveKeyPair keyPair1 = new EllipticCurveKeyPair();
+        EllipticCurveKeyPair keyPair2 = new EllipticCurveKeyPair();
+        EllipticCurveKeyPair keyPair3 = new EllipticCurveKeyPair();
+
+        parameters.setTotalSigners((byte)0x03);
+        parameters.setNeededSignatures((byte)0x02);
+        parameters.getPublicKeys().add(keyPair1.getPublicKey());
+        parameters.getPublicKeys().add(keyPair2.getPublicKey());
+        parameters.getPublicKeys().add(keyPair3.getPublicKey());
+
+        byte[] data = { 0x01 , 0x02, 0x03 };
+
+        parameters.addSignature((byte)0, EllipticCurveProvider.sign(data, keyPair1.getPrivateKey()));
+        parameters.addSignature((byte)1, EllipticCurveProvider.sign(data, keyPair2.getPrivateKey()));
+        parameters.addSignature((byte)2, EllipticCurveProvider.sign(data, keyPair3.getPrivateKey()));
+
+        s_logger.debug("\n{}", parameters);
+
         //for (TransactionOutput output : copy.getOutputs())
         //    s_logger.debug("{}", output);
        // for (TransactionInput input : copy.getInputs())

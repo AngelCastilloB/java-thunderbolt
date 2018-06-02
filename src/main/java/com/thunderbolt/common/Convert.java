@@ -122,9 +122,9 @@ public class Convert
 
             if (i < collection.size() - 1)
                 builder.append(',');
-        }
 
-        builder.append(System.lineSeparator());
+            builder.append(System.lineSeparator());
+        }
 
         for(int j = 0; j < indentLevel; ++j)
             builder.append(" ");
