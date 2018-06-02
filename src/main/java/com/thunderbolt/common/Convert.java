@@ -106,6 +106,15 @@ public class Convert
         return result.toString();
     }
 
+    /**
+     * Converts the given array of objects to a JSON array like string.
+     *
+     * @param collection  The collection of items.
+     * @param indentLevel The level of indentation.
+     * @param <T>         The type of the collection item.
+     *
+     * @return The JSON array like string.
+     */
     public static <T> String toJsonArrayLikeString(List<T> collection, int indentLevel)
     {
         StringBuilder builder = new StringBuilder();
