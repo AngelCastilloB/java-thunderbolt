@@ -305,14 +305,14 @@ public class BlockHeader implements ISerializable
     public String toString()
     {
         return String.format(
-                "{                        %n" +
-                "  \"hash\":          %s, %n" +
-                "  \"version\":       %d, %n" +
-                "  \"parentBlock\":   %s, %n" +
-                "  \"merkleRoot\":    %s, %n" +
-                "  \"timestamp\":     %d, %n" +
-                "  \"difficulty\":    %s, %n" +
-                "  \"nonce\":         %d %n}",
+                "{                            %n" +
+                "  \"hash\":          \"%s\", %n" +
+                "  \"version\":       %d,     %n" +
+                "  \"parentBlock\":   \"%s\", %n" +
+                "  \"merkleRoot\":    \"%s\", %n" +
+                "  \"timestamp\":     %d,     %n" +
+                "  \"difficulty\":    \"%s\", %n" +
+                "  \"nonce\":         %d      %n}",
                 getHash(),
                 m_version,
                 m_parentBlock,

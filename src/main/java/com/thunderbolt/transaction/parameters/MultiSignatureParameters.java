@@ -290,9 +290,9 @@ public class MultiSignatureParameters implements ISerializable
         StringBuilder stringBuilder = new StringBuilder();
 
         stringBuilder.append(String.format(
-                "{                                %n" +
-                "  \"totalSigners\":      \"%s\", %n" +
-                "  \"neededSignature\":   \"%s\"  %n" +
+                "{                            %n" +
+                "  \"totalSigners\":      %s, %n" +
+                "  \"neededSignature\":   %s, %n" +
                 "  \"publicKeys\":",
                 m_totalSigners,
                 m_neededSignatures));
@@ -310,7 +310,7 @@ public class MultiSignatureParameters implements ISerializable
         for (Map.Entry<Byte, byte[]> entry : m_signatures.entrySet())
         {
             stringBuilder.append(
-                    String.format("      {%n        \"position\":   %s,%n        \"signature\":  %s%n      }",
+                    String.format("      {%n        \"position\":   %s,%n        \"signature\":  \"%s\"%n      }",
                             entry.getKey(),
                             Convert.toHexString(entry.getValue())));
 

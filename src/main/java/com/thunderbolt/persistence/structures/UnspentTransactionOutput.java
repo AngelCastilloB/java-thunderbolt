@@ -257,7 +257,7 @@ public class UnspentTransactionOutput implements ISerializable
         stringBuilder.append(
                 String.format(
                         "{                    %n" +
-                        "  \"transaction\":   %s,%n" +
+                        "  \"transaction\":   \"%s\",%n" +
                         "  \"index\":         %d,%n" +
                         "  \"version\":       %d,%n" +
                         "  \"blockHeight\":   %d,%n" +
