@@ -1,7 +1,7 @@
 <p align="center">
   <img align="middle" src=
-  "https://storage.googleapis.com/thunderboltcurrency/logo_github.png"
-  height="150" /><br /><br />
+  "https://github.com/AngelCastilloB/java-thunderbolt/blob/master/assets/thunderbolt_logo.png"
+  height="250" />
   <sup><sup><sup><sup>The Thunderbolt logo is licensed under
   <a href="https://creativecommons.org/licenses/by/3.0/">Creative
   Commons 3.0 Attributions license</a></sup></sup></sup></sup>
