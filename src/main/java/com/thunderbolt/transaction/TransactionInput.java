@@ -153,4 +153,23 @@ public class TransactionInput implements ISerializable
 
         return data.toByteArray();
     }
+
+    /**
+     * Creates a string representation of the hash value of this object
+     *
+     * @return The string representation.
+     */
+    @Override
+    public String toString()
+    {
+        return String.format(
+                "{                            %n" +
+                "  \"isCoinbase\":    %s,     %n" +
+                "  \"referenceHash\": \"%s\", %n" +
+                "  \"index\":         %s      %n" +
+                "}",
+            isCoinBase(),
+            m_refHash,
+            m_index);
+    }
 }

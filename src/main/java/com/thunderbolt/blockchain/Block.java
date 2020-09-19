@@ -25,6 +25,7 @@ package com.thunderbolt.blockchain;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
@@ -321,14 +322,6 @@ public class Block implements ISerializable
         return tree;
     }
 
-    /*
-
-Block hash must satisfy claimed nBits proof of work
-Block timestamp must not be more than two hours in the future
-First transaction must be coinbase (i.e. only 1 input, with hash=0, n=-1), the rest must not be
-For each transaction, apply "tx" checks 2-4
-
-     */
     /**
      * Performs basic non contextual validations over the block data. This validations are naive and are not complete.
      * We need the context of the blockchain to make all the necessary validations. However we can rule out invalid
@@ -370,9 +363,9 @@ For each transaction, apply "tx" checks 2-4
 
         if (hash.compareTo(target) > 0)
         {
-            String.format("Hash is higher than target. Current hash %s; target %s",
+            s_logger.error(String.format("Hash is higher than target. Current hash %s; target %s",
                     m_header.getHash().toString(),
-                    target.toString(16));
+                    target.toString(16)));
 
             return false;
         }
@@ -457,4 +450,29 @@ For each transaction, apply "tx" checks 2-4
         return true;
     }
 
+    /**
+     * Creates a string representation of the hash value of this object
+     *
+     * @return The string representation.
+     */
+    @Override
+    public String toString()
+    {
+        final int tabs = 3;
+
+        StringBuilder stringBuilder = new StringBuilder();
+
+        stringBuilder.append(
+                String.format(
+                        "{               %n" +
+                        "  \"header\":%s,%n" +
+                        "  \"transactions\":",
+                        Convert.toTabbedString(m_header.toString(), tabs)));
+
+        stringBuilder.append(Convert.toJsonArrayLikeString(m_transactions, tabs));
+        stringBuilder.append(System.lineSeparator());
+        stringBuilder.append("}");
+
+        return stringBuilder.toString();
+    }
 }

@@ -68,15 +68,26 @@ public class Blockchain
      */
     public Blockchain(NetworkParameters params, Wallet wallet) throws StorageException
     {
-        m_headBlock = m_persistence.getChainHead();
-        s_logger.debug(String.format("Current blockchain tip: %s", m_headBlock.getHeader().getHash().toString()));
-
         m_params = params;
         m_wallet = wallet;
 
         // TODO: Inject this services.
         m_transactionValidator = new StandardTransactionValidator(m_persistence, m_params);
         m_committer = new StandardBlockchainCommitter(m_wallet, m_persistence, m_memPool);
+
+        m_headBlock = m_persistence.getChainHead();
+
+        // If there is no chain head yet, that means the blockchain is not initialized.
+        if (m_headBlock == null)
+        {
+            BlockMetadata metadata = m_persistence.persist(params.getGenesisBlock(), 0, params.getGenesisBlock().getWork());
+
+            m_persistence.setChainHead(metadata);
+            m_headBlock = metadata;
+            m_committer.commit(m_headBlock);
+        }
+
+        s_logger.debug(String.format("Current blockchain tip: %s", m_headBlock.getHeader().getHash().toString()));
     }
 
     /**
@@ -86,7 +97,7 @@ public class Blockchain
      *
      * @return True if the block was added; otherwise; false/
      */
-    private synchronized boolean add(Block block) throws StorageException
+    public synchronized boolean add(Block block) throws StorageException
     {
         if (block.getHeader().getHash().equals(m_headBlock.getHeader().getHash()))
         {

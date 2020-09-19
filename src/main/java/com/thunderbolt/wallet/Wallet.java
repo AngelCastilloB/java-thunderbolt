@@ -99,7 +99,6 @@ public class Wallet implements ISerializable
         m_keys = new EllipticCurveKeyPair(m_encryptedKey.getPrivateKey(password));
     }
 
-
     /**
      * Updates the list of unspent outputs available, adding new outputs and removing no longer available ones.
      *

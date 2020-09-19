@@ -25,6 +25,7 @@ package com.thunderbolt.transaction;
 
 // IMPORTS ************************************************************/
 
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
@@ -50,7 +51,7 @@ public class Transaction implements ISerializable
     private static final Logger s_logger = LoggerFactory.getLogger(Transaction.class);
 
     // Constants
-    // TODO: Move this constants to the network parameters. Add a way to acces the network parameters (service locator?).
+    // TODO: Move this constants to the network parameters. Add a way to access the network parameters (service locator?).
     private static final long MAX_BLOCK_SIZE    = 1000000;
     private static final long COIN              = 100000000;
     private static final long MAX_MONEY         = 21000000L * COIN;
@@ -456,5 +457,46 @@ public class Transaction implements ISerializable
     public void setUnlockingParameters(ArrayList<byte[]> unlockingParameters)
     {
         this.m_unlockingParameters = unlockingParameters;
+    }
+
+    /**
+     * Creates a string representation of the hash value of this object
+     *
+     * @return The string representation.
+     */
+    @Override
+    public String toString()
+    {
+        final int firstLevelTabs = 2;
+
+        StringBuilder stringBuilder = new StringBuilder();
+
+        stringBuilder.append(
+                String.format(
+                    "{                        %n" +
+                    "  \"version\":       %s, %n" +
+                    "  \"lockTime\":      %s, %n" +
+                    "  \"inputs\":",
+                    m_version,
+                    m_lockTime));
+
+        stringBuilder.append(Convert.toJsonArrayLikeString(m_inputs, firstLevelTabs));
+        stringBuilder.append(",");
+        stringBuilder.append(System.lineSeparator());
+
+        stringBuilder.append("  \"outputs\":");
+        stringBuilder.append(Convert.toJsonArrayLikeString(m_outputs, firstLevelTabs));
+        stringBuilder.append(",");
+        stringBuilder.append(System.lineSeparator());
+
+        stringBuilder.append("  \"UnlockingParameters\":");
+        stringBuilder.append(Convert.toJsonArrayLikeString(
+                Convert.toHexStringArray(m_unlockingParameters), firstLevelTabs));
+
+        stringBuilder.append(System.lineSeparator());
+
+        stringBuilder.append("}");
+
+        return stringBuilder.toString();
     }
 }

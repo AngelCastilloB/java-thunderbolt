@@ -26,13 +26,21 @@ package com.thunderbolt;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.blockchain.Block;
+import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.common.ServiceLocator;
+import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.StandardPersistenceService;
 import com.thunderbolt.persistence.storage.*;
+import com.thunderbolt.persistence.structures.BlockMetadata;
+import com.thunderbolt.persistence.structures.TransactionMetadata;
+import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.*;
 import com.thunderbolt.transaction.*;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
+import com.thunderbolt.transaction.parameters.MultiSignatureParameters;
+import com.thunderbolt.wallet.Wallet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,15 +85,60 @@ public class Main
     public static void main(String[] args) throws IOException, GeneralSecurityException, CloneNotSupportedException, StorageException
     {
         initializeServices();
-        //Block genesisBlock = NetworkParameters.createGenesis();
+        Block genesisBlock = NetworkParameters.createGenesis();
         //ServiceLocator.getService(IPersistenceService.class).persist(genesisBlock, 0, genesisBlock.getWork());
+        Wallet myWallet = new Wallet("asd");
+        Blockchain chai2n = new Blockchain(NetworkParameters.mainNet(), myWallet);
+        chai2n.add(genesisBlock);
+
+        UnspentTransactionOutput uxto = ServiceLocator.getService(IPersistenceService.class).getUnspentOutput(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"), 0);
+
+        BlockMetadata blockMetadata = ServiceLocator.getService(IPersistenceService.class).getBlockMetadata(NetworkParameters.createGenesis().getHeaderHash());
+        TransactionMetadata  metadata = new TransactionMetadata();
+
+        s_logger.debug("metadata \n{}", blockMetadata);
+        s_logger.debug("\n{}", uxto);
+        s_logger.debug("\n{}", genesisBlock);
 
         Transaction xt = ServiceLocator.getService(IPersistenceService.class).getTransaction(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"));
 
         ServiceLocator.register(Transaction.class, xt);
         Transaction copy = ServiceLocator.getService(Transaction.class);
 
-        s_logger.debug("Valid: {}", xt.isValid());
+        MemoryTransactionsPoolService service = new MemoryTransactionsPoolService();
+
+        service.addTransaction(xt);
+        //s_logger.debug("Valid: \n{}", xt);
+        //s_logger.debug("Valid: \n{}", copy);
+
+        s_logger.debug("\n{}", service.toString());
+
+        MultiSignatureParameters parameters = new MultiSignatureParameters();
+
+        EllipticCurveKeyPair keyPair1 = new EllipticCurveKeyPair();
+        EllipticCurveKeyPair keyPair2 = new EllipticCurveKeyPair();
+        EllipticCurveKeyPair keyPair3 = new EllipticCurveKeyPair();
+
+        parameters.setTotalSigners((byte)0x03);
+        parameters.setNeededSignatures((byte)0x02);
+        parameters.getPublicKeys().add(keyPair1.getPublicKey());
+        parameters.getPublicKeys().add(keyPair2.getPublicKey());
+        parameters.getPublicKeys().add(keyPair3.getPublicKey());
+
+        byte[] data = { 0x01 , 0x02, 0x03 };
+
+        parameters.addSignature((byte)0, EllipticCurveProvider.sign(data, keyPair1.getPrivateKey()));
+        parameters.addSignature((byte)1, EllipticCurveProvider.sign(data, keyPair2.getPrivateKey()));
+        parameters.addSignature((byte)2, EllipticCurveProvider.sign(data, keyPair3.getPrivateKey()));
+
+        s_logger.debug("\n{}", parameters);
+
+
+        s_logger.debug("Balance: {}", myWallet.getBalance().longValue());
+        //for (TransactionOutput output : copy.getOutputs())
+        //    s_logger.debug("{}", output);
+       // for (TransactionInput input : copy.getInputs())
+        //    s_logger.debug("{}", input);
         /*
         initializeServices();
 

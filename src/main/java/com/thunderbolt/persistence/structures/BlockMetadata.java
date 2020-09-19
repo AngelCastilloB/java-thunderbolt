@@ -26,6 +26,7 @@ package com.thunderbolt.persistence.structures;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.blockchain.BlockHeader;
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
@@ -315,5 +316,43 @@ public class BlockMetadata implements ISerializable
         BlockMetadata otherMetadata = (BlockMetadata)other;
 
         return otherMetadata.m_header.equals(this.m_header);
+    }
+
+    /**
+     * Creates a string representation of the hash value of this object
+     *
+     * @return The string representation.
+     */
+    @Override
+    public String toString()
+    {
+        final int tabs = 3;
+
+        StringBuilder stringBuilder = new StringBuilder();
+
+        stringBuilder.append(
+                String.format(
+                        "{                             %n" +
+                        "  \"header\":%s,              %n" +
+                        "  \"height\":             %d, %n" +
+                        "  \"totalWork\":          %d  %n" +
+                        "  \"transactionCount\":   %d  %n" +
+                        "  \"status\":             %d  %n" +
+                        "  \"blockSegment\":       %d  %n" +
+                        "  \"blockOffset\":        %d  %n" +
+                        "  \"revertSegment\":      %d  %n" +
+                        "  \"revertOffset\":       %d  %n" +
+                        "}",
+                        Convert.toTabbedString(m_header.toString(), tabs),
+                        m_height,
+                        m_totalWork,
+                        m_transactionCount,
+                        m_status,
+                        m_blockSegment,
+                        m_blockOffset,
+                        m_revertSegment,
+                        m_revertOffset));
+
+        return stringBuilder.toString();
     }
 }

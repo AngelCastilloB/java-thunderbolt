@@ -95,9 +95,12 @@ public class StandardBlockchainCommitter implements IBlockchainCommitter
 
         for (Transaction transaction: block.getTransactions())
         {
-            boolean removed = m_memPool.removeTransaction(transaction.getTransactionId());
+            boolean removed = false;
 
-            if (!removed)
+            if (!transaction.isCoinbase())
+                removed = m_memPool.removeTransaction(transaction.getTransactionId());
+
+            if (!removed && !transaction.isCoinbase())
                 s_logger.warn("The transaction {} was not available in our valid transaction pool.", transaction.getTransactionId());
 
             // Create all the new Unspent outputs added by this block.
@@ -116,23 +119,28 @@ public class StandardBlockchainCommitter implements IBlockchainCommitter
                 // Add output to the UXTO data base.
                 m_persistence.addUnspentOutput(unspentOutput);
                 ++index;
+
+                newOutputs.add(unspentOutput);
             }
 
             // Create a list of the consumed spendable outputs, we only need to reconstruct the hash so the UTXO database
             // and the wallet can remove them.
-            for (TransactionInput input : transaction.getInputs())
+            if (!transaction.isCoinbase())
             {
-                // For each input, look in the main branch to find the referenced output transaction.
-                // Reject if the output transaction is missing for any input.
-                UnspentTransactionOutput consumedOutput = new UnspentTransactionOutput();
+                for (TransactionInput input : transaction.getInputs())
+                {
+                    // For each input, look in the main branch to find the referenced output transaction.
+                    // Reject if the output transaction is missing for any input.
+                    UnspentTransactionOutput consumedOutput = new UnspentTransactionOutput();
 
-                consumedOutput.setTransactionHash(input.getReferenceHash());
-                consumedOutput.setIndex(input.getIndex());
+                    consumedOutput.setTransactionHash(input.getReferenceHash());
+                    consumedOutput.setIndex(input.getIndex());
 
-                removedOutputs.add(consumedOutput.getHash());
+                    removedOutputs.add(consumedOutput.getHash());
 
-                // Remove spent outputs from the UTXO database.
-                m_persistence.removeUnspentOutput(input.getReferenceHash(), input.getIndex());
+                    // Remove spent outputs from the UTXO database.
+                    m_persistence.removeUnspentOutput(input.getReferenceHash(), input.getIndex());
+                }
             }
         }
 

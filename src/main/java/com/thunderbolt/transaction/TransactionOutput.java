@@ -25,6 +25,7 @@ package com.thunderbolt.transaction;
 
 // IMPORTS ************************************************************/
 
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
 
@@ -40,6 +41,9 @@ import java.nio.ByteBuffer;
  */
 public class TransactionOutput implements ISerializable
 {
+    // Constants
+    private static final long ONE_COIN = 100000000;
+
     // Instance Fields
     private BigInteger     m_amount;
     private byte[]         m_lockingParameters = new byte[0];
@@ -165,5 +169,25 @@ public class TransactionOutput implements ISerializable
         }
 
         return data.toByteArray();
+    }
+
+    /**
+     * Creates a string representation of the hash value of this object
+     *
+     * @return The string representation.
+     */
+    @Override
+    public String toString()
+    {
+        return String.format(
+            "{                                %n" +
+            "  \"amount\":            %d.%08d,%n" +
+            "  \"lockType\":          \"%s\", %n" +
+            "  \"lockingParameters\": \"%s\"  %n" +
+            "}",
+            getAmount().longValue() / ONE_COIN,
+            getAmount().longValue() % ONE_COIN,
+            m_type.toString(),
+            Convert.toHexString(m_lockingParameters));
     }
 }

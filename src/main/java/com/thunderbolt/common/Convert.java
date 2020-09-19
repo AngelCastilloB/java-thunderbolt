@@ -25,6 +25,9 @@ package com.thunderbolt.common;
 
 /* IMPLEMENTATION ************************************************************/
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Utility class for data conventions.
  */
@@ -52,5 +55,111 @@ public class Convert
         }
 
         return new String(hexChars);
+    }
+
+    /**
+     * Converts a collection of byte[] to a collection of HEX string representation.
+     *
+     * @param bytes The collection of bytes.
+     *
+     * @return The new list of HEX string representation.
+     */
+    public static List<String> toHexStringArray(List<byte[]> bytes)
+    {
+        List<String> hexArray = new ArrayList<>();
+
+        for (byte[] array: bytes)
+            hexArray.add(String.format("\"%s\"", toHexString(array)));
+
+        return hexArray;
+    }
+
+    /**
+     * Tabs a string with white spaces. The tabs are added to all lines of the string.
+     *
+     * @param string The string to be tabbed.
+     * @param tabs   The numbers of tabs to add.
+     *
+     * @return The enw tabbed string.
+     */
+    public static String toTabbedString(String string, int tabs)
+    {
+        String        lines[] = string.split("\\r?\\n", -1);
+        StringBuilder result  = new StringBuilder();
+
+        for (int i = 0; i < lines.length; ++i)
+        {
+            String line = lines[i];
+            StringBuilder stringBuilder = new StringBuilder();
+
+            for(int j = 0; j < tabs; ++j)
+                stringBuilder.append(" ");
+
+            stringBuilder.append(line);
+
+            if (i < lines.length - 1)
+                stringBuilder.append(System.lineSeparator());
+
+            result.append(stringBuilder);
+        }
+
+        return result.toString();
+    }
+
+    /**
+     * Converts the given array of objects to a JSON array like string.
+     *
+     * @param collection  The collection of items.
+     * @param indentLevel The level of indentation.
+     * @param <T>         The type of the collection item.
+     *
+     * @return The JSON array like string.
+     */
+    public static <T> String toJsonArrayLikeString(List<T> collection, int indentLevel)
+    {
+        StringBuilder builder = new StringBuilder();
+
+        for(int j = 0; j < indentLevel; ++j)
+            builder.append(" ");
+        builder.append("[");
+
+        builder.append(System.lineSeparator());
+
+        for (int i = 0; i < collection.size(); ++i)
+        {
+            builder.append(Convert.toTabbedString(collection.get(i).toString(), indentLevel + 4));
+
+            if (i < collection.size() - 1)
+                builder.append(',');
+
+            builder.append(System.lineSeparator());
+        }
+
+        for(int j = 0; j < indentLevel; ++j)
+            builder.append(" ");
+        builder.append("]");
+
+        return builder.toString();
+    }
+
+    /**
+     * Pads the given string to the left using the given pad character.
+     *
+     * @param originalString The string ot be padded.
+     * @param length         The length of the final string (including padding).
+     * @param padCharacter   The character to be use as padding.
+     *
+     * @return The new padded string.
+     */
+    public static String padLeft(String originalString, int length, char padCharacter)
+    {
+        StringBuilder sb = new StringBuilder();
+
+        while (sb.length() + originalString.length() < length)
+            sb.append(padCharacter);
+
+        sb.append(originalString);
+
+        return sb.toString();
     }
 }

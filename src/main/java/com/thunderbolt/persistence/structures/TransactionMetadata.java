@@ -169,4 +169,23 @@ public class TransactionMetadata implements ISerializable
     {
         m_transactionPosition = transactionPosition;
     }
+
+    /**
+     * Creates a string representation of the hash value of this object
+     *
+     * @return The string representation.
+     */
+    @Override
+    public String toString()
+    {
+        return String.format(
+                "{                                %n" +
+                "  \"blockFile\":             %d, %n" +
+                "  \"blockPosition\":         %d, %n" +
+                "  \"transactionPosition\":   %d  %n" +
+                "}",
+                m_blockFile,
+                m_blockPosition,
+                m_transactionPosition);
+    }
 }

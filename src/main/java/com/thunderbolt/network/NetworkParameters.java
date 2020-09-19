@@ -126,7 +126,7 @@ public class NetworkParameters implements Serializable
 
         String genesisHash = parameters.getGenesisBlock().getHeaderHash().toString();
 
-        assert genesisHash.equals("000000038C0E59E98ECF2DF52B9D1293CA1E6C4E92C7F83F447D3B440D2C5506") : genesisHash;
+        assert genesisHash.equals("00000004063B34C6FE99D1DB8A8C7F041B46487E64B0ED74C0EE8B7D4FA8F4E9") : genesisHash;
 
         return parameters;
     }
