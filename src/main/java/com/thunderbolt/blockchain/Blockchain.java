@@ -77,14 +77,14 @@ public class Blockchain
 
         m_headBlock = m_persistence.getChainHead();
 
-        // The block chain is empty and we must kick start it.
+        // If there is no chain head yet, that means the blockchain is not initialized.
         if (m_headBlock == null)
         {
-            Block genesisBlock = NetworkParameters.createGenesis();
-            BlockMetadata blockMetadata = ServiceLocator.getService(IPersistenceService.class).persist(genesisBlock, 0, genesisBlock.getWork());
-            m_committer.commit(blockMetadata);
-            ServiceLocator.getService(IPersistenceService.class).setChainHead(blockMetadata);
-            m_headBlock = m_persistence.getChainHead();
+            BlockMetadata metadata = m_persistence.persist(params.getGenesisBlock(), 0, params.getGenesisBlock().getWork());
+
+            m_persistence.setChainHead(metadata);
+            m_headBlock = metadata;
+            m_committer.commit(m_headBlock);
         }
 
         s_logger.debug(String.format("Current blockchain tip: %s", m_headBlock.getHeader().getHash().toString()));

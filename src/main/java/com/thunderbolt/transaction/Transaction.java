@@ -25,6 +25,7 @@ package com.thunderbolt.transaction;
 
 // IMPORTS ************************************************************/
 
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
@@ -456,5 +457,46 @@ public class Transaction implements ISerializable
     public void setUnlockingParameters(ArrayList<byte[]> unlockingParameters)
     {
         this.m_unlockingParameters = unlockingParameters;
+    }
+
+    /**
+     * Creates a string representation of the hash value of this object
+     *
+     * @return The string representation.
+     */
+    @Override
+    public String toString()
+    {
+        final int firstLevelTabs = 2;
+
+        StringBuilder stringBuilder = new StringBuilder();
+
+        stringBuilder.append(
+                String.format(
+                    "{                        %n" +
+                    "  \"version\":       %s, %n" +
+                    "  \"lockTime\":      %s, %n" +
+                    "  \"inputs\":",
+                    m_version,
+                    m_lockTime));
+
+        stringBuilder.append(Convert.toJsonArrayLikeString(m_inputs, firstLevelTabs));
+        stringBuilder.append(",");
+        stringBuilder.append(System.lineSeparator());
+
+        stringBuilder.append("  \"outputs\":");
+        stringBuilder.append(Convert.toJsonArrayLikeString(m_outputs, firstLevelTabs));
+        stringBuilder.append(",");
+        stringBuilder.append(System.lineSeparator());
+
+        stringBuilder.append("  \"UnlockingParameters\":");
+        stringBuilder.append(Convert.toJsonArrayLikeString(
+                Convert.toHexStringArray(m_unlockingParameters), firstLevelTabs));
+
+        stringBuilder.append(System.lineSeparator());
+
+        stringBuilder.append("}");
+
+        return stringBuilder.toString();
     }
 }

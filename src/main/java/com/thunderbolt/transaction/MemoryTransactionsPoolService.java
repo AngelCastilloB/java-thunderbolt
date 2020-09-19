@@ -25,13 +25,13 @@ package com.thunderbolt.transaction;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.security.Hash;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
 
 import java.lang.instrument.Instrumentation;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.math.BigInteger;
+import java.util.*;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -43,15 +43,8 @@ import java.util.Set;
  */
 public class MemoryTransactionsPoolService implements ITransactionsPoolService
 {
-    // Static fields and function necessary for instrumentation.
-    // TODO: Move to a class?
-    private static Instrumentation s_instrumentation;
-    public static void premain(String args, Instrumentation inst)
-    {
-        s_instrumentation = inst;
-    }
-
     private Map<Hash, Transaction> m_memPool = new HashMap<>();
+    private BigInteger             m_size    = BigInteger.ZERO;
 
     /**
      * Gets the size of the memory pool in bytes.
@@ -61,7 +54,7 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService
     @Override
     public long getSize()
     {
-        return s_instrumentation.getObjectSize(m_memPool);
+        return m_size.longValue();
     }
 
     /**
@@ -115,6 +108,7 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService
     @Override
     public boolean addTransaction(Transaction transaction)
     {
+        m_size = m_size.add(BigInteger.valueOf(transaction.serialize().length));
         return m_memPool.put(transaction.getTransactionId(), transaction) != null;
     }
 
@@ -127,5 +121,39 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService
     public boolean removeTransaction(Hash id)
     {
         return m_memPool.remove(id) != null;
+    }
+
+    /**
+     * Creates a string representation of the hash value of this object
+     *
+     * @return The string representation.
+     */
+    @Override
+    public String toString()
+    {
+        final int firstLevelTabs = 2;
+
+        StringBuilder stringBuilder = new StringBuilder();
+
+        stringBuilder.append(
+                String.format(
+                    "{                                %n" +
+                            "  \"sizeInBytes\":       %s, %n" +
+                            "  \"count\":             %s, %n" +
+                            "  \"transactions\":",
+                    getSize(),
+                    getCount()));
+
+        List<Transaction> transaction = new ArrayList<>(m_memPool.values());
+
+        stringBuilder.append(Convert.toJsonArrayLikeString(transaction, firstLevelTabs));
+        stringBuilder.append(",");
+        stringBuilder.append(System.lineSeparator());
+
+        stringBuilder.append(System.lineSeparator());
+
+        stringBuilder.append("}");
+
+        return stringBuilder.toString();
     }
 }

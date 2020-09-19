@@ -25,6 +25,7 @@ package com.thunderbolt.transaction.parameters;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
@@ -64,7 +65,7 @@ public class MultiSignatureParameters implements ISerializable
     /**
      * Initializes a new instance of the MultiSignatureParameters class.
      *
-     * @buffer A buffer contained a serialized MultiSignatureParameters.
+     * @param buffer A buffer contained a serialized MultiSignatureParameters.
      */
     public MultiSignatureParameters(ByteBuffer buffer)
     {
@@ -274,5 +275,56 @@ public class MultiSignatureParameters implements ISerializable
 
         }
         return data.toByteArray();
+    }
+
+    /**
+     * Creates a string representation of the hash value of this object
+     *
+     * @return The string representation.
+     */
+    @Override
+    public String toString()
+    {
+        final int firstLevelTabs = 2;
+
+        StringBuilder stringBuilder = new StringBuilder();
+
+        stringBuilder.append(String.format(
+                "{                            %n" +
+                "  \"totalSigners\":      %s, %n" +
+                "  \"neededSignature\":   %s, %n" +
+                "  \"publicKeys\":",
+                m_totalSigners,
+                m_neededSignatures));
+
+        stringBuilder.append(Convert.toJsonArrayLikeString(
+                Convert.toHexStringArray(m_publicKeys),
+                firstLevelTabs));
+
+        stringBuilder.append(",");
+        stringBuilder.append(System.lineSeparator());
+
+        stringBuilder.append(String.format("  \"signatures\":  [%n"));
+
+        int index = 0;
+        for (Map.Entry<Byte, byte[]> entry : m_signatures.entrySet())
+        {
+            stringBuilder.append(
+                    String.format("      {%n        \"position\":   %s,%n        \"signature\":  \"%s\"%n      }",
+                            entry.getKey(),
+                            Convert.toHexString(entry.getValue())));
+
+            if (index != m_signatures.entrySet().size() - 1)
+                stringBuilder.append(String.format(",%n"));
+
+            ++index;
+        }
+
+        stringBuilder.append(System.lineSeparator());
+        stringBuilder.append("  ]");
+        stringBuilder.append(System.lineSeparator());
+        stringBuilder.append("}");
+
+        return stringBuilder.toString();
     }
 }

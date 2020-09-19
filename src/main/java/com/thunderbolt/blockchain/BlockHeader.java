@@ -25,6 +25,7 @@ package com.thunderbolt.blockchain;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
@@ -293,5 +294,31 @@ public class BlockHeader implements ISerializable
         BlockHeader otherMetadata = (BlockHeader)other;
 
         return Arrays.equals(otherMetadata.serialize(), this.serialize());
+    }
+
+    /**
+     * Creates a string representation of the hash value of this object
+     *
+     * @return The string representation.
+     */
+    @Override
+    public String toString()
+    {
+        return String.format(
+                "{                            %n" +
+                "  \"hash\":          \"%s\", %n" +
+                "  \"version\":       %d,     %n" +
+                "  \"parentBlock\":   \"%s\", %n" +
+                "  \"merkleRoot\":    \"%s\", %n" +
+                "  \"timestamp\":     %d,     %n" +
+                "  \"difficulty\":    \"%s\", %n" +
+                "  \"nonce\":         %d      %n}",
+                getHash(),
+                m_version,
+                m_parentBlock,
+                m_markleRoot,
+                m_timeStamp,
+                Convert.padLeft(Convert.toHexString(Block.unpackDifficulty(m_bits).toByteArray()), 64, '0'),
+                m_nonce);
     }
 }
