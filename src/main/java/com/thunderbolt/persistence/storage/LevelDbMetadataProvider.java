@@ -166,6 +166,9 @@ public class LevelDbMetadataProvider implements IMetadataProvider
 
         byte[] head = m_metadataDatabase.get(new byte[] {HEAD_PREFIX});
 
+        if (head == null)
+            return null;
+
         metadata = new BlockMetadata(ByteBuffer.wrap(head));
 
         return metadata;

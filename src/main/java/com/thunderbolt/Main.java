@@ -26,13 +26,21 @@ package com.thunderbolt;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.blockchain.Block;
+import com.thunderbolt.blockchain.Blockchain;
+import com.thunderbolt.blockchain.contracts.IBlockchainCommitter;
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.ServiceLocator;
+import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.StandardPersistenceService;
 import com.thunderbolt.persistence.storage.*;
+import com.thunderbolt.persistence.structures.BlockMetadata;
+import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.*;
 import com.thunderbolt.transaction.*;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
+import com.thunderbolt.wallet.Wallet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,15 +85,82 @@ public class Main
     public static void main(String[] args) throws IOException, GeneralSecurityException, CloneNotSupportedException, StorageException
     {
         initializeServices();
-        //Block genesisBlock = NetworkParameters.createGenesis();
-        //ServiceLocator.getService(IPersistenceService.class).persist(genesisBlock, 0, genesisBlock.getWork());
 
+        Wallet wallet = new Wallet("1234");
+        NetworkParameters parameters = new NetworkParameters();
+        Blockchain blockchain = new Blockchain(parameters, wallet);
+
+        blockchain.add(NetworkParameters.createGenesis());
+        UnspentTransactionOutput spentXT = ServiceLocator.getService(IPersistenceService.class).getUnspentOutput(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"), 0);
+        s_logger.debug(String.format("%s", spentXT.getTransactionHash()));
+        //ServiceLocator.getService(IPersistenceService.class).persist(genesisBlock, 0, genesisBlock.getWork());
+        //ServiceLocator.getService(IBlockchainCommitter.class).persist(genesisBlock, 0, genesisBlock.getWork());
+/*
+        UnspentTransactionOutput spentXT = ServiceLocator.getService(IPersistenceService.class).getUnspentOutput(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"), 0);
+
+        s_logger.debug(String.format("%s", spentXT.getTransactionHash()));
+
+        TransactionInput input = new TransactionInput(spentXT.getTransactionHash(), 0);
+
+        // When we sign the transaction input plus the locking parameters of the referenced output.
+        ByteArrayOutputStream signatureData = new ByteArrayOutputStream();
+        signatureData.write(input.serialize());
+        signatureData.write(spentXT.getOutput().getLockType().getValue());
+        signatureData.write(spentXT.getOutput().getLockingParameters());
+
+        // The signature in DER format is the unlocking parameter of the referenced output. We need to add this to the unlocking parameters
+        // list of the transaction at the same position at which we added the transaction.
+        byte[] derSignature = EllipticCurveProvider.sign(signatureData.toByteArray(), s_genesisKeyPair.getPrivateKey());
+
+        // At this point this input transaction is spendable.
+        Transaction transaction = new Transaction();
+        transaction.getInputs().add(input);
+        transaction.getUnlockingParameters().add(derSignature);
+
+        // Transfer 1000 another user.
+        transaction.getOutputs().add(new TransactionOutput(BigInteger.valueOf(1000), OutputLockType.SingleSignature, s_genesisKeyPair2.getPublicKey()));
+
+        // Return the change to myself.
+        transaction.getOutputs().add(new TransactionOutput(BigInteger.valueOf(500), OutputLockType.SingleSignature, s_genesisKeyPair.getPublicKey()));
+
+        Block newBlock = new Block();
+        newBlock.addTransactions(transaction);
+        newBlock.getHeader().setTimeStamp(1525003294);
+        newBlock.getHeader().setBits(0x1d07fff8L);
+        newBlock.getHeader().setParentBlockHash(NetworkParameters.createGenesis().getHeaderHash());
+
+        BigInteger hash = newBlock.getHeaderHash().toBigInteger();
+        boolean solved = false;
+        while (!solved)
+        {
+            solved = !(hash.compareTo(newBlock.getTargetDifficultyAsInteger()) > 0);
+            if (solved)
+                break;
+            //System.out.println(String.format("Block hash is higher than target difficulty: %s > %s", newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
+            newBlock.getHeader().setNonce(newBlock.getHeader().getNonce() + 1);
+            hash = newBlock.getHeaderHash().toBigInteger();
+        }
+
+        s_logger.debug(String.format("Block solved! hash is lower than target difficulty (%d): %s > %s", newBlock.getHeader().getNonce(), newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
+
+        ServiceLocator.getService(IPersistenceService.class).persist(newBlock, 0, BigInteger.ZERO);
+
+        s_logger.debug(String.format("Added Block %s, with transaction %s", newBlock.getHeader().getHash(), newBlock.getTransaction(0).getTransactionId()));
+
+
+        /*
+        Block genesisBlock = NetworkParameters.createGenesis();
+        ServiceLocator.getService(IPersistenceService.class).persist(genesisBlock, 0, genesisBlock.getWork());
+        System.out.println(genesisBlock.toString());*/
+
+/*
         Transaction xt = ServiceLocator.getService(IPersistenceService.class).getTransaction(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"));
 
         ServiceLocator.register(Transaction.class, xt);
         Transaction copy = ServiceLocator.getService(Transaction.class);
 
-        s_logger.debug("Valid: {}", xt.isValid());
+        s_logger.debug("Valid: {}", xt.isValid());*/
+
         /*
         initializeServices();
 

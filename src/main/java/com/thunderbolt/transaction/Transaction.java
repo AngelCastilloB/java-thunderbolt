@@ -50,7 +50,7 @@ public class Transaction implements ISerializable
     private static final Logger s_logger = LoggerFactory.getLogger(Transaction.class);
 
     // Constants
-    // TODO: Move this constants to the network parameters. Add a way to acces the network parameters (service locator?).
+    // TODO: Move this constants to the network parameters. Add a way to access the network parameters (service locator?).
     private static final long MAX_BLOCK_SIZE    = 1000000;
     private static final long COIN              = 100000000;
     private static final long MAX_MONEY         = 21000000L * COIN;
