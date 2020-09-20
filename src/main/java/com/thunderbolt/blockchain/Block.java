@@ -436,7 +436,7 @@ public class Block implements ISerializable
                 return false;
             }
 
-            if (m_transactions.get(i).isValid())
+            if (!m_transactions.get(i).isValid())
             {
                 s_logger.error("Input '{}' of transaction '{}' in block '{}' is invalid.",
                         i,

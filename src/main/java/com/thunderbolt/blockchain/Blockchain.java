@@ -52,7 +52,6 @@ public class Blockchain
 {
     private static final Logger s_logger = LoggerFactory.getLogger(Blockchain.class);
 
-    private BlockMetadata            m_headBlock;
     private Wallet                   m_wallet;
     private NetworkParameters        m_params;
     private ITransactionValidator    m_transactionValidator;
@@ -75,19 +74,25 @@ public class Blockchain
         m_transactionValidator = new StandardTransactionValidator(m_persistence, m_params);
         m_committer = new StandardBlockchainCommitter(m_wallet, m_persistence, m_memPool);
 
-        m_headBlock = m_persistence.getChainHead();
-
         // If there is no chain head yet, that means the blockchain is not initialized.
-        if (m_headBlock == null)
+        if (m_persistence.getChainHead() == null)
         {
             BlockMetadata metadata = m_persistence.persist(params.getGenesisBlock(), 0, params.getGenesisBlock().getWork());
 
             m_persistence.setChainHead(metadata);
-            m_headBlock = metadata;
-            m_committer.commit(m_headBlock);
+            m_committer.commit(m_persistence.getChainHead());
         }
 
-        s_logger.debug(String.format("Current blockchain tip: %s", m_headBlock.getHeader().getHash().toString()));
+        s_logger.debug(String.format("Current blockchain tip: %s", m_persistence.getChainHead().getHeader().getHash().toString()));
+    }
+
+    /**
+     *
+     * @return
+     */
+    public synchronized BlockMetadata getChainHead() throws StorageException
+    {
+        return m_persistence.getChainHead();
     }
 
     /**
@@ -99,7 +104,7 @@ public class Blockchain
      */
     public synchronized boolean add(Block block) throws StorageException
     {
-        if (block.getHeader().getHash().equals(m_headBlock.getHeader().getHash()))
+        if (block.getHeader().getHash().equals(m_persistence.getChainHead().getHeader().getHash()))
         {
             s_logger.warn("The given block is already the tip of the blockchain.");
             return true;
@@ -126,11 +131,19 @@ public class Blockchain
         BigInteger workSoFar = parent.getTotalWork().add(block.getWork());
         long       newHeight = parent.getHeight() + 1;
 
-        if (!isTargetDifficultyValid(parent, block))
+        // TODO: Add back difficulty check.
+        if (false/*!isTargetDifficultyValid(parent, block)*/)
+        {
+            s_logger.error("Block rejected. Invalid difficulty.");
             return false;
+        }
+
 
         if (!areTransactionsValid(block.getTransactions(), newHeight))
+        {
+            s_logger.error("Block rejected. One or more transactions are invalid.");
             return false;
+        }
 
         BlockMetadata newMetadata = m_persistence.persist(block, newHeight, workSoFar);
 
@@ -153,17 +166,17 @@ public class Blockchain
         //   1. block further extends the main branch;
         //   2. block extends a side branch but does not add enough difficulty to make it become the new main branch;
         //   3. block extends a side branch and makes it the new main branch.
-        if (parent.getHeader().equals(m_headBlock.getHeader()))
+        if (parent.getHeader().equals(m_persistence.getChainHead().getHeader()))
         {
             m_persistence.setChainHead(newBlock);
 
-            s_logger.trace("Chain is now {} blocks high", m_headBlock.getHeight());
+            s_logger.trace("Chain is now {} blocks high", m_persistence.getChainHead().getHeight());
 
             m_committer.commit(newBlock);
         }
         else
         {
-            boolean sideChainHasMoreWork = newBlock.getTotalWork().compareTo(m_headBlock.getTotalWork()) > 0;
+            boolean sideChainHasMoreWork = newBlock.getTotalWork().compareTo(m_persistence.getChainHead().getTotalWork()) > 0;
 
             if (sideChainHasMoreWork)
             {
@@ -272,7 +285,7 @@ public class Blockchain
      */
     private BlockMetadata findFork(BlockMetadata sideChainHead) throws StorageException
     {
-        BlockMetadata mainChainCursor = m_headBlock;
+        BlockMetadata mainChainCursor = m_persistence.getChainHead();
         BlockMetadata sideChainCursor = sideChainHead;
 
         while (!mainChainCursor.equals(sideChainCursor))
@@ -307,9 +320,9 @@ public class Blockchain
                 fork.getHeight(), fork.getHeader().getHash());
 
         s_logger.info("Old chain head {} - > New chain head: {}",
-                m_headBlock.getHeader().getHash(), newChainHead.getHeader().getHash());
+                m_persistence.getChainHead().getHeader().getHash(), newChainHead.getHeader().getHash());
 
-        List<BlockMetadata> oldBlocks = getChainSegment(m_headBlock, fork);
+        List<BlockMetadata> oldBlocks = getChainSegment(m_persistence.getChainHead(), fork);
         List<BlockMetadata> newBlocks = getChainSegment(newChainHead, fork);
 
         // Rollback all (now) side chain blocks.

@@ -86,7 +86,7 @@ public class StandardTransactionValidator implements ITransactionValidator
      *
      * @param transaction The transaction to be validated.
      * @param height      The height of the block that contains this transaction. This is needed to perform
-     *                    the coinbase maturity validation..
+     *                    the coinbase maturity validation.
      *
      * @return True if the transaction is valid, otherwise, false.
      */
@@ -102,6 +102,34 @@ public class StandardTransactionValidator implements ITransactionValidator
         int inputIndex = 0;
         for (TransactionInput input: transaction.getInputs())
         {
+            // If is the coinbase input, we skip the previous validations.
+            if (input.isCoinBase() && inputIndex == 0)
+            {
+                // check first 8 bytes of locking parameters are available.
+                if (input.getUnlockingParameters().length < 8)
+                {
+                    s_logger.debug(
+                            "The coinbase does not contain the block size as its first 8 bytes in the unlocking parameters.");
+                    return false;
+                }
+
+                // check that the first eight bytes are the block height.
+                ByteBuffer buffer = ByteBuffer.wrap(input.getUnlockingParameters());
+
+                if (buffer.getLong() != height)
+                {
+                    s_logger.debug(
+                            "The coinbase output height {} does not match the block height {}.",
+                            buffer.getLong(), height);
+
+                    return false;
+                }
+
+                totalInputValue = totalInputValue.add(NetworkParameters.mainNet().getBlockSubsidy(height));
+                ++inputIndex;
+                continue;
+            }
+
             UnspentTransactionOutput unspentOutput = m_persistence.getUnspentOutput(input.getReferenceHash(), input.getIndex());
 
             if (unspentOutput == null)
@@ -125,7 +153,7 @@ public class StandardTransactionValidator implements ITransactionValidator
             }
 
             // Check that the provided parameters can spend the referenced output.
-            byte[] unlockingParameters = transaction.getUnlockingParameters().get(inputIndex);
+            byte[] unlockingParameters = transaction.getInputs().get(inputIndex).getUnlockingParameters();
 
             boolean canUnlock = checkUnlockingParameters(unspentOutput.getOutput(), input, unlockingParameters);
 
@@ -157,6 +185,13 @@ public class StandardTransactionValidator implements ITransactionValidator
                     totalOutputValue.longValue(), totalInputValue.longValue());
 
             return false;
+        }
+
+        if (totalOutputValue.longValue() < totalInputValue.longValue())
+        {
+            s_logger.warn(
+                    "The sum of the outputs ({}) is lower than the sum of the inputs ({}).",
+                    totalOutputValue.longValue(), totalInputValue.longValue());
         }
 
         return true;
@@ -198,7 +233,7 @@ public class StandardTransactionValidator implements ITransactionValidator
 
                 SingleSignatureParameters parameters = new SingleSignatureParameters(ByteBuffer.wrap(unlockingParameters));
 
-                if (!Arrays.equals(output.getLockingParameters(), parameters.getPublicKeyHash()))
+                if (!Arrays.equals(output.getLockingParameters(), parameters.getPublicKey()))
                 {
                     s_logger.debug(
                             "Public key does not match. Locking Public Key {}, Unlocking Public Key {}",

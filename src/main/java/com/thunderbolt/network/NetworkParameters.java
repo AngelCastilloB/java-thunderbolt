@@ -52,7 +52,7 @@ public class NetworkParameters implements Serializable
     static private final long       MAIN_NET_PACKET_MAGIC                 = 0x746e6470;
     static private final long       MAIN_NET_SUBSIDY_HALVING_INTERVAL     = 210000;
     static private final BigInteger MAIN_NET_SUBSIDY_STARTING_VALUE       = BigInteger.valueOf(5000000000L);
-    public static final long        MAIN_NET_COINBASE_MATURITY            = 100;
+    public static final long        MAIN_NET_COINBASE_MATURITY            = 0; // TODO: Add back the normal maturity. 100
 
     // Instance fields
     private Block      m_genesisBlock;
@@ -84,15 +84,15 @@ public class NetworkParameters implements Serializable
         output.setAmount(MAIN_NET_SUBSIDY_STARTING_VALUE);
         output.setLockType(OutputLockType.SingleSignature);
 
-        // TODO: Keep the first four bytes for block height in coinbase transactions
+        // The first eight bytes are for block height in coinbase transactions. This is to ensure unique hash for
+        // coinbase transactions in case the are mined by the same miner.
         output.setLockingParameters(Hex.decode("022050C8868389B80FA27575412CF8D4C7C4BA5438FD86C98D6F93CB439426508E"));
 
         transaction.getInputs().add(input);
         transaction.getOutputs().add(output);
 
         String message = "Genesis block.";
-
-        transaction.getUnlockingParameters().add(message.getBytes(StandardCharsets.US_ASCII));
+        input.setUnlockingParameters(message.getBytes(StandardCharsets.US_ASCII));
 
         genesisBlock.addTransactions(transaction);
 
@@ -251,7 +251,7 @@ public class NetworkParameters implements Serializable
      *
      * TODO: This function needs to be somewhere else.
      */
-    public BigInteger getBlockSubsidy(int height)
+    public BigInteger getBlockSubsidy(long height)
     {
         // Genesis reward.
         if (height == 0)

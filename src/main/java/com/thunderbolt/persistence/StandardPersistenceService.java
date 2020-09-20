@@ -60,8 +60,8 @@ public class StandardPersistenceService implements IPersistenceService
 
     // Instance fields
     private IContiguousStorage m_blockStorage     = null;
-    private IContiguousStorage     m_revertsStorage   = null;
-    private IMetadataProvider m_metadataProvider = null;
+    private IContiguousStorage m_revertsStorage   = null;
+    private IMetadataProvider  m_metadataProvider = null;
 
     /**
      * Initializes an instance of the persistence service.
@@ -251,6 +251,18 @@ public class StandardPersistenceService implements IPersistenceService
     public boolean addUnspentOutput(UnspentTransactionOutput output) throws StorageException
     {
         return m_metadataProvider.addUnspentOutput(output);
+    }
+
+    /**
+     * Gets all the unspent outputs of a given public key.
+     *
+     * @param publicKey The public key of the wallet to get the unspent outputs for.
+     *
+     * @return An array with all the unspent outputs related to a given public address.
+     */
+    public ArrayList<UnspentTransactionOutput> getUnspentOutputsForAddress(byte[] publicKey) throws StorageException
+    {
+        return m_metadataProvider.getUnspentOutputsForAddress(publicKey);
     }
 
     /**

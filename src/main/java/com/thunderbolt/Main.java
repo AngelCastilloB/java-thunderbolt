@@ -30,6 +30,7 @@ import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.blockchain.contracts.IBlockchainCommitter;
 import com.thunderbolt.common.Convert;
+import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.common.ServiceLocator;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
@@ -42,15 +43,19 @@ import com.thunderbolt.security.*;
 import com.thunderbolt.transaction.*;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
 import com.thunderbolt.transaction.parameters.MultiSignatureParameters;
+import com.thunderbolt.transaction.parameters.SingleSignatureParameters;
 import com.thunderbolt.wallet.Wallet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 /* IMPLEMENTATION ************************************************************/
@@ -67,14 +72,15 @@ public class Main
     static private final Path   BLOCKS_PATH      = Paths.get(DEFAULT_PATH.toString(), "blocks");
     static private final Path   REVERT_PATH      = Paths.get(DEFAULT_PATH.toString(), "reverts");
     static private final Path   METADATA_PATH    = Paths.get(DEFAULT_PATH.toString(), "metadata");
+    static private final Path   WALLET_PATH      = Paths.get(USER_HOME_PATH.toString(), "wallet.bin");
     static private final String BLOCK_PATTERN    = "block%05d.bin";
     static private final String REVERT_PATTERN   = "revert%05d.bin";
 
     private static final Logger s_logger = LoggerFactory.getLogger(Main.class);
 
-    static EllipticCurveKeyPair s_genesisKeyPair     = new EllipticCurveKeyPair();
+    //static EllipticCurveKeyPair s_genesisKeyPair     = new EllipticCurveKeyPair();
     static EllipticCurveKeyPair s_genesisKeyPair2    = new EllipticCurveKeyPair();
-    static TransactionOutput    s_genesisOutput      = new TransactionOutput(BigInteger.valueOf(1500), OutputLockType.SingleSignature, s_genesisKeyPair.getPublicKey());
+   // static TransactionOutput    s_genesisOutput      = new TransactionOutput(BigInteger.valueOf(1500), OutputLockType.SingleSignature, s_genesisKeyPair.getPublicKey());
     static Transaction          s_genesisTransaction = new Transaction();
 
     static HashMap<Hash, Transaction> s_UXTOPoll = new HashMap<>();
@@ -88,13 +94,119 @@ public class Main
     {
         initializeServices();
 
-        Wallet wallet = new Wallet("1234");
-        NetworkParameters parameters = new NetworkParameters();
-        Blockchain blockchain = new Blockchain(parameters, wallet);
+        Wallet wallet = new Wallet(WALLET_PATH.toString(), "1234");
+        wallet.initialize();
+        s_logger.debug(wallet.getBalance().toString());
+        s_logger.debug(wallet.getKeyPair().getPublicKey().toString());
 
-        blockchain.add(NetworkParameters.createGenesis());
-        UnspentTransactionOutput spentXT = ServiceLocator.getService(IPersistenceService.class).getUnspentOutput(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"), 0);
-        s_logger.debug(String.format("%s", spentXT.getTransactionHash()));
+        NetworkParameters parameters = new NetworkParameters();
+        Blockchain blockchain = new Blockchain(NetworkParameters.mainNet(), wallet);
+
+        //blockchain.add(NetworkParameters.createGenesis());
+        //UnspentTransactionOutput spentXT = ServiceLocator.getService(IPersistenceService.class).getUnspentOutput(new Hash("507A172834CEE81334725FAC21D043C000F88DC1E5A046034CBDADB888462BF3"), 0);
+
+        // newInput = new TransactionInput(new Hash("507A172834CEE81334725FAC21D043C000F88DC1E5A046034CBDADB888462BF3"), 0);
+
+        //s_logger.debug(String.format("%s", spentXT.getTransactionHash()));
+        s_logger.debug(wallet.getBalance().toString());
+        for (int  i = 0; i < 6; ++i)
+        {
+            byte[] newHeight = NumberSerializer.serialize(blockchain.getChainHead().getHeight() + 1);
+
+            // Coinbase transaction
+            Transaction coinbase = new Transaction();
+            coinbase.getInputs().add(new TransactionInput(new Hash(), Integer.MAX_VALUE, newHeight));
+
+            // Transfer 1000 another user.
+            coinbase.getOutputs().add(new TransactionOutput(NetworkParameters.mainNet().getBlockSubsidy(blockchain.getChainHead().getHeight()), OutputLockType.SingleSignature, wallet.getKeyPair().getPublicKey()));
+
+            Block newBlock = new Block();
+
+            newBlock.addTransactions(coinbase);
+            newBlock.getHeader().setTimeStamp(1525003294);
+            newBlock.getHeader().setBits(0x1ffffff8L);
+
+            //s_logger.debug(blockchain.getChainHead().getHash().toString());
+            newBlock.getHeader().setParentBlockHash(blockchain.getChainHead().getHash());
+
+            BigInteger hash = newBlock.getHeaderHash().toBigInteger();
+            boolean solved = false;
+            while (!solved)
+            {
+                solved = !(hash.compareTo(newBlock.getTargetDifficultyAsInteger()) > 0);
+                if (solved)
+                    break;
+                //System.out.println(String.format("Block hash is higher than target difficulty: %s > %s", newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
+                newBlock.getHeader().setNonce(newBlock.getHeader().getNonce() + 1);
+                hash = newBlock.getHeaderHash().toBigInteger();
+            }
+
+            //s_logger.debug(String.format("Block solved! hash is lower than target difficulty (%d): %s > %s", newBlock.getHeader().getNonce(), newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
+
+            blockchain.add(newBlock);
+            System.out.println(blockchain.getChainHead().getHeight());
+            s_logger.debug(wallet.getBalance().toString());
+        }/*
+        // Transaction
+
+        // When we sign the transaction input plus the locking parameters of the referenced output.
+
+        ByteArrayOutputStream signatureData = new ByteArrayOutputStream();
+        signatureData.write(newInput.serialize());
+        signatureData.write(spentXT.getOutput().getLockType().getValue());
+        signatureData.write(spentXT.getOutput().getLockingParameters());
+
+        // The signature in DER format is the unlocking parameter of the referenced output. We need to add this to the unlocking parameters
+        // list of the transaction at the same position at which we added the transaction.
+        byte[] derSignature = EllipticCurveProvider.sign(signatureData.toByteArray(), wallet.getKeyPair().getPrivateKey());
+
+        SingleSignatureParameters singleParam = new SingleSignatureParameters(wallet.getKeyPair().getPublicKey(), derSignature);
+        // At this point this input transaction is spendable.
+        Transaction transaction = new Transaction();
+        transaction.getInputs().add(newInput);
+        transaction.getUnlockingParameters().add(singleParam.serialize());
+
+        // Transfer 1000 another user.
+        transaction.getOutputs().add(new TransactionOutput(BigInteger.valueOf(1000), OutputLockType.SingleSignature, wallet.getKeyPair().getPublicKey()));
+
+        // Return the change to myself.
+        transaction.getOutputs().add(new TransactionOutput(BigInteger.valueOf(500), OutputLockType.SingleSignature, wallet.getKeyPair().getPublicKey()));
+
+        Block newBlock = new Block();
+
+        // Coinbase transaction
+        Transaction coinbase = new Transaction();
+        coinbase.getInputs().add(new TransactionInput(new Hash(), 0));
+
+        byte[] coinbaseData = new byte[] { 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
+        coinbase.getUnlockingParameters().add(coinbaseData);
+        // Transfer 1000 another user.
+        coinbase.getOutputs().add(new TransactionOutput(NetworkParameters.mainNet().getBlockSubsidy(blockchain.getChainHead().getHeight()), OutputLockType.SingleSignature, wallet.getKeyPair().getPublicKey()));
+
+        newBlock.addTransactions(coinbase);
+        newBlock.addTransactions(transaction);
+        newBlock.getHeader().setTimeStamp(1525003294);
+        newBlock.getHeader().setBits(0x1ffffff8L); // TODO: Set correct difficulty.
+        newBlock.getHeader().setParentBlockHash(blockchain.getChainHead().getHeader().getHash());
+
+        BigInteger hash = newBlock.getHeaderHash().toBigInteger();
+        boolean solved = false;
+        while (!solved)
+        {
+            solved = !(hash.compareTo(newBlock.getTargetDifficultyAsInteger()) > 0);
+            if (solved)
+                break;
+            //System.out.println(String.format("Block hash is higher than target difficulty: %s > %s", newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
+            newBlock.getHeader().setNonce(newBlock.getHeader().getNonce() + 1);
+            hash = newBlock.getHeaderHash().toBigInteger();
+        }
+
+        s_logger.debug(String.format("Block solved! hash is lower than target difficulty (%d): %s > %s", newBlock.getHeader().getNonce(), newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
+
+
+        blockchain.add(newBlock);
+
+
         //ServiceLocator.getService(IPersistenceService.class).persist(genesisBlock, 0, genesisBlock.getWork());
         //ServiceLocator.getService(IBlockchainCommitter.class).persist(genesisBlock, 0, genesisBlock.getWork());
 /*

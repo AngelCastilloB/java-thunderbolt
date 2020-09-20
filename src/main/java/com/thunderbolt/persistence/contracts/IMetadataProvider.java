@@ -31,6 +31,8 @@ import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Hash;
 
+import java.util.ArrayList;
+
 /* IMPLEMENTATION ************************************************************/
 
 /**
@@ -99,6 +101,15 @@ public interface IMetadataProvider
      * @param index The index of the output inside the transaction.
      */
     UnspentTransactionOutput getUnspentOutput(Hash id, int index) throws StorageException;
+
+    /**
+     * Gets all the unspent outputs of a given public key.
+     *
+     * @param publicKey The public key of the wallet to get the unspent outputs for.
+     *
+     * @return An array with all the unspent outputs related to a given public address.
+     */
+    ArrayList<UnspentTransactionOutput> getUnspentOutputsForAddress(byte[] publicKey) throws StorageException;
 
     /**
      * Removes the unspent output transaction from the metadata provider.

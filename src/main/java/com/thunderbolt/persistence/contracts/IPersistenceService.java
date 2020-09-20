@@ -33,6 +33,7 @@ import com.thunderbolt.security.Hash;
 import com.thunderbolt.transaction.Transaction;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -109,6 +110,15 @@ public interface IPersistenceService
      * @return The transaction output, or null if the output is not available or was already spent.
      */
     UnspentTransactionOutput getUnspentOutput(Hash transactionId, int index) throws StorageException;
+
+    /**
+     * Gets all the unspent outputs of a given public key.
+     *
+     * @param publicKey The public key of the wallet to get the unspent outputs for.
+     *
+     * @return An array with all the unspent outputs related to a given public address.
+     */
+    public ArrayList<UnspentTransactionOutput> getUnspentOutputsForAddress(byte[] publicKey) throws StorageException;
 
     /**
      * Adds the given unspent output to the database.

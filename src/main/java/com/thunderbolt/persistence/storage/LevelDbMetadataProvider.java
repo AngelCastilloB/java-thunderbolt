@@ -25,6 +25,7 @@ package com.thunderbolt.persistence.storage;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.persistence.contracts.IMetadataProvider;
 import com.thunderbolt.persistence.structures.BlockMetadata;
@@ -32,6 +33,7 @@ import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Hash;
 import org.iq80.leveldb.DB;
+import org.iq80.leveldb.DBIterator;
 import org.iq80.leveldb.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +42,8 @@ import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 import static org.iq80.leveldb.impl.Iq80DBFactory.factory;
 
@@ -130,7 +134,7 @@ public class LevelDbMetadataProvider implements IMetadataProvider
 
             m_metadataDatabase.put(key.toByteArray(), metadata.serialize());
 
-            s_logger.debug(String.format("Metadata added for block '%s'", metadata.getHash()));
+            //s_logger.debug(String.format("Metadata added for block '%s'", metadata.getHash()));
         }
         catch (Exception exception)
         {
@@ -149,7 +153,7 @@ public class LevelDbMetadataProvider implements IMetadataProvider
     public boolean setChainHead(BlockMetadata metadata)
     {
         m_metadataDatabase.put(new byte[] {HEAD_PREFIX}, metadata.serialize());
-        s_logger.debug(String.format("Chain head metadata added (block '%s')", metadata.getHash()));
+        //s_logger.debug(String.format("Chain head metadata added (block '%s')", metadata.getHash()));
 
         return true;
     }
@@ -191,7 +195,7 @@ public class LevelDbMetadataProvider implements IMetadataProvider
 
             m_metadataDatabase.put(key.toByteArray(), metadata.serialize());
 
-            s_logger.debug(String.format("Metadata added for transaction '%s'", metadata.getHash()));
+            //s_logger.debug(String.format("Metadata added for transaction '%s'", metadata.getHash()));
         }
         catch (Exception exception)
         {
@@ -282,6 +286,41 @@ public class LevelDbMetadataProvider implements IMetadataProvider
         }
 
         return output;
+    }
+
+    /**
+     * Gets all the unspent outputs of a given public key.
+     *
+     * @param publicKey The public key of the wallet to get the unspent outputs for.
+     *
+     * @return An array with all the unspent outputs related to a given public address.
+     */
+    public ArrayList<UnspentTransactionOutput> getUnspentOutputsForAddress(byte[] publicKey) throws StorageException
+    {
+        ArrayList<UnspentTransactionOutput> result = new ArrayList<>();
+
+        try (DBIterator iterator = m_stateDatabase.iterator())
+        {
+            for (iterator.seekToFirst(); iterator.hasNext(); iterator.next())
+            {
+                byte[] data = iterator.peekNext().getValue();
+
+                UnspentTransactionOutput output = new UnspentTransactionOutput(ByteBuffer.wrap(data));
+
+                s_logger.debug(Convert.toHexString(output.getOutput().getLockingParameters()));
+
+                if (Arrays.equals(output.getOutput().getLockingParameters(), publicKey))
+                    result.add(output);
+            }
+        }
+         catch (Exception exception)
+        {
+            throw new StorageException(
+                    String.format("Unable to get unspent outputs for public key '%s'", Convert.toHexString(publicKey)),
+                    exception);
+        }
+
+        return result;
     }
 
     /**

@@ -25,6 +25,7 @@ package com.thunderbolt.transaction;
 
 // IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.security.Hash;
@@ -44,8 +45,9 @@ public class TransactionInput implements ISerializable
     private static final int HASH_LENGTH  = 32;
 
     //Instance Fields
-    private Hash m_refHash = new Hash();
-    private int  m_index   = 0;
+    private Hash   m_refHash = new Hash();
+    private int    m_index   = 0;
+    private byte[] m_unlockingParameters;
 
     /**
      * Creates a transaction outpoint.
@@ -59,11 +61,13 @@ public class TransactionInput implements ISerializable
      *
      * @param hash  The hash of the reference transaction.
      * @param index The index of the specific output in the reference transaction.
+     * @param unlockingParameters The unlocking parameters hash.
      */
-    public TransactionInput(Hash hash, int index)
+    public TransactionInput(Hash hash, int index, byte[] unlockingParameters)
     {
-        m_refHash = hash;
-        m_index   = index;
+        m_refHash             = hash;
+        m_index               = index;
+        m_unlockingParameters = unlockingParameters;
     }
 
     /**
@@ -76,10 +80,12 @@ public class TransactionInput implements ISerializable
         m_index = buffer.getInt();
 
         byte[] hashData = new byte[32];
-
         buffer.get(hashData, 0, HASH_LENGTH);
-
         m_refHash.setData(hashData);
+
+        int unlockingSize = buffer.getInt();
+        m_unlockingParameters = new byte[unlockingSize];
+        buffer.get(m_unlockingParameters, 0, unlockingSize);
     }
 
     /**
@@ -144,6 +150,12 @@ public class TransactionInput implements ISerializable
         {
             data.write(NumberSerializer.serialize(m_index));
             data.write(m_refHash.serialize());
+            data.write(NumberSerializer.serialize(m_unlockingParameters.length));
+            data.write(m_unlockingParameters);
+
+            return data.toByteArray();
+
+
         }
         catch (IOException e)
         {
@@ -155,6 +167,26 @@ public class TransactionInput implements ISerializable
     }
 
     /**
+     * Gets the unlocking parameters.
+     *
+     * @return The unlocking parameters.
+     */
+    public byte[] getUnlockingParameters()
+    {
+        return m_unlockingParameters;
+    }
+
+    /**
+     * Sets the unlocking parameters.
+     *
+     * @param unlockingParameters The unlocking parameters.
+     */
+    public void setUnlockingParameters(byte[] unlockingParameters)
+    {
+        m_unlockingParameters = unlockingParameters;
+    }
+
+    /**
      * Creates a string representation of the hash value of this object
      *
      * @return The string representation.
@@ -163,13 +195,15 @@ public class TransactionInput implements ISerializable
     public String toString()
     {
         return String.format(
-                "{                            %n" +
-                "  \"isCoinbase\":    %s,     %n" +
-                "  \"referenceHash\": \"%s\", %n" +
-                "  \"index\":         %s      %n" +
+                "{                             %n" +
+                "  \"isCoinbase\":     %s,     %n" +
+                "  \"referenceHash\":  \"%s\", %n" +
+                "  \"index\":           %s,    %n" +
+                "  \"UnlockingParams\": \"%s\" %n" +
                 "}",
             isCoinBase(),
             m_refHash,
-            m_index);
+            m_index,
+            Convert.toHexString(m_unlockingParameters));
     }
 }

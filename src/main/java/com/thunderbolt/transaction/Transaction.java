@@ -62,7 +62,6 @@ public class Transaction implements ISerializable
     private ArrayList<TransactionInput>  m_inputs              = new ArrayList<>();
     private ArrayList<TransactionOutput> m_outputs             = new ArrayList<>();
     private long                         m_lockTime            = 0;
-    private ArrayList<byte[]>            m_unlockingParameters = new ArrayList<>();
 
     /**
      * Creates a new instance of the Transaction class.
@@ -107,16 +106,6 @@ public class Transaction implements ISerializable
             getOutputs().add(new TransactionOutput(buffer));
 
         setLockTime(buffer.getLong());
-
-        // Deserialize the witness data.
-        for (int i = 0; i < getInputs().size(); ++i)
-        {
-            int    dataSize    = buffer.getInt();
-            byte[] witnessData = new byte[dataSize];
-
-            buffer.get(witnessData);
-            m_unlockingParameters.add(witnessData);
-        }
     }
 
     /**
@@ -206,44 +195,7 @@ public class Transaction implements ISerializable
      */
     public Hash getTransactionId()
     {
-        return Sha256Digester.digest(serializeWithoutWitnesses());
-    }
-
-    /**
-     * Serializes the object without the unlocking parameters.
-     *
-     * We use this serialization form to calculate the transaction id and avoid changing the transaction id due
-     * transaction malleability.
-     *
-     * @return The serialized object without the witness data. This method is useful for calculating the transaction id.
-     */
-    public byte[] serializeWithoutWitnesses()
-    {
-        ByteArrayOutputStream data = new ByteArrayOutputStream();
-
-        try
-        {
-            data.write(NumberSerializer.serialize(m_version));
-            data.write(NumberSerializer.serialize(getInputs().size()));
-
-            // The serialization method of the input transactions will skip the unlocking parameters (signature)
-            // we need to make sure to serialize them at the end. We do this to remove the signatures from the
-            // transaction id to avoid transaction malleability.
-            for (int i = 0; i < getInputs().size(); ++i)
-                data.write(m_inputs.get(i).serialize());
-
-            data.write(NumberSerializer.serialize(getOutputs().size()));
-            for (int i = 0; i < getOutputs().size(); ++i)
-                data.write(m_outputs.get(i).serialize());
-
-            data.write(NumberSerializer.serialize(m_lockTime));
-        }
-        catch (Exception exception)
-        {
-            exception.printStackTrace();
-        }
-
-        return data.toByteArray();
+        return Sha256Digester.digest(serialize());
     }
 
     /**
@@ -269,8 +221,6 @@ public class Transaction implements ISerializable
      */
     public boolean isValid()
     {
-        s_logger.debug("Validating transaction: {}", getTransactionId());
-
         if (m_inputs.isEmpty())
         {
             s_logger.debug("The transaction contains no inputs. All transactions must at least have one input.");
@@ -325,7 +275,7 @@ public class Transaction implements ISerializable
 
         if (isCoinbase())
         {
-            int coinbaseSize = m_unlockingParameters.get(0).length;
+            int coinbaseSize = m_inputs.get(0).getUnlockingParameters().length;
 
             if (coinbaseSize > 100)
             {
@@ -399,9 +349,6 @@ public class Transaction implements ISerializable
             data.write(NumberSerializer.serialize(m_version));
             data.write(NumberSerializer.serialize(getInputs().size()));
 
-            // The serialization method of the input transactions will skip the unlocking parameters (signature)
-            // we need to make sure to serialize them at the end. We do this to remove the signatures from the
-            // transaction id to avoid transaction malleability.
             for (int i = 0; i < getInputs().size(); ++i)
                 data.write(m_inputs.get(i).serialize());
 
@@ -410,18 +357,6 @@ public class Transaction implements ISerializable
                 data.write(m_outputs.get(i).serialize());
 
             data.write(NumberSerializer.serialize(m_lockTime));
-
-            // Serialize the unlocking parameters (witness data).
-            for (int i = 0; i < getInputs().size(); ++i)
-            {
-                byte[] witnessDataSizeBytes = ByteBuffer
-                        .allocate(Integer.BYTES)
-                        .putInt(m_unlockingParameters.get(i).length)
-                        .array();
-
-                data.write(witnessDataSizeBytes);
-                data.write(m_unlockingParameters.get(i));
-            }
         }
         catch (IOException e)
         {
@@ -429,34 +364,6 @@ public class Transaction implements ISerializable
         }
 
         return data.toByteArray();
-    }
-
-    /**
-     * Gets the list of unlocking parameters.
-     *
-     * @return The list off unlocking parameters.
-     *
-     * @return The list of unlocking parameters.
-     *
-     * @remark The parameters are in the same order as in input transactions. So Unlocking parameters at
-     * position zero correspond to input at index zero.
-     */
-    public ArrayList<byte[]> getUnlockingParameters()
-    {
-        return m_unlockingParameters;
-    }
-
-    /**
-     * Sets the list of unlocking parameters for this transaction.
-     *
-     * @param unlockingParameters The list of unlocking parameters.
-     *
-     * @remark The parameters must be in the same order as in input transactions. So Unlocking parameters at
-     * position zero must correspond to input at index zero.
-     */
-    public void setUnlockingParameters(ArrayList<byte[]> unlockingParameters)
-    {
-        this.m_unlockingParameters = unlockingParameters;
     }
 
     /**
@@ -488,13 +395,6 @@ public class Transaction implements ISerializable
         stringBuilder.append(Convert.toJsonArrayLikeString(m_outputs, firstLevelTabs));
         stringBuilder.append(",");
         stringBuilder.append(System.lineSeparator());
-
-        stringBuilder.append("  \"UnlockingParameters\":");
-        stringBuilder.append(Convert.toJsonArrayLikeString(
-                Convert.toHexStringArray(m_unlockingParameters), firstLevelTabs));
-
-        stringBuilder.append(System.lineSeparator());
-
         stringBuilder.append("}");
 
         return stringBuilder.toString();
