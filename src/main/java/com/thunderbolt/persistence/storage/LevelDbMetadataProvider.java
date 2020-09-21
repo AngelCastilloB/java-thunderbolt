@@ -307,8 +307,6 @@ public class LevelDbMetadataProvider implements IMetadataProvider
 
                 UnspentTransactionOutput output = new UnspentTransactionOutput(ByteBuffer.wrap(data));
 
-                s_logger.debug(Convert.toHexString(output.getOutput().getLockingParameters()));
-
                 if (Arrays.equals(output.getOutput().getLockingParameters(), publicKey))
                     result.add(output);
             }

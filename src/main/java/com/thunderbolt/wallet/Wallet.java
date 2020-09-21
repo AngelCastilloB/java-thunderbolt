@@ -28,9 +28,9 @@ package com.thunderbolt.wallet;
 import com.thunderbolt.common.ServiceLocator;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
-import com.thunderbolt.persistence.storage.LevelDbMetadataProvider;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.EllipticCurveKeyPair;
+import com.thunderbolt.security.EllipticCurveProvider;
 import com.thunderbolt.security.EncryptedPrivateKey;
 import com.thunderbolt.security.Hash;
 
@@ -42,9 +42,16 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.thunderbolt.transaction.OutputLockType;
+import com.thunderbolt.transaction.Transaction;
+import com.thunderbolt.transaction.TransactionInput;
+import com.thunderbolt.transaction.TransactionOutput;
+import com.thunderbolt.transaction.parameters.SingleSignatureParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -111,18 +118,28 @@ public class Wallet implements ISerializable
     }
 
     /**
-     * Initializes a new instance of the Wallet class.
+     * Initializes a new instance of the Wallet class. If the wallet already exists, attempts to decrypt and read it;
+     * otherwise; creates a new wallet file with a new key.
      *
      * @param path     The path where the wallet file is located.
      * @param password The password to decrypt the encrypted key.
      */
     public Wallet(String path, String password) throws GeneralSecurityException, IOException
     {
-        byte[] data = Files.readAllBytes(Path.of(path));
-        ByteBuffer buffer = ByteBuffer.wrap(data);
+        Path filepath = Path.of(path);
 
-        m_encryptedKey = new EncryptedPrivateKey(buffer.array());
-        m_keys = new EllipticCurveKeyPair(m_encryptedKey.getPrivateKey(password));
+        if (Files.exists(filepath))
+        {
+            byte[] data = Files.readAllBytes(Path.of(path));
+            ByteBuffer buffer = ByteBuffer.wrap(data);
+            m_encryptedKey = new EncryptedPrivateKey(buffer.array());
+            m_keys = new EllipticCurveKeyPair(m_encryptedKey.getPrivateKey(password));
+        }
+        else
+        {
+            m_encryptedKey = new EncryptedPrivateKey(m_keys.getPrivateKey(), password);
+            save(path);
+        }
     }
 
     /**
@@ -195,6 +212,75 @@ public class Wallet implements ISerializable
     }
 
     /**
+     * Creates a transaction with the given amount (if the funds are enough) to the given wallet.
+     *
+     * @param amount    The amount to be transferred.
+     * @param publicKey The publioc key of the wallet to transfer the funds too.
+     *
+     * @return The transaction.
+     */
+    public Transaction createTransaction(BigInteger amount, byte[] publicKey) throws IOException
+    {
+        Transaction transaction = new Transaction();
+
+        if (getBalance().compareTo(amount) < 0)
+            return null; // TODO: Throw.
+
+        BigInteger total = BigInteger.ZERO;
+
+        ArrayList<UnspentTransactionOutput> outputs = new ArrayList<>();
+
+        for (Map.Entry<Hash, UnspentTransactionOutput> entry : m_unspentOutputs.entrySet())
+        {
+            if (total.compareTo(amount) >= 0)
+                break;
+
+            UnspentTransactionOutput value = entry.getValue();
+
+            outputs.add(value);
+            total = total.add(value.getOutput().getAmount());
+        }
+
+        BigInteger remainder = amount.subtract(total).abs(); // We give ourselves change.
+
+        transaction = new Transaction();
+
+        for (UnspentTransactionOutput out : outputs)
+        {
+            TransactionInput input = new TransactionInput(out.getTransactionHash(), out.getIndex());
+
+            ByteArrayOutputStream signatureData = new ByteArrayOutputStream();
+            signatureData.write(input.getReferenceHash().serialize());
+            signatureData.write(input.getIndex());
+            signatureData.write(out.getOutput().getAmount().toByteArray());
+            signatureData.write(out.getOutput().getLockType().getValue());
+            signatureData.write(out.getOutput().getLockingParameters());
+
+            // The signature in DER format is the unlocking parameter of the referenced output. We need to add this to the unlocking parameters
+            // list of the transaction at the same position at which we added the transaction.
+            byte[] derSignature = EllipticCurveProvider.sign(signatureData.toByteArray(), m_keys.getPrivateKey());
+
+            SingleSignatureParameters singleParam = new SingleSignatureParameters(m_keys.getPublicKey(), derSignature);
+
+            // At this point this input transaction is spendable.
+            input.setUnlockingParameters(singleParam.serialize());
+            transaction.getInputs().add(input);
+        }
+
+        TransactionOutput newOutput = new TransactionOutput(amount, OutputLockType.SingleSignature, publicKey);
+
+        transaction.getOutputs().add(newOutput);
+
+        if (remainder.compareTo(BigInteger.ZERO) > 0)
+        {
+            TransactionOutput change = new TransactionOutput(remainder, OutputLockType.SingleSignature, m_keys.getPublicKey());
+            transaction.getOutputs().add(change);
+        }
+
+        return transaction;
+    }
+
+    /**
      * Serializes an object in ray byte format.
      *
      * @return The serialized object.
@@ -239,6 +325,4 @@ public class Wallet implements ISerializable
 
         return result;
     }
-
-
 }

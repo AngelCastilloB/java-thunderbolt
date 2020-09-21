@@ -47,7 +47,7 @@ public class TransactionInput implements ISerializable
     //Instance Fields
     private Hash   m_refHash = new Hash();
     private int    m_index   = 0;
-    private byte[] m_unlockingParameters;
+    private byte[] m_unlockingParameters = new byte[0];
 
     /**
      * Creates a transaction outpoint.
@@ -61,13 +61,11 @@ public class TransactionInput implements ISerializable
      *
      * @param hash  The hash of the reference transaction.
      * @param index The index of the specific output in the reference transaction.
-     * @param unlockingParameters The unlocking parameters hash.
      */
-    public TransactionInput(Hash hash, int index, byte[] unlockingParameters)
+    public TransactionInput(Hash hash, int index)
     {
         m_refHash             = hash;
         m_index               = index;
-        m_unlockingParameters = unlockingParameters;
     }
 
     /**
@@ -152,10 +150,6 @@ public class TransactionInput implements ISerializable
             data.write(m_refHash.serialize());
             data.write(NumberSerializer.serialize(m_unlockingParameters.length));
             data.write(m_unlockingParameters);
-
-            return data.toByteArray();
-
-
         }
         catch (IOException e)
         {

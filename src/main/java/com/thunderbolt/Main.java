@@ -73,6 +73,9 @@ public class Main
     static private final Path   REVERT_PATH      = Paths.get(DEFAULT_PATH.toString(), "reverts");
     static private final Path   METADATA_PATH    = Paths.get(DEFAULT_PATH.toString(), "metadata");
     static private final Path   WALLET_PATH      = Paths.get(USER_HOME_PATH.toString(), "wallet.bin");
+    static private final Path   WALLET_PATH_1    = Paths.get(USER_HOME_PATH.toString(), "wallet1.bin");
+    static private final Path   WALLET_PATH_2    = Paths.get(USER_HOME_PATH.toString(), "wallet2.bin");
+
     static private final String BLOCK_PATTERN    = "block%05d.bin";
     static private final String REVERT_PATTERN   = "revert%05d.bin";
 
@@ -96,6 +99,57 @@ public class Main
 
         Wallet wallet = new Wallet(WALLET_PATH.toString(), "1234");
         wallet.initialize();
+        s_logger.debug(wallet.getBalance().toString());
+        s_logger.debug(Convert.toHexString(wallet.getKeyPair().getPublicKey()));
+
+        Wallet wallet1 = new Wallet(WALLET_PATH_1.toString(), "1234");
+        wallet1.initialize();
+        s_logger.debug(wallet1.getBalance().toString());
+        s_logger.debug(Convert.toHexString(wallet1.getKeyPair().getPublicKey()));
+
+        Wallet wallet2 = new Wallet(WALLET_PATH_2.toString(), "1234");
+        wallet2.initialize();
+        s_logger.debug(wallet2.getBalance().toString());
+        s_logger.debug(Convert.toHexString(wallet2.getKeyPair().getPublicKey()));
+/*
+        Blockchain blockchain = new Blockchain(NetworkParameters.mainNet(), wallet);
+
+        Transaction newTransaction = wallet.createTransaction(BigInteger.valueOf(10000000000L), wallet1.getKeyPair().getPublicKey());
+
+        Block newBlock = new Block();
+
+        // Coinbase transaction
+        Transaction coinbase = new Transaction();
+        byte[] newHeight = NumberSerializer.serialize(blockchain.getChainHead().getHeight() + 1);
+        TransactionInput coinbaseInput = new TransactionInput(new Hash(), Integer.MAX_VALUE);
+        coinbaseInput.setUnlockingParameters(newHeight);
+        coinbase.getInputs().add(coinbaseInput);
+        coinbase.getOutputs().add(new TransactionOutput(NetworkParameters.mainNet().getBlockSubsidy(blockchain.getChainHead().getHeight()), OutputLockType.SingleSignature, wallet2.getKeyPair().getPublicKey()));
+
+        newBlock.addTransactions(coinbase);
+        newBlock.addTransactions(newTransaction);
+        newBlock.getHeader().setTimeStamp(1525003294);
+        newBlock.getHeader().setBits(0x1ffffff8L); // TODO: Set correct difficulty.
+        newBlock.getHeader().setParentBlockHash(blockchain.getChainHead().getHeader().getHash());
+
+        BigInteger hash = newBlock.getHeaderHash().toBigInteger();
+        boolean solved = false;
+        while (!solved)
+        {
+            solved = !(hash.compareTo(newBlock.getTargetDifficultyAsInteger()) > 0);
+            if (solved)
+                break;
+            //System.out.println(String.format("Block hash is higher than target difficulty: %s > %s", newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
+            newBlock.getHeader().setNonce(newBlock.getHeader().getNonce() + 1);
+            hash = newBlock.getHeaderHash().toBigInteger();
+        }
+        blockchain.add(newBlock);
+
+        s_logger.debug(wallet.getBalance().toString());
+        s_logger.debug(wallet1.getBalance().toString());
+        s_logger.debug(wallet2.getBalance().toString());
+
+        /*
         s_logger.debug(wallet.getBalance().toString());
         s_logger.debug(wallet.getKeyPair().getPublicKey().toString());
 

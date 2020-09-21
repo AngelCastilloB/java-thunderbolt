@@ -100,76 +100,80 @@ public class StandardTransactionValidator implements ITransactionValidator
         BigInteger totalOutputValue = BigInteger.ZERO;
 
         int inputIndex = 0;
-        for (TransactionInput input: transaction.getInputs())
+
+        if (transaction.isCoinbase())
         {
-            // If is the coinbase input, we skip the previous validations.
-            if (input.isCoinBase() && inputIndex == 0)
+            TransactionInput input =  transaction.getInputs().get(0);
+
+            // check first 8 bytes of locking parameters are available.
+            if (input.getUnlockingParameters().length < 8)
             {
-                // check first 8 bytes of locking parameters are available.
-                if (input.getUnlockingParameters().length < 8)
+                s_logger.debug(
+                        "The coinbase does not contain the block size as its first 8 bytes in the unlocking parameters.");
+                return false;
+            }
+
+            // check that the first eight bytes are the block height.
+            ByteBuffer buffer = ByteBuffer.wrap(input.getUnlockingParameters());
+
+            long blockHeight = buffer.getLong();
+            if (blockHeight != height)
+            {
+                s_logger.debug(
+                        "The coinbase output height {} does not match the block height {}.",
+                        blockHeight, height);
+
+                return false;
+            }
+
+            totalInputValue = totalInputValue.add(NetworkParameters.mainNet().getBlockSubsidy(height));
+        }
+        else
+        {
+            for (TransactionInput input: transaction.getInputs())
+            {
+
+                UnspentTransactionOutput unspentOutput = m_persistence.getUnspentOutput(input.getReferenceHash(), input.getIndex());
+
+                if (unspentOutput == null)
                 {
                     s_logger.debug(
-                            "The coinbase does not contain the block size as its first 8 bytes in the unlocking parameters.");
+                            "The transaction {} references an output ({}) that is not present in the UTXO database.",
+                            input.getReferenceHash(), input.getIndex());
+
                     return false;
                 }
 
-                // check that the first eight bytes are the block height.
-                ByteBuffer buffer = ByteBuffer.wrap(input.getUnlockingParameters());
-
-                if (buffer.getLong() != height)
+                // Check coin base maturity.
+                long coinbaseMaturity = unspentOutput.getBlockHeight() + m_params.getCoinbaseMaturiry();
+                if (unspentOutput.isIsCoinbase() && coinbaseMaturity > height)
                 {
                     s_logger.debug(
-                            "The coinbase output height {} does not match the block height {}.",
-                            buffer.getLong(), height);
+                            "The coinbase transaction {} can not be spend until height {}.",
+                            unspentOutput.getTransactionHash(), coinbaseMaturity);
 
                     return false;
                 }
 
-                totalInputValue = totalInputValue.add(NetworkParameters.mainNet().getBlockSubsidy(height));
+                // Check that the provided parameters can spend the referenced output.
+                byte[] unlockingParameters = transaction.getInputs().get(inputIndex).getUnlockingParameters();
+
+                boolean canUnlock = checkUnlockingParameters(unspentOutput.getOutput(), input, unlockingParameters);
+
+                if (!canUnlock)
+                {
+                    s_logger.debug(
+                            "The input {} in transaction {} cant spent the reference output ({}).",
+                            inputIndex, transaction, input.getReferenceHash());
+
+                    return false;
+
+                }
+
+                totalInputValue = totalInputValue.add(unspentOutput.getOutput().getAmount());
+
                 ++inputIndex;
-                continue;
             }
-
-            UnspentTransactionOutput unspentOutput = m_persistence.getUnspentOutput(input.getReferenceHash(), input.getIndex());
-
-            if (unspentOutput == null)
-            {
-                s_logger.debug(
-                        "The transaction {} references an output ({}) that is not present in the UTXO database.",
-                        input.getReferenceHash(), input.getIndex());
-
-                return false;
-            }
-
-            // Check coin base maturity.
-            long coinbaseMaturity = unspentOutput.getBlockHeight() + m_params.getCoinbaseMaturiry();
-            if (unspentOutput.isIsCoinbase() && coinbaseMaturity > height)
-            {
-                s_logger.debug(
-                        "The coinbase transaction {} can not be spend until height {}.",
-                        unspentOutput.getTransactionHash(), coinbaseMaturity);
-
-                return false;
-            }
-
-            // Check that the provided parameters can spend the referenced output.
-            byte[] unlockingParameters = transaction.getInputs().get(inputIndex).getUnlockingParameters();
-
-            boolean canUnlock = checkUnlockingParameters(unspentOutput.getOutput(), input, unlockingParameters);
-
-            if (!canUnlock)
-            {
-                s_logger.debug(
-                        "The input {} in transaction {} cant spent the reference output ({}).",
-                        inputIndex, transaction, input.getReferenceHash());
-
-                return false;
-
-            }
-
-            totalInputValue = totalInputValue.add(unspentOutput.getOutput().getAmount());
-
-            ++inputIndex;
         }
 
         for (TransactionOutput output: transaction.getOutputs())
@@ -214,7 +218,9 @@ public class StandardTransactionValidator implements ITransactionValidator
 
         try
         {
-            data.write(input.serialize());
+            data.write(input.getReferenceHash().serialize());
+            data.write(input.getIndex());
+            data.write(output.getAmount().toByteArray());
             data.write(output.getLockType().getValue());
             data.write(output.getLockingParameters());
         }
