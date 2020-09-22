@@ -26,11 +26,10 @@ package com.thunderbolt.wallet;
 // IMPORTS *******************************************************************/
 
 import com.thunderbolt.blockchain.contracts.IOutputsUpdateListener;
-import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.ServiceLocator;
 import com.thunderbolt.common.contracts.ISerializable;
+import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
-import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.EllipticCurveKeyPair;
 import com.thunderbolt.security.EllipticCurveProvider;
@@ -163,6 +162,16 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
         }
 
         return true;
+    }
+
+    /**
+     * Gets the address of this wallet.
+     *
+     * @return The address of the wallet.
+     */
+    public Address getAddress()
+    {
+       return new Address(NetworkParameters.mainNet().getSingleSignatureAddressHeader(), m_keys.getPublicKey());
     }
 
     /**

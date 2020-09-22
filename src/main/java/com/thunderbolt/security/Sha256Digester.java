@@ -77,6 +77,23 @@ public class Sha256Digester
     }
 
     /**
+     * Hashes the data with RIPEMD160.
+     *
+     * This is used in Address calculations.
+     */
+    public static byte[] hash160(byte[] data)
+    {
+        RIPEMD160Digest digest = new RIPEMD160Digest();
+        digest.update(data, 0, data.length);
+
+        byte[] out = new byte[20];
+
+        digest.doFinal(out, 0);
+
+        return out;
+    }
+
+    /**
      * Hashes the data with SHA-256 and the has the result with RIPEMD160.
      *
      * This is used in Address calculations.

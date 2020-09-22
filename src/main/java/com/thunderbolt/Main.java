@@ -87,18 +87,19 @@ public class Main
         Wallet wallet = new Wallet(WALLET_PATH.toString(), "1234");
         wallet.initialize();
         s_logger.debug(wallet.getBalance().toString());
-        s_logger.debug(Convert.toHexString(wallet.getKeyPair().getPublicKey()));
+        s_logger.debug(wallet.getAddress().toString());
 
         Wallet wallet1 = new Wallet(WALLET_PATH_1.toString(), "1234");
         wallet1.initialize();
         s_logger.debug(wallet1.getBalance().toString());
-        s_logger.debug(Convert.toHexString(wallet1.getKeyPair().getPublicKey()));
+        s_logger.debug(wallet1.getAddress().toString());
 
         Wallet wallet2 = new Wallet(WALLET_PATH_2.toString(), "1234");
         wallet2.initialize();
         s_logger.debug(wallet2.getBalance().toString());
-        s_logger.debug(Convert.toHexString(wallet2.getKeyPair().getPublicKey()));
+        s_logger.debug(wallet2.getAddress().toString());
 
+        /*
         Blockchain blockchain = new Blockchain(NetworkParameters.mainNet());
         blockchain.addOutputsUpdateListener(wallet);
         blockchain.addOutputsUpdateListener(wallet1);
@@ -113,7 +114,7 @@ public class Main
 
         s_logger.debug(wallet.getBalance().toString());
         s_logger.debug(wallet1.getBalance().toString());
-        s_logger.debug(wallet2.getBalance().toString());
+        s_logger.debug(wallet2.getBalance().toString());*/
     }
 
     /**

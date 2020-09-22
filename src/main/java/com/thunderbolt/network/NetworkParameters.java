@@ -44,8 +44,8 @@ public class NetworkParameters implements Serializable
 {
     // Constants
     static private final int        PROTOCOL_VERSION                      = 1;
-    static private final byte       MAIN_NET_SINGLE_SIGNATURE_PREFIX      = 0x54;
-    static private final byte       MAIN_NET_MULTI_SIGNATURE_PREFIX       = 0x4A;
+    static private final byte       MAIN_NET_SINGLE_SIGNATURE_PREFIX      = 0x10;
+    static private final byte       MAIN_NET_MULTI_SIGNATURE_PREFIX       = 0x20;
     static private final int        MAIN_NET_TARGET_TIMESPAN              = 7 * 24 * 60 * 60;  // 1 week per difficulty cycle, on average.
     static private final int        MAIN_NET_TARGET_SPACING               = 2 * 60; // 2 minutes per block.
     static private final int        MAIN_NET_INTERVAL                     = MAIN_NET_TARGET_TIMESPAN / MAIN_NET_TARGET_SPACING;
