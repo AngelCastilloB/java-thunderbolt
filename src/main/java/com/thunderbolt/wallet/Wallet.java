@@ -25,6 +25,7 @@ package com.thunderbolt.wallet;
 
 // IMPORTS *******************************************************************/
 
+import com.thunderbolt.blockchain.contracts.IOutputsUpdateListener;
 import com.thunderbolt.common.ServiceLocator;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
@@ -42,10 +43,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import com.thunderbolt.transaction.OutputLockType;
 import com.thunderbolt.transaction.Transaction;
@@ -61,7 +59,7 @@ import org.slf4j.LoggerFactory;
  * Keeps track of the unspent outputs spendable by the keys in the wallet file. This class also contains useful functions
  * for tracking available balance, sending and verifying the received payments.
  */
-public class Wallet implements ISerializable
+public class Wallet implements ISerializable, IOutputsUpdateListener
 {
     private static final Logger s_logger = LoggerFactory.getLogger(Wallet.class);
 
@@ -173,23 +171,6 @@ public class Wallet implements ISerializable
     public EllipticCurveKeyPair getKeyPair()
     {
         return m_keys;
-    }
-
-    /**
-     * Updates the list of unspent outputs available, adding new outputs and removing no longer available ones.
-     *
-     * @param toAdd    The list of new outputs.
-     * @param toRemove The list of outputs no longer available.
-     */
-    public void updateOutputs(List<UnspentTransactionOutput> toAdd, List<Hash> toRemove)
-    {
-        for (Hash hash: toRemove)
-            m_unspentOutputs.remove(hash);
-
-        for (UnspentTransactionOutput output: toAdd)
-        {
-            m_unspentOutputs.put(output.getHash(), output);
-        }
     }
 
     /**
@@ -324,5 +305,23 @@ public class Wallet implements ISerializable
         }
 
         return result;
+    }
+
+    /**
+     * Called when a change on the available unspent outputs occur.
+     *
+     * @param toAdd The new unspent outputs that were added.
+     * @param toRemove The unspent outputs that are no longer available.
+     */
+    public void outputsUpdated(List<UnspentTransactionOutput> toAdd, List<Hash> toRemove)
+    {
+        for (Hash hash: toRemove)
+            m_unspentOutputs.remove(hash);
+
+        for (UnspentTransactionOutput output: toAdd)
+        {
+            if (Arrays.equals(output.getOutput().getLockingParameters(), m_keys.getPublicKey()))
+                m_unspentOutputs.put(output.getHash(), output);
+        }
     }
 }

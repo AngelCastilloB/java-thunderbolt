@@ -60,4 +60,12 @@ public interface IBlockchainCommitter
      * @return True if the changes were reverted; otherwise; false.
      */
     boolean rollback(BlockMetadata metadata) throws StorageException;
+
+    /**
+     * Adds a new listener to the list of outputs update listeners. This listener wuill be notified when a change
+     * regarding the unspent outputs occurs.
+     *
+     * @param listener The new listener to be added.
+     */
+    void addOutputsUpdateListener(IOutputsUpdateListener listener);
 }

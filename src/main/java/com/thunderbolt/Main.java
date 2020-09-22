@@ -111,8 +111,11 @@ public class Main
         wallet2.initialize();
         s_logger.debug(wallet2.getBalance().toString());
         s_logger.debug(Convert.toHexString(wallet2.getKeyPair().getPublicKey()));
-/*
-        Blockchain blockchain = new Blockchain(NetworkParameters.mainNet(), wallet);
+
+        Blockchain blockchain = new Blockchain(NetworkParameters.mainNet());
+        blockchain.addOutputsUpdateListener(wallet);
+        blockchain.addOutputsUpdateListener(wallet1);
+        blockchain.addOutputsUpdateListener(wallet2);
 
         Transaction newTransaction = wallet.createTransaction(BigInteger.valueOf(10000000000L), wallet1.getKeyPair().getPublicKey());
 

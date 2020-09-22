@@ -26,6 +26,7 @@ package com.thunderbolt.blockchain;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.blockchain.contracts.IBlockchainCommitter;
+import com.thunderbolt.blockchain.contracts.IOutputsUpdateListener;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.BlockMetadata;
@@ -53,21 +54,19 @@ public class StandardBlockchainCommitter implements IBlockchainCommitter
     private static final Logger s_logger = LoggerFactory.getLogger(StandardBlockchainCommitter.class);
 
     // Instance fields.
-    private Wallet                   m_wallet;
-    private IPersistenceService      m_persistence;
-    private ITransactionsPoolService m_memPool;
+    private IPersistenceService          m_persistence;
+    private ITransactionsPoolService     m_memPool;
+    private List<IOutputsUpdateListener> m_listeners = new ArrayList<IOutputsUpdateListener>();
 
     /**
      * Initializes a new instance of the StandardBlockchainCommitter class.
      *
-     * @param wallet      The users wallet. We need to update the current available outputs for spending.
      * @param persistence The persistence service. Used to retrieve relevant metadata from the blockchain.
      * @param memPool     The memory pool service. When a block is added or removed, transaction are added and removed
      *                    from the mem pool as well.
      */
-    public StandardBlockchainCommitter(Wallet wallet, IPersistenceService persistence, ITransactionsPoolService memPool)
+    public StandardBlockchainCommitter(IPersistenceService persistence, ITransactionsPoolService memPool)
     {
-        m_wallet = wallet;
         m_persistence = persistence;
         m_memPool = memPool;
     }
@@ -144,8 +143,9 @@ public class StandardBlockchainCommitter implements IBlockchainCommitter
             }
         }
 
-        // Update the wallet.
-        m_wallet.updateOutputs(newOutputs, removedOutputs);
+        // Update the wallets.
+        for (IOutputsUpdateListener listener : m_listeners)
+            listener.outputsUpdated(newOutputs, removedOutputs);
 
         return true;
     }
@@ -201,9 +201,22 @@ public class StandardBlockchainCommitter implements IBlockchainCommitter
                 m_persistence.addUnspentOutput(output);
         }
 
-        // Update the wallet.
-        m_wallet.updateOutputs(spentOutputs, removedOutputs);
+        // Update the wallets.
+        for (IOutputsUpdateListener listener : m_listeners)
+            listener.outputsUpdated(spentOutputs, removedOutputs);
 
         return true;
+    }
+
+    /**
+     * Adds a new listener to the list of outputs update listeners. This listener will be notified when a change
+     * regarding the unspent outputs occurs.
+     *
+     * @param listener The new listener to be added.
+     */
+    @Override
+    public void addOutputsUpdateListener(IOutputsUpdateListener listener)
+    {
+        m_listeners.add(listener);
     }
 }

@@ -26,6 +26,7 @@ package com.thunderbolt.blockchain;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.blockchain.contracts.IBlockchainCommitter;
+import com.thunderbolt.blockchain.contracts.IOutputsUpdateListener;
 import com.thunderbolt.common.ServiceLocator;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.network.NetworkParameters;
@@ -35,7 +36,6 @@ import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.BlockMetadata;
 import com.thunderbolt.transaction.contracts.ITransactionValidator;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
-import com.thunderbolt.wallet.Wallet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +52,6 @@ public class Blockchain
 {
     private static final Logger s_logger = LoggerFactory.getLogger(Blockchain.class);
 
-    private Wallet                   m_wallet;
     private NetworkParameters        m_params;
     private ITransactionValidator    m_transactionValidator;
     private IBlockchainCommitter     m_committer;
@@ -63,16 +62,14 @@ public class Blockchain
      * Creates a new instance of the blockchain.
      *
      * @param params The network parameters.
-     * @param wallet The wallet.
      */
-    public Blockchain(NetworkParameters params, Wallet wallet) throws StorageException
+    public Blockchain(NetworkParameters params) throws StorageException
     {
         m_params = params;
-        m_wallet = wallet;
 
         // TODO: Inject this services.
         m_transactionValidator = new StandardTransactionValidator(m_persistence, m_params);
-        m_committer = new StandardBlockchainCommitter(m_wallet, m_persistence, m_memPool);
+        m_committer = new StandardBlockchainCommitter(m_persistence, m_memPool);
 
         // If there is no chain head yet, that means the blockchain is not initialized.
         if (m_persistence.getChainHead() == null)
@@ -150,6 +147,17 @@ public class Blockchain
         connect(newMetadata, parent);
 
         return true;
+    }
+
+    /**
+     * Adds a new listener to the list of outputs update listeners. This listener will be notified when a change
+     * regarding the unspent outputs occurs.
+     *
+     * @param listener The new listener to be added.
+     */
+    public void addOutputsUpdateListener(IOutputsUpdateListener listener)
+    {
+        m_committer.addOutputsUpdateListener(listener);
     }
 
     /**
