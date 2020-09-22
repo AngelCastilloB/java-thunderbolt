@@ -84,12 +84,23 @@ public class Blockchain
     }
 
     /**
+     * Gets the current chain head.
      *
-     * @return
+     * @return The block at the head of the blockchain.
      */
     public synchronized BlockMetadata getChainHead() throws StorageException
     {
         return m_persistence.getChainHead();
+    }
+
+    /**
+     * Gets the network parameters.
+     *
+     * @return The network parameters.
+     */
+    public NetworkParameters getNetworkParameters()
+    {
+        return m_params;
     }
 
     /**
@@ -158,6 +169,54 @@ public class Blockchain
     public void addOutputsUpdateListener(IOutputsUpdateListener listener)
     {
         m_committer.addOutputsUpdateListener(listener);
+    }
+
+    /**
+     * Gets the target difficulty for the next block .
+     *
+     * @return The target difficulty for the next block.
+     */
+    public long computeTargetDifficulty() throws StorageException
+    {
+        BlockMetadata currentHead = m_persistence.getChainHead();
+        BlockHeader current = currentHead.getHeader();
+
+        // Check if difficulty adjustment is needed. If not needed, return current difficulty.
+        if ((currentHead.getHeight() + 1) % m_params.getDifficulAdjustmentInterval() != 0)
+            return current.getBits();
+
+        // Find the block at the beginning of the interval and verify that we are using the correct difficulty.
+        BlockMetadata cursor = m_persistence.getBlockMetadata(current.getHash());
+        for (int i = 0; i < m_params.getDifficulAdjustmentInterval() - 1; i++)
+        {
+            if (cursor == null)
+            {
+                s_logger.error("There is no way back to the genesis block from this point.");
+                //throw Invalid
+            }
+
+            cursor = m_persistence.getBlockMetadata(cursor.getHash());
+        }
+
+        BlockHeader blockIntervalAgo = cursor.getHeader();
+
+        int timeSpan = (int) (current.getTimeStamp() - blockIntervalAgo.getTimeStamp());
+
+        // Limit the adjustment step.
+        timeSpan = Math.min(
+                Math.max(timeSpan, m_params.getMinTimespanAdjustment()), m_params.getMaxTimespanAdjustment());
+
+        BigInteger newDifficulty = Block.unpackDifficulty(blockIntervalAgo.getBits());
+        newDifficulty = newDifficulty.multiply(BigInteger.valueOf(timeSpan));
+        newDifficulty = newDifficulty.divide(BigInteger.valueOf(m_params.getTargetTimespan()));
+
+        if (newDifficulty.compareTo(m_params.getProofOfWorkLimit()) > 0)
+        {
+            s_logger.warn("Difficulty hit proof of work limit: {}", newDifficulty.toString(16));
+            newDifficulty = m_params.getProofOfWorkLimit();
+        }
+
+        return newDifficulty.longValue();
     }
 
     /**

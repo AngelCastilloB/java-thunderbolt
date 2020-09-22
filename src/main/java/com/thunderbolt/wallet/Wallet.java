@@ -26,9 +26,11 @@ package com.thunderbolt.wallet;
 // IMPORTS *******************************************************************/
 
 import com.thunderbolt.blockchain.contracts.IOutputsUpdateListener;
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.ServiceLocator;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
+import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.EllipticCurveKeyPair;
 import com.thunderbolt.security.EllipticCurveProvider;
@@ -204,8 +206,11 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
     {
         Transaction transaction = new Transaction();
 
-        if (getBalance().compareTo(amount) < 0)
-            return null; // TODO: Throw.
+        BigInteger currentBalance = getBalance();
+        if (currentBalance.compareTo(amount) < 0)
+        {
+            throw new IllegalArgumentException(String.format("The wallet does not have enough funds. Available funds '%s', given amount '%s'", currentBalance, amount));
+        }
 
         BigInteger total = BigInteger.ZERO;
 

@@ -53,6 +53,7 @@ public class NetworkParameters implements Serializable
     static private final long       MAIN_NET_SUBSIDY_HALVING_INTERVAL     = 210000;
     static private final BigInteger MAIN_NET_SUBSIDY_STARTING_VALUE       = BigInteger.valueOf(5000000000L);
     public static final long        MAIN_NET_COINBASE_MATURITY            = 0; // TODO: Add back the normal maturity. 100
+    public static final long        MAIN_NET_MAX_BLOCK_SIZE               = 5242880; //5 mb
 
     // Instance fields
     private Block      m_genesisBlock;
@@ -94,7 +95,7 @@ public class NetworkParameters implements Serializable
         String message = "Genesis block.";
         input.setUnlockingParameters(message.getBytes(StandardCharsets.US_ASCII));
 
-        genesisBlock.addTransactions(transaction);
+        genesisBlock.addTransaction(transaction);
 
         genesisBlock.getHeader().setTimeStamp(1525003294);
         genesisBlock.getHeader().setBits(0x1d07fff8L);
@@ -123,6 +124,7 @@ public class NetworkParameters implements Serializable
         parameters.m_targetTimespan               = MAIN_NET_TARGET_TIMESPAN;
         parameters.m_genesisBlock                 = createGenesis();
         parameters.m_coinbaseMaturity             = MAIN_NET_COINBASE_MATURITY;
+        parameters.m_blockSize                    = MAIN_NET_MAX_BLOCK_SIZE;
 
         String genesisHash = parameters.getGenesisBlock().getHeaderHash().toString();
 

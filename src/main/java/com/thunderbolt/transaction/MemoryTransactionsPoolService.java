@@ -29,7 +29,6 @@ import com.thunderbolt.common.Convert;
 import com.thunderbolt.security.Hash;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
 
-import java.lang.instrument.Instrumentation;
 import java.math.BigInteger;
 import java.util.*;
 

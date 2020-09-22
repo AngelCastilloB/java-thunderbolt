@@ -36,7 +36,6 @@ import com.thunderbolt.transaction.Transaction;
 import com.thunderbolt.transaction.TransactionInput;
 import com.thunderbolt.transaction.TransactionOutput;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
-import com.thunderbolt.wallet.Wallet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

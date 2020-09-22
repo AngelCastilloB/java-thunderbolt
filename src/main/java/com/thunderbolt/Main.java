@@ -28,35 +28,27 @@ package com.thunderbolt;
 
 import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.blockchain.Blockchain;
-import com.thunderbolt.blockchain.contracts.IBlockchainCommitter;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.common.ServiceLocator;
+import com.thunderbolt.mining.MiningException;
+import com.thunderbolt.mining.StandardMiner;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.StandardPersistenceService;
 import com.thunderbolt.persistence.storage.*;
-import com.thunderbolt.persistence.structures.BlockMetadata;
-import com.thunderbolt.persistence.structures.TransactionMetadata;
-import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.*;
 import com.thunderbolt.transaction.*;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
-import com.thunderbolt.transaction.parameters.MultiSignatureParameters;
-import com.thunderbolt.transaction.parameters.SingleSignatureParameters;
 import com.thunderbolt.wallet.Wallet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.math.BigInteger;
-import java.nio.ByteBuffer;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
-import java.util.ArrayList;
-import java.util.HashMap;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -81,20 +73,15 @@ public class Main
 
     private static final Logger s_logger = LoggerFactory.getLogger(Main.class);
 
-    //static EllipticCurveKeyPair s_genesisKeyPair     = new EllipticCurveKeyPair();
-    static EllipticCurveKeyPair s_genesisKeyPair2    = new EllipticCurveKeyPair();
-   // static TransactionOutput    s_genesisOutput      = new TransactionOutput(BigInteger.valueOf(1500), OutputLockType.SingleSignature, s_genesisKeyPair.getPublicKey());
-    static Transaction          s_genesisTransaction = new Transaction();
-
-    static HashMap<Hash, Transaction> s_UXTOPoll = new HashMap<>();
-
     /**
      * Application entry point.
      *
      * @param args Arguments.
      */
-    public static void main(String[] args) throws IOException, GeneralSecurityException, CloneNotSupportedException, StorageException
+    public static void main(String[] args) throws IOException, GeneralSecurityException, StorageException, MiningException
     {
+        MemoryTransactionsPoolService memPool = new MemoryTransactionsPoolService();
+
         initializeServices();
 
         Wallet wallet = new Wallet(WALLET_PATH.toString(), "1234");
@@ -117,508 +104,16 @@ public class Main
         blockchain.addOutputsUpdateListener(wallet1);
         blockchain.addOutputsUpdateListener(wallet2);
 
-        Transaction newTransaction = wallet.createTransaction(BigInteger.valueOf(10000000000L), wallet1.getKeyPair().getPublicKey());
+        Transaction newTransaction = wallet1.createTransaction(BigInteger.valueOf(23L), wallet.getKeyPair().getPublicKey());
+        memPool.addTransaction(newTransaction);
 
-        Block newBlock = new Block();
-
-        // Coinbase transaction
-        Transaction coinbase = new Transaction();
-        byte[] newHeight = NumberSerializer.serialize(blockchain.getChainHead().getHeight() + 1);
-        TransactionInput coinbaseInput = new TransactionInput(new Hash(), Integer.MAX_VALUE);
-        coinbaseInput.setUnlockingParameters(newHeight);
-        coinbase.getInputs().add(coinbaseInput);
-        coinbase.getOutputs().add(new TransactionOutput(NetworkParameters.mainNet().getBlockSubsidy(blockchain.getChainHead().getHeight()), OutputLockType.SingleSignature, wallet2.getKeyPair().getPublicKey()));
-
-        newBlock.addTransactions(coinbase);
-        newBlock.addTransactions(newTransaction);
-        newBlock.getHeader().setTimeStamp(1525003294);
-        newBlock.getHeader().setBits(0x1ffffff8L); // TODO: Set correct difficulty.
-        newBlock.getHeader().setParentBlockHash(blockchain.getChainHead().getHeader().getHash());
-
-        BigInteger hash = newBlock.getHeaderHash().toBigInteger();
-        boolean solved = false;
-        while (!solved)
-        {
-            solved = !(hash.compareTo(newBlock.getTargetDifficultyAsInteger()) > 0);
-            if (solved)
-                break;
-            //System.out.println(String.format("Block hash is higher than target difficulty: %s > %s", newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
-            newBlock.getHeader().setNonce(newBlock.getHeader().getNonce() + 1);
-            hash = newBlock.getHeaderHash().toBigInteger();
-        }
+        StandardMiner miner = new StandardMiner(memPool, blockchain, wallet2);
+        Block newBlock = miner.mine();
         blockchain.add(newBlock);
 
         s_logger.debug(wallet.getBalance().toString());
         s_logger.debug(wallet1.getBalance().toString());
         s_logger.debug(wallet2.getBalance().toString());
-
-        /*
-        s_logger.debug(wallet.getBalance().toString());
-        s_logger.debug(wallet.getKeyPair().getPublicKey().toString());
-
-        NetworkParameters parameters = new NetworkParameters();
-        Blockchain blockchain = new Blockchain(NetworkParameters.mainNet(), wallet);
-
-        //blockchain.add(NetworkParameters.createGenesis());
-        //UnspentTransactionOutput spentXT = ServiceLocator.getService(IPersistenceService.class).getUnspentOutput(new Hash("507A172834CEE81334725FAC21D043C000F88DC1E5A046034CBDADB888462BF3"), 0);
-
-        // newInput = new TransactionInput(new Hash("507A172834CEE81334725FAC21D043C000F88DC1E5A046034CBDADB888462BF3"), 0);
-
-        //s_logger.debug(String.format("%s", spentXT.getTransactionHash()));
-        s_logger.debug(wallet.getBalance().toString());
-        for (int  i = 0; i < 6; ++i)
-        {
-            byte[] newHeight = NumberSerializer.serialize(blockchain.getChainHead().getHeight() + 1);
-
-            // Coinbase transaction
-            Transaction coinbase = new Transaction();
-            coinbase.getInputs().add(new TransactionInput(new Hash(), Integer.MAX_VALUE, newHeight));
-
-            // Transfer 1000 another user.
-            coinbase.getOutputs().add(new TransactionOutput(NetworkParameters.mainNet().getBlockSubsidy(blockchain.getChainHead().getHeight()), OutputLockType.SingleSignature, wallet.getKeyPair().getPublicKey()));
-
-            Block newBlock = new Block();
-
-            newBlock.addTransactions(coinbase);
-            newBlock.getHeader().setTimeStamp(1525003294);
-            newBlock.getHeader().setBits(0x1ffffff8L);
-
-            //s_logger.debug(blockchain.getChainHead().getHash().toString());
-            newBlock.getHeader().setParentBlockHash(blockchain.getChainHead().getHash());
-
-            BigInteger hash = newBlock.getHeaderHash().toBigInteger();
-            boolean solved = false;
-            while (!solved)
-            {
-                solved = !(hash.compareTo(newBlock.getTargetDifficultyAsInteger()) > 0);
-                if (solved)
-                    break;
-                //System.out.println(String.format("Block hash is higher than target difficulty: %s > %s", newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
-                newBlock.getHeader().setNonce(newBlock.getHeader().getNonce() + 1);
-                hash = newBlock.getHeaderHash().toBigInteger();
-            }
-
-            //s_logger.debug(String.format("Block solved! hash is lower than target difficulty (%d): %s > %s", newBlock.getHeader().getNonce(), newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
-
-            blockchain.add(newBlock);
-            System.out.println(blockchain.getChainHead().getHeight());
-            s_logger.debug(wallet.getBalance().toString());
-        }/*
-        // Transaction
-
-        // When we sign the transaction input plus the locking parameters of the referenced output.
-
-        ByteArrayOutputStream signatureData = new ByteArrayOutputStream();
-        signatureData.write(newInput.serialize());
-        signatureData.write(spentXT.getOutput().getLockType().getValue());
-        signatureData.write(spentXT.getOutput().getLockingParameters());
-
-        // The signature in DER format is the unlocking parameter of the referenced output. We need to add this to the unlocking parameters
-        // list of the transaction at the same position at which we added the transaction.
-        byte[] derSignature = EllipticCurveProvider.sign(signatureData.toByteArray(), wallet.getKeyPair().getPrivateKey());
-
-        SingleSignatureParameters singleParam = new SingleSignatureParameters(wallet.getKeyPair().getPublicKey(), derSignature);
-        // At this point this input transaction is spendable.
-        Transaction transaction = new Transaction();
-        transaction.getInputs().add(newInput);
-        transaction.getUnlockingParameters().add(singleParam.serialize());
-
-        // Transfer 1000 another user.
-        transaction.getOutputs().add(new TransactionOutput(BigInteger.valueOf(1000), OutputLockType.SingleSignature, wallet.getKeyPair().getPublicKey()));
-
-        // Return the change to myself.
-        transaction.getOutputs().add(new TransactionOutput(BigInteger.valueOf(500), OutputLockType.SingleSignature, wallet.getKeyPair().getPublicKey()));
-
-        Block newBlock = new Block();
-
-        // Coinbase transaction
-        Transaction coinbase = new Transaction();
-        coinbase.getInputs().add(new TransactionInput(new Hash(), 0));
-
-        byte[] coinbaseData = new byte[] { 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
-        coinbase.getUnlockingParameters().add(coinbaseData);
-        // Transfer 1000 another user.
-        coinbase.getOutputs().add(new TransactionOutput(NetworkParameters.mainNet().getBlockSubsidy(blockchain.getChainHead().getHeight()), OutputLockType.SingleSignature, wallet.getKeyPair().getPublicKey()));
-
-        newBlock.addTransactions(coinbase);
-        newBlock.addTransactions(transaction);
-        newBlock.getHeader().setTimeStamp(1525003294);
-        newBlock.getHeader().setBits(0x1ffffff8L); // TODO: Set correct difficulty.
-        newBlock.getHeader().setParentBlockHash(blockchain.getChainHead().getHeader().getHash());
-
-        BigInteger hash = newBlock.getHeaderHash().toBigInteger();
-        boolean solved = false;
-        while (!solved)
-        {
-            solved = !(hash.compareTo(newBlock.getTargetDifficultyAsInteger()) > 0);
-            if (solved)
-                break;
-            //System.out.println(String.format("Block hash is higher than target difficulty: %s > %s", newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
-            newBlock.getHeader().setNonce(newBlock.getHeader().getNonce() + 1);
-            hash = newBlock.getHeaderHash().toBigInteger();
-        }
-
-        s_logger.debug(String.format("Block solved! hash is lower than target difficulty (%d): %s > %s", newBlock.getHeader().getNonce(), newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
-
-
-        blockchain.add(newBlock);
-
-
-        //ServiceLocator.getService(IPersistenceService.class).persist(genesisBlock, 0, genesisBlock.getWork());
-        //ServiceLocator.getService(IBlockchainCommitter.class).persist(genesisBlock, 0, genesisBlock.getWork());
-/*
-        UnspentTransactionOutput spentXT = ServiceLocator.getService(IPersistenceService.class).getUnspentOutput(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"), 0);
-
-        s_logger.debug(String.format("%s", spentXT.getTransactionHash()));
-
-        TransactionInput input = new TransactionInput(spentXT.getTransactionHash(), 0);
-
-        // When we sign the transaction input plus the locking parameters of the referenced output.
-        ByteArrayOutputStream signatureData = new ByteArrayOutputStream();
-        signatureData.write(input.serialize());
-        signatureData.write(spentXT.getOutput().getLockType().getValue());
-        signatureData.write(spentXT.getOutput().getLockingParameters());
-
-        // The signature in DER format is the unlocking parameter of the referenced output. We need to add this to the unlocking parameters
-        // list of the transaction at the same position at which we added the transaction.
-        byte[] derSignature = EllipticCurveProvider.sign(signatureData.toByteArray(), s_genesisKeyPair.getPrivateKey());
-
-        // At this point this input transaction is spendable.
-        Transaction transaction = new Transaction();
-        transaction.getInputs().add(input);
-        transaction.getUnlockingParameters().add(derSignature);
-
-        // Transfer 1000 another user.
-        transaction.getOutputs().add(new TransactionOutput(BigInteger.valueOf(1000), OutputLockType.SingleSignature, s_genesisKeyPair2.getPublicKey()));
-
-        // Return the change to myself.
-        transaction.getOutputs().add(new TransactionOutput(BigInteger.valueOf(500), OutputLockType.SingleSignature, s_genesisKeyPair.getPublicKey()));
-
-        Block newBlock = new Block();
-        newBlock.addTransactions(transaction);
-        newBlock.getHeader().setTimeStamp(1525003294);
-        newBlock.getHeader().setBits(0x1d07fff8L);
-        newBlock.getHeader().setParentBlockHash(NetworkParameters.createGenesis().getHeaderHash());
-=======
-        Block genesisBlock = NetworkParameters.createGenesis();
-        //ServiceLocator.getService(IPersistenceService.class).persist(genesisBlock, 0, genesisBlock.getWork());
-        Wallet myWallet = new Wallet("asd");
-        Blockchain chai2n = new Blockchain(NetworkParameters.mainNet(), myWallet);
-        chai2n.add(genesisBlock);
-
-        UnspentTransactionOutput uxto = ServiceLocator.getService(IPersistenceService.class).getUnspentOutput(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"), 0);
-
-        BlockMetadata blockMetadata = ServiceLocator.getService(IPersistenceService.class).getBlockMetadata(NetworkParameters.createGenesis().getHeaderHash());
-        TransactionMetadata  metadata = new TransactionMetadata();
-
-        s_logger.debug("metadata \n{}", blockMetadata);
-        s_logger.debug("\n{}", uxto);
-        s_logger.debug("\n{}", genesisBlock);
->>>>>>> bab5fb7bcedeedc510efe1d8110125871c692a0e
-
-        BigInteger hash = newBlock.getHeaderHash().toBigInteger();
-        boolean solved = false;
-        while (!solved)
-        {
-            solved = !(hash.compareTo(newBlock.getTargetDifficultyAsInteger()) > 0);
-            if (solved)
-                break;
-            //System.out.println(String.format("Block hash is higher than target difficulty: %s > %s", newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
-            newBlock.getHeader().setNonce(newBlock.getHeader().getNonce() + 1);
-            hash = newBlock.getHeaderHash().toBigInteger();
-        }
-
-        s_logger.debug(String.format("Block solved! hash is lower than target difficulty (%d): %s > %s", newBlock.getHeader().getNonce(), newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
-
-        ServiceLocator.getService(IPersistenceService.class).persist(newBlock, 0, BigInteger.ZERO);
-
-        s_logger.debug(String.format("Added Block %s, with transaction %s", newBlock.getHeader().getHash(), newBlock.getTransaction(0).getTransactionId()));
-
-
-        /*
-        Block genesisBlock = NetworkParameters.createGenesis();
-        ServiceLocator.getService(IPersistenceService.class).persist(genesisBlock, 0, genesisBlock.getWork());
-        System.out.println(genesisBlock.toString());*/
-
-/*
-        Transaction xt = ServiceLocator.getService(IPersistenceService.class).getTransaction(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"));
-
-        ServiceLocator.register(Transaction.class, xt);
-        Transaction copy = ServiceLocator.getService(Transaction.class);
-
-<<<<<<< HEAD
-        s_logger.debug("Valid: {}", xt.isValid());*/
-/*
-        MemoryTransactionsPoolService service = new MemoryTransactionsPoolService();
-
-        service.addTransaction(xt);
-        //s_logger.debug("Valid: \n{}", xt);
-        //s_logger.debug("Valid: \n{}", copy);
-
-        s_logger.debug("\n{}", service.toString());
-
-        MultiSignatureParameters parameters = new MultiSignatureParameters();
-
-        EllipticCurveKeyPair keyPair1 = new EllipticCurveKeyPair();
-        EllipticCurveKeyPair keyPair2 = new EllipticCurveKeyPair();
-        EllipticCurveKeyPair keyPair3 = new EllipticCurveKeyPair();
-
-        parameters.setTotalSigners((byte)0x03);
-        parameters.setNeededSignatures((byte)0x02);
-        parameters.getPublicKeys().add(keyPair1.getPublicKey());
-        parameters.getPublicKeys().add(keyPair2.getPublicKey());
-        parameters.getPublicKeys().add(keyPair3.getPublicKey());
-
-        byte[] data = { 0x01 , 0x02, 0x03 };
-
-        parameters.addSignature((byte)0, EllipticCurveProvider.sign(data, keyPair1.getPrivateKey()));
-        parameters.addSignature((byte)1, EllipticCurveProvider.sign(data, keyPair2.getPrivateKey()));
-        parameters.addSignature((byte)2, EllipticCurveProvider.sign(data, keyPair3.getPrivateKey()));
-
-        s_logger.debug("\n{}", parameters);
-
-
-        s_logger.debug("Balance: {}", myWallet.getBalance().longValue());
-        //for (TransactionOutput output : copy.getOutputs())
-        //    s_logger.debug("{}", output);
-       // for (TransactionInput input : copy.getInputs())
-        //    s_logger.debug("{}", input);
-        /*
-        initializeServices();
-
-        //StandardPersistenceService.getInstance().persist(NetworkParameters.createGenesis(), 0);
-        Transaction spentXT = StandardPersistenceService.getInstance().getTransaction(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"));
-        Block block = StandardPersistenceService.getInstance().getBlock(new Hash("00000004063B34C6FE99D1DB8A8C7F041B46487E64B0ED74C0EE8B7D4FA8F4E9"));
-
-        s_logger.debug(String.format("Block is valid: %s", block.isValid()));
-        //UnspentTransactionOutput uxto = StandardPersistenceService.getInstance().getUnspentOutput(new Hash("71D7E987F134CB712A247ECFCA3CCBC42B8B7D0C8654115B81F077561E08B97B"), 0);
-        int a = 3;
-        ++a;
-/*
-        UnspentTransactionOutput uxto = new UnspentTransactionOutput();
-        uxto.setTransactionHash(spentXT.getTransactionId());
-        uxto.setVersion(spentXT.getVersion());
-        uxto.setIndex(0);
-        uxto.setBlockHeight(0);
-        uxto.setIsCoinbase(uxto.isIsCoinbase());
-        uxto.setOutput(spentXT.getOutputs().get(0));
-
-        StandardPersistenceService.getInstance().addUnspentOutput(uxto);*/
-        /*
-        Block newBlock = NetworkParameters.createGenesis();
-        BigInteger hash = newBlock.getHeaderHash().toBigInteger();
-        boolean solved = false;
-        while (!solved)
-        {
-            solved = !(hash.compareTo(newBlock.getTargetDifficultyAsInteger()) > 0);
-            if (solved)
-                break;
-            //System.out.println(String.format("Block hash is higher than target difficulty: %s > %s", newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
-            newBlock.getHeader().setNonce(newBlock.getHeader().getNonce() + 1);
-            hash = newBlock.getHeaderHash().toBigInteger();
-        }
-
-        s_logger.debug(String.format("Block solved! hash is lower than target difficulty (%d): %s > %s", newBlock.getHeader().getNonce(), newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
-*/
-
-        /*
-        UnspentTransactionOutput spentXT = StandardPersistenceService.getInstance().getUnspentOutput(new Hash("E2DBE246FEEAFD8B57CB2C08A6C62DA2F2CF98BE9BA21CD5CE3E6FD485D21E8D"));
-
-        s_logger.debug(String.format("%s", spentXT.getTransactionHash()));
-
-        TransactionInput outpoint = new TransactionInput(new Hash("E2DBE246FEEAFD8B57CB2C08A6C62DA2F2CF98BE9BA21CD5CE3E6FD485D21E8D"), 0);
-        TransactionInput input = new TransactionInput(outpoint, 0);
-
-        // When we sign the transaction input plus the locking parameters of the referenced output.
-        ByteArrayOutputStream signatureData = new ByteArrayOutputStream();
-        signatureData.write(input.serialize());
-        signatureData.write(spentXT.getOutputs().get(0).getLockType().getValue());
-        signatureData.write(spentXT.getOutputs().get(0).getLockingParameters());
-
-        // The signature in DER format is the unlocking parameter of the referenced output. We need to add this to the unlocking parameters
-        // list of the transaction at the same position at which we added the transaction.
-        byte[] derSignature = EllipticCurveProvider.sign(signatureData.toByteArray(), s_genesisKeyPair.getPrivateKey());
-
-        // At this point this input transaction is spendable.
-        Transaction transaction = new Transaction();
-        transaction.getInputs().add(input);
-        transaction.getUnlockingParameters().add(derSignature);
-
-        // Transfer 1000 another user.
-        transaction.getOutputs().add(new TransactionOutput(BigInteger.valueOf(1000), OutputLockType.SingleSignature, s_genesisKeyPair2.getPublicKey()));
-
-        // Return the change to myself.
-        transaction.getOutputs().add(new TransactionOutput(BigInteger.valueOf(500), OutputLockType.SingleSignature, s_genesisKeyPair.getPublicKey()));
-
-        Block newBlock = new Block();
-        newBlock.addTransactions(transaction);
-        newBlock.getHeader().setTimeStamp(1525003294);
-        newBlock.getHeader().setBits(0x1d07fff8L);
-        newBlock.getHeader().setParentBlockHash(NetworkParameters.createGenesis().getHeaderHash());
-
-        BigInteger hash = newBlock.getHeaderHash().toBigInteger();
-        boolean solved = false;
-        while (!solved)
-        {
-            solved = !(hash.compareTo(newBlock.getTargetDifficultyAsInteger()) > 0);
-            if (solved)
-                break;
-            //System.out.println(String.format("Block hash is higher than target difficulty: %s > %s", newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
-            newBlock.getHeader().setNonce(newBlock.getHeader().getNonce() + 1);
-            hash = newBlock.getHeaderHash().toBigInteger();
-        }
-
-        s_logger.debug(String.format("Block solved! hash is lower than target difficulty (%d): %s > %s", newBlock.getHeader().getNonce(), newBlock.getHeaderHash(), Convert.toHexString(newBlock.getTargetDifficultyAsInteger().toByteArray())));
-
-        StandardPersistenceService.getInstance().persist(newBlock, 0);
-
-        s_logger.debug(String.format("Added Block %s, with transaction %s", newBlock.getHeader().getTransactionHash(), newBlock.getTransaction(0).getTransactionId()));
-
-        /*
-        Block genesisBlock = NetworkParameters.createGenesis();
-        s_genesisTransaction.getOutputs().add(s_genesisOutput);
-
-        StandardPersistenceService.getInstance().persist(genesisBlock, 0);
-
-        Block loaded = StandardPersistenceService.getInstance().getBlock(genesisBlock.getHeaderHash());
-
-        BlockMetadata metadata = new BlockMetadata();
-        metadata.setHeader(genesisBlock.getHeader());
-
-        metadata.setHeight(20);
-        metadata.setBlockSegment(32);
-
-        s_logger.debug(String.format("Adding block %s metadata to db", metadata.getTransactionHash().toString()));
-        BlocksManifest.addBlockMetadata(metadata);
-
-        BlockMetadata metadata2 = BlocksManifest.getBlockMetadata(metadata.getHeader().getTransactionHash());
-        s_logger.debug(String.format("Read block %s metadata from db", metadata2.getTransactionHash().toString()));
-
-
-        NetworkParameters params = NetworkParameters.mainNet();
-
-        writeFile("C:\\Users\\Angel\\Downloads\\genesisBlock.bin", genesisBlock.serialize());
-
-        Hash genesisHash = Sha256Digester.digest(s_genesisTransaction.serialize());
-
-        EncryptedPrivateKey eCk = new EncryptedPrivateKey(s_genesisKeyPair.getPrivateKey(), "angel");
-
-        byte[] adressRaw = new byte[24];
-        byte[] addressHash = Sha256Digester.sha256hash160(s_genesisKeyPair.getPublicKey());
-
-        //writeFile("C:\\Users\\Angel\\Downloads\\genesisKey.bin", eCk.serialize());
-
-        s_UXTOPoll.put(genesisHash, s_genesisTransaction);
-
-
-        //System.out.println(Base58.encode(s_genesisKeyPair.getPublicKey()));
-        // Create Transaction
-
-        // Outpoint pointing to the first output in the genesis transaction.
-        TransactionInput outpoint = new TransactionInput(Sha256Digester.digest(s_genesisTransaction.serialize()), 0);
-
-        Transaction referencedTransaction = s_UXTOPoll.get(Sha256Digester.digest(s_genesisTransaction.serialize()));
-        TransactionOutput referencedUxto = referencedTransaction.getOutputs().get(outpoint.getIndex());
-
-
-        TransactionInput input = new TransactionInput(outpoint, 0);
-
-        // When we sign the transaction input plus the locking parameters of the referenced output.
-        ByteArrayOutputStream signatureData = new ByteArrayOutputStream();
-        signatureData.write(input.serialize());
-        signatureData.write(referencedUxto.getLockType().getValue());
-        signatureData.write(referencedUxto.getLockingParameters());
-
-
-        // The signature in DER format is the unlocking parameter of the referenced output. We need to add this to the unlocking parameters
-        // list of the transaction at the same position at which we added the transaction.
-        byte[] derSignature = EllipticCurveProvider.sign(signatureData.toByteArray(), s_genesisKeyPair.getPrivateKey());
-
-        // At this point this input transaction is spendable.
-        Transaction transaction = new Transaction();
-        transaction.getInputs().add(input);
-        transaction.getUnlockingParameters().add(derSignature);
-
-        // Transfer 1000 another user.
-        transaction.getOutputs().add(new TransactionOutput(BigInteger.valueOf(1000), OutputLockType.SingleSignature, s_genesisKeyPair2.getPublicKey()));
-
-        // Return the change to myself.
-        transaction.getOutputs().add(new TransactionOutput(BigInteger.valueOf(500), OutputLockType.SingleSignature, s_genesisKeyPair.getPublicKey()));
-
-        // Broadcast the transaction.
-        byte[] xtb = transaction.serialize();
-
-        // REC the transaction
-        Transaction recXt = new Transaction(ByteBuffer.wrap(xtb));
-
-        Hash secondGenXt = Sha256Digester.digest(recXt.serialize());
-
-        // Validate transaction
-        TransactionInput input1 = recXt.getInputs().get(0);
-
-        // Pull the outpoint referenced by this input.
-        TransactionInput outpoint1 = input1.getPreviousOutput();
-        // Find the whole transaction.
-        Transaction referencedTransaction1 = s_UXTOPoll.get(outpoint1.getReferenceHash());
-        // Get the referenced input.
-        TransactionOutput out1 = referencedTransaction1.getOutputs().get(outpoint1.getIndex());
-        // Get the signature.
-        byte[] signature1 = recXt.getUnlockingParameters().get(0);
-
-        // To validate the signature we need to sign the transaction with the locking parameters in the unlocking parameters field.
-        ByteArrayOutputStream signatureData2 = new ByteArrayOutputStream();
-        signatureData2.write(input1.serialize());
-        signatureData2.write(out1.getLockType().getValue());
-        signatureData2.write(out1.getLockingParameters());
-
-        boolean isValid = EllipticCurveProvider.verify(signatureData2.toByteArray(), signature1, out1.getLockingParameters());
-
-        s_logger.debug(String.format("Can spend: %b", isValid));
-
-        s_UXTOPoll.put(secondGenXt, recXt);
-
-
-        Hash aHas = new Hash();
-        Hash bHas = new Hash();
-        BlockHeader header = new BlockHeader(10, aHas, bHas, 97, 13);
-
-        writeFile("C:\\Users\\Angel\\Downloads\\blobkheader1.bin", header.serialize());
-
-        byte[] rawBh = readFile("C:\\Users\\Angel\\Downloads\\blobkheader1.bin");
-        BlockHeader header2 = new BlockHeader(ByteBuffer.wrap(rawBh));
-
-        ArrayList<Transaction> xts = new ArrayList<>();
-        xts.add(referencedTransaction1);
-        xts.add(recXt);
-
-        Block block = new Block(header2, xts);
-        writeFile("C:\\Users\\Angel\\Downloads\\blobk1.bin", block.serialize());
-
-        byte[] rawB = readFile("C:\\Users\\Angel\\Downloads\\blobk1.bin");
-        Block block2 = new Block(ByteBuffer.wrap(rawB));
-
-        int a = 0;
-
-        s_logger.debug(String.format("Header hash: %s", block2.getHeaderHash()));
-
-        byte[] genesisRaw = NetworkParameters.createGenesis().serialize();
-
-        Block deserializedGenesis = new Block(ByteBuffer.wrap(genesisRaw));
-
-        BigInteger hash = deserializedGenesis.getHeaderHash().toBigInteger();
-        boolean solved = false;
-        while (!solved)
-        {
-            solved = !(hash.compareTo(deserializedGenesis.getTargetDifficultyAsInteger()) > 0);
-            if (solved)
-                break;
-            //System.out.println(String.format("Block hash is higher than target difficulty: %s > %s", block2.getHeaderHash(), Convert.toHexString(block2.getTargetDifficultyAsInteger().toByteArray())));
-            deserializedGenesis.getHeader().setNonce(deserializedGenesis.getHeader().getNonce() + 1);
-            hash = deserializedGenesis.getHeaderHash().toBigInteger();
-        }
-        StandardPersistenceService.getInstance().persist(deserializedGenesis, 0);
-        s_logger.debug(String.format("Block solved! hash is lower than target difficulty (%d): %s > %s", deserializedGenesis.getHeader().getNonce(), genesisBlock.getHeaderHash(), Convert.toHexString(block2.getTargetDifficultyAsInteger().toByteArray())));
-        */
     }
 
     /**

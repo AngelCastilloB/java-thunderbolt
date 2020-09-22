@@ -164,7 +164,7 @@ public class Block implements ISerializable
      *
      * @param transaction The transactions to be added to this block.
      */
-    public void addTransactions(Transaction transaction)
+    public void addTransaction(Transaction transaction)
     {
         m_transactions.add(transaction);
         m_header.setMarkleRoot(calculateMerkleRoot());
