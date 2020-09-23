@@ -27,7 +27,6 @@ package com.thunderbolt.blockchain;
 
 import com.thunderbolt.blockchain.contracts.IBlockchainCommitter;
 import com.thunderbolt.blockchain.contracts.IOutputsUpdateListener;
-import com.thunderbolt.common.ServiceLocator;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
@@ -55,21 +54,23 @@ public class Blockchain
     private NetworkParameters        m_params;
     private ITransactionValidator    m_transactionValidator;
     private IBlockchainCommitter     m_committer;
-    private IPersistenceService      m_persistence = ServiceLocator.getService(IPersistenceService.class);
-    private ITransactionsPoolService m_memPool     = ServiceLocator.getService(ITransactionsPoolService.class);
+    private IPersistenceService      m_persistence;
 
     /**
      * Creates a new instance of the blockchain.
      *
      * @param params The network parameters.
      */
-    public Blockchain(NetworkParameters params) throws StorageException
+    public Blockchain(
+            NetworkParameters params,
+            ITransactionValidator xtValidator,
+            IBlockchainCommitter committer,
+            IPersistenceService presidencyService) throws StorageException
     {
-        m_params = params;
-
-        // TODO: Inject this services.
-        m_transactionValidator = new StandardTransactionValidator(m_persistence, m_params);
-        m_committer = new StandardBlockchainCommitter(m_persistence, m_memPool);
+        m_params               = params;
+        m_transactionValidator = xtValidator;
+        m_committer            = committer;
+        m_persistence          = presidencyService;
 
         // If there is no chain head yet, that means the blockchain is not initialized.
         if (m_persistence.getChainHead() == null)

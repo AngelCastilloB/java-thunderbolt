@@ -262,7 +262,6 @@ public class StandardTransactionValidator implements ITransactionValidator
                // multi signature wallet. Then when we want to spent, we need to provide both the locking parameters
                // and the unlocking parameters. Of course the locking parameters when hashed need to match the hash
                // provided by the output lock.
-
                 MultiSignatureParameters parameters = new MultiSignatureParameters(ByteBuffer.wrap(unlockingParameters));
 
                 Sha256Hash outputLockingParametersSha256Hash = new Sha256Hash(output.getLockingParameters());

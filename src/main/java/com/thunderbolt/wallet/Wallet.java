@@ -26,9 +26,9 @@ package com.thunderbolt.wallet;
 // IMPORTS *******************************************************************/
 
 import com.thunderbolt.blockchain.contracts.IOutputsUpdateListener;
-import com.thunderbolt.common.ServiceLocator;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.network.NetworkParameters;
+import com.thunderbolt.persistence.contracts.IMetadataProvider;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.EllipticCurveKeyPair;
@@ -65,8 +65,8 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
     private static final Logger s_logger = LoggerFactory.getLogger(Wallet.class);
 
     private Map<Sha256Hash, UnspentTransactionOutput> m_unspentOutputs = new HashMap<>();
-    private EllipticCurveKeyPair                m_keys           = new EllipticCurveKeyPair();
-    private EncryptedPrivateKey                 m_encryptedKey   = null;
+    private EllipticCurveKeyPair                      m_keys           = new EllipticCurveKeyPair();
+    private EncryptedPrivateKey                       m_encryptedKey   = null;
 
     /**
      * Initializes a new instance of the Wallet class.
@@ -144,14 +144,15 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
     /**
      * Loads all the unspent output related to this wallet.
      *
+     * @param service The persistence service provider.
+     *
      * @return True if the initialization was successful; otherwise; false.
      */
-    public boolean initialize()
+    public boolean initialize(IPersistenceService service)
     {
         try
         {
-            List<UnspentTransactionOutput> outputs =
-                    ServiceLocator.getService(IPersistenceService.class).getUnspentOutputsForAddress(getAddress());
+            ArrayList<UnspentTransactionOutput> outputs = service.getUnspentOutputsForAddress(getAddress());
 
             for (UnspentTransactionOutput output: outputs)
                 m_unspentOutputs.put(output.getHash(), output);

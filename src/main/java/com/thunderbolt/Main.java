@@ -28,19 +28,19 @@ package com.thunderbolt;
 
 import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.blockchain.Blockchain;
-import com.thunderbolt.common.Convert;
-import com.thunderbolt.common.NumberSerializer;
-import com.thunderbolt.common.ServiceLocator;
+import com.thunderbolt.blockchain.StandardBlockchainCommitter;
+import com.thunderbolt.blockchain.contracts.IBlockchainCommitter;
 import com.thunderbolt.mining.MiningException;
 import com.thunderbolt.mining.StandardMiner;
 import com.thunderbolt.network.NetworkParameters;
+import com.thunderbolt.persistence.contracts.IContiguousStorage;
+import com.thunderbolt.persistence.contracts.IMetadataProvider;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.StandardPersistenceService;
 import com.thunderbolt.persistence.storage.*;
-import com.thunderbolt.security.*;
 import com.thunderbolt.transaction.*;
+import com.thunderbolt.transaction.contracts.ITransactionValidator;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
-import com.thunderbolt.wallet.Address;
 import com.thunderbolt.wallet.Wallet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,29 +81,30 @@ public class Main
      */
     public static void main(String[] args) throws IOException, GeneralSecurityException, StorageException, MiningException
     {
-        MemoryTransactionsPoolService memPool = new MemoryTransactionsPoolService();
-
-        initializeServices();
+        IPersistenceService      persistenceService    = createPersistenceService();
+        ITransactionsPoolService memPool               = new MemoryTransactionsPoolService();
+        ITransactionValidator    transactionValidator  = new StandardTransactionValidator(persistenceService, NetworkParameters.mainNet());
+        IBlockchainCommitter     committer             = new StandardBlockchainCommitter(persistenceService, memPool);
+        Blockchain               blockchain            = new Blockchain(NetworkParameters.mainNet(), transactionValidator, committer, persistenceService);
 
         Wallet wallet = new Wallet(WALLET_PATH.toString(), "1234");
-        wallet.initialize();
+        wallet.initialize(persistenceService);
         s_logger.debug(wallet.getBalance().toString());
         s_logger.debug(wallet.getAddress().toString());
 
         Wallet wallet1 = new Wallet(WALLET_PATH_1.toString(), "1234");
-        wallet1.initialize();
+        wallet1.initialize(persistenceService);
         s_logger.debug(wallet1.getBalance().toString());
         s_logger.debug(wallet1.getAddress().toString());
 
         Wallet wallet2 = new Wallet(WALLET_PATH_2.toString(), "1234");
-        wallet2.initialize();
+        wallet2.initialize(persistenceService);
         s_logger.debug(wallet2.getBalance().toString());
         s_logger.debug(wallet2.getAddress().toString());
 
         Transaction newTransaction = wallet1.createTransaction(BigInteger.valueOf(23L), wallet.getAddress());
         memPool.addTransaction(newTransaction);
 
-        Blockchain blockchain = new Blockchain(NetworkParameters.mainNet());
         blockchain.addOutputsUpdateListener(wallet);
         blockchain.addOutputsUpdateListener(wallet1);
         blockchain.addOutputsUpdateListener(wallet2);
@@ -118,22 +119,16 @@ public class Main
     }
 
     /**
-     * Initializes the persistence manager.
+     * Creates the persistence service.
      *
-     * @throws StorageException If there is any error opening the storage.
+     * @return The newly created persistence service.
      */
-    static void initializeServices() throws StorageException
+    private static IPersistenceService createPersistenceService() throws StorageException
     {
-        DiskContiguousStorage   blockStorage     = new DiskContiguousStorage(BLOCKS_PATH, BLOCK_PATTERN);
-        DiskContiguousStorage   revertsStorage   = new DiskContiguousStorage(REVERT_PATH, REVERT_PATTERN);
-        LevelDbMetadataProvider metadataProvider = new LevelDbMetadataProvider(METADATA_PATH);
+        IContiguousStorage blockStorage     = new DiskContiguousStorage(BLOCKS_PATH, BLOCK_PATTERN);
+        IContiguousStorage revertsStorage   = new DiskContiguousStorage(REVERT_PATH, REVERT_PATTERN);
+        IMetadataProvider  metadataProvider = new LevelDbMetadataProvider(METADATA_PATH);
 
-        ServiceLocator.register(
-                IPersistenceService.class,
-                new StandardPersistenceService(blockStorage, revertsStorage, metadataProvider));
-
-        ServiceLocator.register(
-                ITransactionsPoolService.class,
-                new MemoryTransactionsPoolService());
+        return new StandardPersistenceService(blockStorage, revertsStorage, metadataProvider);
     }
 }
