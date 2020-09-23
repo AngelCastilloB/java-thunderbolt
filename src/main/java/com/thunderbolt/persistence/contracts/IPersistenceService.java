@@ -29,7 +29,7 @@ import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.BlockMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
-import com.thunderbolt.security.Hash;
+import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.Transaction;
 
 import java.math.BigInteger;
@@ -55,29 +55,29 @@ public interface IPersistenceService
     /**
      * Gets the Block with the given hash.
      *
-     * @param hash The block hash.
+     * @param sha256Hash The block hash.
      *
      * @return The block.
      */
-    Block getBlock(Hash hash) throws StorageException;
+    Block getBlock(Sha256Hash sha256Hash) throws StorageException;
 
     /**
      * Gets the Block metadata with the given hash.
      *
-     * @param hash The hash of the block.
+     * @param sha256Hash The hash of the block.
      *
      * @return The block metadata.
      */
-    BlockMetadata getBlockMetadata(Hash hash) throws StorageException;
+    BlockMetadata getBlockMetadata(Sha256Hash sha256Hash) throws StorageException;
 
     /**
      * Gets the spent outputs for the block with the given hash.
      *
-     * @param hash The block hash.
+     * @param sha256Hash The block hash.
      *
      * @return the spent outputs by this block.
      */
-    List<UnspentTransactionOutput> getSpentOutputs(Hash hash) throws StorageException;
+    List<UnspentTransactionOutput> getSpentOutputs(Sha256Hash sha256Hash) throws StorageException;
 
     /**
      * Gets the current chain head.
@@ -96,11 +96,11 @@ public interface IPersistenceService
     /**
      * Gets the transaction with the given hash.
      *
-     * @param hash The transaction id.
+     * @param sha256Hash The transaction id.
      *
      * @return The transaction.
      */
-    Transaction getTransaction(Hash hash) throws StorageException;
+    Transaction getTransaction(Sha256Hash sha256Hash) throws StorageException;
 
     /**
      * Gets the unspent output that matches the given transaction id and index inside that transaction.
@@ -109,7 +109,7 @@ public interface IPersistenceService
      *
      * @return The transaction output, or null if the output is not available or was already spent.
      */
-    UnspentTransactionOutput getUnspentOutput(Hash transactionId, int index) throws StorageException;
+    UnspentTransactionOutput getUnspentOutput(Sha256Hash transactionId, int index) throws StorageException;
 
     /**
      * Gets all the unspent outputs of a given public key.
@@ -133,7 +133,7 @@ public interface IPersistenceService
      * @param id    The id of the transaction that contains the unspent output.
      * @param index The index of the output inside the transaction.
      */
-    boolean removeUnspentOutput(Hash id, int index) throws StorageException;
+    boolean removeUnspentOutput(Sha256Hash id, int index) throws StorageException;
 
     /**
      * Gets the revert data for this block.

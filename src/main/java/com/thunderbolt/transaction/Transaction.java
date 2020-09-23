@@ -28,7 +28,7 @@ package com.thunderbolt.transaction;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
-import com.thunderbolt.security.Hash;
+import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.security.Sha256Digester;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -193,7 +193,7 @@ public class Transaction implements ISerializable
      *
      * @return The transaction id.
      */
-    public Hash getTransactionId()
+    public Sha256Hash getTransactionId()
     {
         return Sha256Digester.digest(serialize());
     }
@@ -288,7 +288,7 @@ public class Transaction implements ISerializable
             int inputIndex = 0;
             for (TransactionInput input : m_inputs)
             {
-                if (input.getIndex() < 0 || input.getReferenceHash().equals(new Hash()))
+                if (input.getIndex() < 0 || input.getReferenceHash().equals(new Sha256Hash()))
                 {
                     s_logger.debug("Input {} for transaction ({}) has wrong reference to previous transaction", inputIndex, getTransactionId());
                     return false;

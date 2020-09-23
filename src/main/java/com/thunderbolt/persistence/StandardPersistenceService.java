@@ -34,7 +34,7 @@ import com.thunderbolt.persistence.storage.*;
 import com.thunderbolt.persistence.structures.BlockMetadata;
 import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
-import com.thunderbolt.security.Hash;
+import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.Transaction;
 import com.thunderbolt.transaction.TransactionInput;
 import org.slf4j.Logger;
@@ -135,9 +135,9 @@ public class StandardPersistenceService implements IPersistenceService
     /**
      * Gets the Block with the given hash.
      */
-    public Block getBlock(Hash hash) throws StorageException
+    public Block getBlock(Sha256Hash sha256Hash) throws StorageException
     {
-        BlockMetadata metadata = m_metadataProvider.getBlockMetadata(hash);
+        BlockMetadata metadata = m_metadataProvider.getBlockMetadata(sha256Hash);
 
         StoragePointer pointer = new StoragePointer();
         pointer.segment = metadata.getBlockSegment();
@@ -151,25 +151,25 @@ public class StandardPersistenceService implements IPersistenceService
     /**
      * Gets the Block metadata with the given hash.
      *
-     * @param hash The hash of the block.
+     * @param sha256Hash The hash of the block.
      *
      * @return The block metadata.
      */
-    public BlockMetadata getBlockMetadata(Hash hash) throws StorageException
+    public BlockMetadata getBlockMetadata(Sha256Hash sha256Hash) throws StorageException
     {
-        return m_metadataProvider.getBlockMetadata(hash);
+        return m_metadataProvider.getBlockMetadata(sha256Hash);
     }
 
     /**
      * Gets the spent outputs for the block with the given hash.
      *
-     * @param hash The block hash.
+     * @param sha256Hash The block hash.
      *
      * @return the spent outputs by this block.
      */
-    public List<UnspentTransactionOutput> getSpentOutputs(Hash hash) throws StorageException
+    public List<UnspentTransactionOutput> getSpentOutputs(Sha256Hash sha256Hash) throws StorageException
     {
-        BlockMetadata metadata = m_metadataProvider.getBlockMetadata(hash);
+        BlockMetadata metadata = m_metadataProvider.getBlockMetadata(sha256Hash);
 
         StoragePointer pointer = new StoragePointer();
         pointer.segment = metadata.getRevertSegment();
@@ -212,13 +212,13 @@ public class StandardPersistenceService implements IPersistenceService
     /**
      * Gets the transaction with the given hash.
      *
-     * @param hash The transaction id.
+     * @param sha256Hash The transaction id.
      *
      * @return The transaction.
      */
-    public Transaction getTransaction(Hash hash) throws StorageException
+    public Transaction getTransaction(Sha256Hash sha256Hash) throws StorageException
     {
-        TransactionMetadata metadata = m_metadataProvider.getTransactionMetadata(hash);
+        TransactionMetadata metadata = m_metadataProvider.getTransactionMetadata(sha256Hash);
 
         StoragePointer pointer = new StoragePointer();
         pointer.segment = metadata.getBlockFile();
@@ -238,7 +238,7 @@ public class StandardPersistenceService implements IPersistenceService
      *
      * @return The transaction output, or null if the output is not available or was already spent.
      */
-    public UnspentTransactionOutput getUnspentOutput(Hash transactionId, int index) throws StorageException
+    public UnspentTransactionOutput getUnspentOutput(Sha256Hash transactionId, int index) throws StorageException
     {
         return m_metadataProvider.getUnspentOutput(transactionId, index);
     }
@@ -271,7 +271,7 @@ public class StandardPersistenceService implements IPersistenceService
      * @param id    The id of the transaction that contains the unspent output.
      * @param index The index of the output inside the transaction.
      */
-    public boolean removeUnspentOutput(Hash id, int index) throws StorageException
+    public boolean removeUnspentOutput(Sha256Hash id, int index) throws StorageException
     {
         return m_metadataProvider.removeUnspentOutput(id, index);
     }
@@ -308,10 +308,10 @@ public class StandardPersistenceService implements IPersistenceService
 
                 for (TransactionInput input: transaction.getInputs())
                 {
-                    Hash transactionHash = input.getReferenceHash();
+                    Sha256Hash transactionSha256Hash = input.getReferenceHash();
                     int  outputIndex     = input.getIndex();
 
-                    Transaction referencedTransaction = getTransaction(transactionHash);
+                    Transaction referencedTransaction = getTransaction(transactionSha256Hash);
 
                     UnspentTransactionOutput unspentOutput = new UnspentTransactionOutput();
                     unspentOutput.setBlockHeight(height);

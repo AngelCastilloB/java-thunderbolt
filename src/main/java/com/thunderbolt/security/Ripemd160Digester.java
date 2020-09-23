@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2020 Angel Castillo.
+ * Copyright (c) 2018 Angel Castillo.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,30 +21,35 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
-package com.thunderbolt.blockchain.contracts;
+package com.thunderbolt.security;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
-import com.thunderbolt.security.Sha256Hash;
-
-import java.util.List;
+import org.bouncycastle.crypto.digests.RIPEMD160Digest;
 
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * The listener interface for receiving update events regarding the available unspent outputs. The list of
- * available unspent outputs changes when  a new block is added or removed. When this happens, the method
- * outputsUpdated will be called, with tne new available outputs and a list of outputs to eb removed.
+ * Digester class for the RIPEMD160 hashing algorithm.
  */
-public interface IOutputsUpdateListener
+public class Ripemd160Digester
 {
     /**
-     * Called when a change on the available unspent outputs occur.
+     * Gets the hash of the given data.
      *
-     * @param toAdd The new unspent outputs that were added.
-     * @param toRemove The unspent outputs that are no longer available.
+     * @param data The data to getBlock the hash from.
+     *
+     * @return The hash.
      */
-    void outputsUpdated(List<UnspentTransactionOutput> toAdd, List<Sha256Hash> toRemove);
+    public static byte[] digest(byte[] data)
+    {
+        RIPEMD160Digest digest = new RIPEMD160Digest();
+        digest.update(data, 0, data.length);
+
+        byte[] out = new byte[20];
+
+        digest.doFinal(out, 0);
+
+        return out;
+    }
 }

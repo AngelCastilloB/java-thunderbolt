@@ -25,8 +25,6 @@ package com.thunderbolt.security;
 
 /* IMPORTS *******************************************************************/
 
-import org.bouncycastle.crypto.digests.RIPEMD160Digest;
-
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -44,7 +42,7 @@ public class Sha256Digester
      *
      * @return The hash.
      */
-    public static Hash digest(byte[] data)
+    public static Sha256Hash digest(byte[] data)
     {
         MessageDigest md = null;
 
@@ -59,63 +57,6 @@ public class Sha256Digester
 
         md.update(data);
 
-        return new Hash(md.digest());
-    }
-
-    /**
-     * Gets the double hash of the given data.
-     *
-     * @param data The data to getBlock the double hash from.
-     *
-     * @return The double hash.
-     */
-    public static Hash doubleDigest(byte[] data)
-    {
-        Hash digest = digest(data);
-
-        return digest(digest.serialize());
-    }
-
-    /**
-     * Hashes the data with RIPEMD160.
-     *
-     * This is used in Address calculations.
-     */
-    public static byte[] hash160(byte[] data)
-    {
-        RIPEMD160Digest digest = new RIPEMD160Digest();
-        digest.update(data, 0, data.length);
-
-        byte[] out = new byte[20];
-
-        digest.doFinal(out, 0);
-
-        return out;
-    }
-
-    /**
-     * Hashes the data with SHA-256 and the has the result with RIPEMD160.
-     *
-     * This is used in Address calculations.
-     */
-    public static byte[] sha256hash160(byte[] input)
-    {
-        try
-        {
-            byte[]          sha256 = MessageDigest.getInstance("SHA-256").digest(input);
-            RIPEMD160Digest digest = new RIPEMD160Digest();
-
-            digest.update(sha256, 0, sha256.length);
-
-            byte[] out = new byte[20];
-
-            digest.doFinal(out, 0);
-
-            return out;
-        }
-        catch (NoSuchAlgorithmException e)
-        {
-            throw new RuntimeException(e);
-        }
+        return new Sha256Hash(md.digest());
     }
 }

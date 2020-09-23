@@ -28,7 +28,7 @@ package com.thunderbolt.blockchain;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
-import com.thunderbolt.security.Hash;
+import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.security.Sha256Digester;
 import com.thunderbolt.transaction.Transaction;
 import org.slf4j.Logger;
@@ -175,7 +175,7 @@ public class Block implements ISerializable
      *
      * @return The hash of this block's header.
      */
-    public Hash getHeaderHash()
+    public Sha256Hash getHeaderHash()
     {
         return m_header.getHash();
     }
@@ -275,12 +275,12 @@ public class Block implements ISerializable
      *
      * @return Merkle root
      */
-    private Hash calculateMerkleRoot()
+    private Sha256Hash calculateMerkleRoot()
     {
         if (m_merkleTree.size() == 0)
             m_merkleTree = buildMerkleTree();
 
-        return new Hash(m_merkleTree.get(m_merkleTree.size() - 1));
+        return new Sha256Hash(m_merkleTree.get(m_merkleTree.size() - 1));
     }
 
     /**
@@ -401,7 +401,7 @@ public class Block implements ISerializable
      */
     private boolean isMerkleRootValid()
     {
-        Hash expectedRoot = calculateMerkleRoot();
+        Sha256Hash expectedRoot = calculateMerkleRoot();
 
         if (!expectedRoot.equals(m_header.getMarkleRoot()))
         {

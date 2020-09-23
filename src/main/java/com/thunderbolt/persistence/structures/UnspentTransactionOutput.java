@@ -28,7 +28,7 @@ package com.thunderbolt.persistence.structures;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
-import com.thunderbolt.security.Hash;
+import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.security.Sha256Digester;
 import com.thunderbolt.transaction.TransactionOutput;
 
@@ -43,7 +43,7 @@ import java.nio.ByteBuffer;
  */
 public class UnspentTransactionOutput implements ISerializable
 {
-    private Hash                    m_transactionHash = new Hash();
+    private Sha256Hash m_transactionSha256Hash = new Sha256Hash();
     private int                     m_index           = 0;
     private int                     m_version         = 0;
     private long                    m_blockHeight     = 0;
@@ -64,7 +64,7 @@ public class UnspentTransactionOutput implements ISerializable
      */
     public UnspentTransactionOutput(ByteBuffer buffer)
     {
-        m_transactionHash = new Hash(buffer);
+        m_transactionSha256Hash = new Sha256Hash(buffer);
         m_index           = buffer.getInt();
         m_version         = buffer.getInt();
         m_blockHeight     = buffer.getLong();
@@ -77,13 +77,13 @@ public class UnspentTransactionOutput implements ISerializable
      *
      * @return The hash.
      */
-    public Hash getHash()
+    public Sha256Hash getHash()
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
         try
         {
-            data.write(m_transactionHash.serialize());
+            data.write(m_transactionSha256Hash.serialize());
             data.write(NumberSerializer.serialize(m_index));
         }
         catch (Exception exception)
@@ -99,19 +99,19 @@ public class UnspentTransactionOutput implements ISerializable
      *
      * @return The transaction hash.
      */
-    public Hash getTransactionHash()
+    public Sha256Hash getTransactionHash()
     {
-        return m_transactionHash;
+        return m_transactionSha256Hash;
     }
 
     /**
      * Sets the transaction hash for this outputs.
      *
-     * @param hash The transaction hash.
+     * @param sha256Hash The transaction hash.
      */
-    public void setTransactionHash(Hash hash)
+    public void setTransactionHash(Sha256Hash sha256Hash)
     {
-        m_transactionHash = hash;
+        m_transactionSha256Hash = sha256Hash;
     }
 
     /**
@@ -226,7 +226,7 @@ public class UnspentTransactionOutput implements ISerializable
 
         try
         {
-            data.write(m_transactionHash.serialize());
+            data.write(m_transactionSha256Hash.serialize());
             data.write(NumberSerializer.serialize(m_index));
             data.write(NumberSerializer.serialize(m_version));
             data.write(NumberSerializer.serialize(m_blockHeight));
@@ -263,7 +263,7 @@ public class UnspentTransactionOutput implements ISerializable
                         "  \"blockHeight\":   %d,%n" +
                         "  \"isCoinbase\":    %s,%n" +
                         "  \"output\":%s%n",
-                        m_transactionHash,
+                        m_transactionSha256Hash,
                         m_index,
                         m_version,
                         m_blockHeight,

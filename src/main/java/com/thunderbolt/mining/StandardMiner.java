@@ -30,7 +30,7 @@ import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.mining.contracts.IMiner;
-import com.thunderbolt.security.Hash;
+import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.OutputLockType;
 import com.thunderbolt.transaction.Transaction;
 import com.thunderbolt.transaction.TransactionInput;
@@ -43,7 +43,6 @@ import org.slf4j.LoggerFactory;
 import java.math.BigInteger;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -87,7 +86,7 @@ public class StandardMiner implements IMiner
             // Coinbase transaction
             Transaction coinbase = new Transaction();
             byte[] newHeight = NumberSerializer.serialize(m_blockchain.getChainHead().getHeight() + 1);
-            TransactionInput coinbaseInput = new TransactionInput(new Hash(), Integer.MAX_VALUE);
+            TransactionInput coinbaseInput = new TransactionInput(new Sha256Hash(), Integer.MAX_VALUE);
             coinbaseInput.setUnlockingParameters(newHeight);
 
             coinbase.getInputs().add(coinbaseInput);

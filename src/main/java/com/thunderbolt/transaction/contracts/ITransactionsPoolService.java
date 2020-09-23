@@ -25,7 +25,7 @@ package com.thunderbolt.transaction.contracts;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.security.Hash;
+import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.Transaction;
 
 /* IMPLEMENTATION ************************************************************/
@@ -59,7 +59,7 @@ public interface ITransactionsPoolService
      *
      * @return The transaction.
      */
-    Transaction getTransaction(Hash id);
+    Transaction getTransaction(Sha256Hash id);
 
     /**
      * Picks a transaction from the pool. The strategy for picking said transaction is defined by the
@@ -86,5 +86,5 @@ public interface ITransactionsPoolService
      *
      * @return True if the transaction was removed; otherwise; false.
      */
-    boolean removeTransaction(Hash id);
+    boolean removeTransaction(Sha256Hash id);
 }

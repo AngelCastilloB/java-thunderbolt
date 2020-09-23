@@ -132,7 +132,7 @@ public class SingleSignatureParameters implements ISerializable
      */
     public byte[] getPublicKeyHash()
     {
-        return Sha256Digester.sha256hash160(m_publicKey);
+        return null; //Sha256Digester.sha256hash160(m_publicKey);
     }
 
     /**

@@ -27,7 +27,7 @@ package com.thunderbolt.persistence.structures;
 
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
-import com.thunderbolt.security.Hash;
+import com.thunderbolt.security.Sha256Hash;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -42,7 +42,7 @@ import java.nio.ByteBuffer;
 public class TransactionMetadata implements ISerializable
 {
     // Instance fields.
-    private Hash m_hash = new Hash();
+    private Sha256Hash m_sha256Hash = new Sha256Hash();
     private int  m_blockFile;
     private long m_blockPosition;
     private int  m_transactionPosition;
@@ -95,19 +95,19 @@ public class TransactionMetadata implements ISerializable
      *
      * @return The hash of the transaction.
      */
-    public Hash getHash()
+    public Sha256Hash getHash()
     {
-        return m_hash;
+        return m_sha256Hash;
     }
 
     /**
      * Sets the hash of the transaction (this is the key this metadata in the database).
      *
-     * @param hash The hash of the transaction.
+     * @param sha256Hash The hash of the transaction.
      */
-    public void setHash(Hash hash)
+    public void setHash(Sha256Hash sha256Hash)
     {
-        m_hash = hash;
+        m_sha256Hash = sha256Hash;
     }
 
     /**

@@ -28,7 +28,7 @@ package com.thunderbolt.blockchain;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
-import com.thunderbolt.security.Hash;
+import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.security.Sha256Digester;
 
 import java.io.ByteArrayOutputStream;
@@ -48,8 +48,8 @@ public class BlockHeader implements ISerializable
 
     // Instance fields
     private int  m_version     = 0;
-    private Hash m_parentBlock = new Hash();
-    private Hash m_markleRoot  = new Hash();
+    private Sha256Hash m_parentBlock = new Sha256Hash();
+    private Sha256Hash m_markleRoot  = new Sha256Hash();
     private long m_timeStamp   = 0;
     private long m_bits        = STARTING_DIFFICULTY;
     private long m_nonce       = 0;
@@ -70,7 +70,7 @@ public class BlockHeader implements ISerializable
      * @param timestamp   UNIX timestamp at which this transaction unlocks.
      * @param nonce       Value for changing the hash of the block.
      */
-    public BlockHeader(int version, Hash parentBlock, Hash markleRoot, long timestamp, long nonce)
+    public BlockHeader(int version, Sha256Hash parentBlock, Sha256Hash markleRoot, long timestamp, long nonce)
     {
         this(version, parentBlock, markleRoot, timestamp, STARTING_DIFFICULTY, nonce);
     }
@@ -85,7 +85,7 @@ public class BlockHeader implements ISerializable
      * @param difficulty  The difficulty of the block.
      * @param nonce       Value for changing the hash of the block.
      */
-    public BlockHeader(int version, Hash parentBlock, Hash markleRoot, long timestamp, int difficulty, long nonce)
+    public BlockHeader(int version, Sha256Hash parentBlock, Sha256Hash markleRoot, long timestamp, int difficulty, long nonce)
     {
         m_version     = version;
         m_parentBlock = parentBlock;
@@ -137,7 +137,7 @@ public class BlockHeader implements ISerializable
      *
      * @return The parent block hash.
      */
-    public Hash getParentBlockHash()
+    public Sha256Hash getParentBlockHash()
     {
         return m_parentBlock;
     }
@@ -145,11 +145,11 @@ public class BlockHeader implements ISerializable
     /**
      * Sets the parent block hash.
      *
-     * @param hash The parent block hash.
+     * @param sha256Hash The parent block hash.
      */
-    public void setParentBlockHash(Hash hash)
+    public void setParentBlockHash(Sha256Hash sha256Hash)
     {
-        m_parentBlock = hash;
+        m_parentBlock = sha256Hash;
     }
 
     /**
@@ -157,7 +157,7 @@ public class BlockHeader implements ISerializable
      *
      * @return The markle root.
      */
-    public Hash getMarkleRoot()
+    public Sha256Hash getMarkleRoot()
     {
         return m_markleRoot;
     }
@@ -165,11 +165,11 @@ public class BlockHeader implements ISerializable
     /**
      * Sets the markle root of the transactions in this block.
      *
-     * @param hash The markle root.
+     * @param sha256Hash The markle root.
      */
-    public void setMarkleRoot(Hash hash)
+    public void setMarkleRoot(Sha256Hash sha256Hash)
     {
-        m_markleRoot = hash;
+        m_markleRoot = sha256Hash;
     }
 
     /**
@@ -239,7 +239,7 @@ public class BlockHeader implements ISerializable
      *
      * @return The hash of this block header.
      */
-    public Hash getHash()
+    public Sha256Hash getHash()
     {
         return Sha256Digester.digest(serialize());
     }

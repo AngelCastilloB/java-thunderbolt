@@ -26,24 +26,17 @@ package com.thunderbolt.security;
 /* IMPORTS *******************************************************************/
 
 import java.math.*;
-import java.util.*;
 
 /* IMPLEMENTATION ************************************************************/
 
 /**
  * Base58 is an encoding algorithm similar to Base64, removing certain characters that cause issues with URLs,
  * and cause confusion because of how similar they look in certain fonts.
- *
- * Base58Check adds a 4 byte checksum to validate that the data hasn't been altered in transmission. This checksum
- * isn't suitable to perform cryptographic validation, but is does detect accidental corruption.
- *
- * You can read more at: https://en.bitcoin.it/wiki/Base58Check_encoding
  */
 public class Base58
 {
-    private static final int        CHECK_SUM_SIZE = 4;
-    private static final BigInteger BASE           = BigInteger.valueOf(58);
-    private static final String     DIGITS         = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+    private static final BigInteger BASE   = BigInteger.valueOf(58);
+    private static final String     DIGITS = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
     /**
      * Encodes the given bytes as a plain base58 string, adding a checksum at the end of the string.
@@ -53,18 +46,6 @@ public class Base58
      * @return the base58 string
      */
     public static String encode(byte[] data)
-    {
-        return encodeWithoutChecksum(addCheckSum(data));
-    }
-
-    /**
-     * Encodes the given bytes as a plain base58 string, without any checksum.
-     *
-     * @param data the bytes to encode
-     *
-     * @return the base58 string
-     */
-    public static String encodeWithoutChecksum(byte[] data)
     {
         BigInteger bi = new BigInteger(1, data);
 
@@ -97,26 +78,6 @@ public class Base58
      */
     public static byte[] decode(String data)
     {
-        byte[] dataWithCheckSum    = decodeWithoutChecksum(data);
-        byte[] dataWithoutCheckSum = verifyAndRemoveCheckSum(dataWithCheckSum);
-
-        if (dataWithoutCheckSum == null)
-        {
-            throw new RuntimeException("Base58 checksum is invalid");
-        }
-
-        return dataWithoutCheckSum;
-    }
-
-    /**
-     * Decodes data in plain Base58, without any checksum.
-     *
-     * @param data The encoded data.
-     *
-     * @return The decoded data.
-     */
-    public static byte[] decodeWithoutChecksum(String data)
-    {
         // Decode Base58 string to BigInteger
         BigInteger    intData   = BigInteger.ZERO;
 
@@ -144,56 +105,5 @@ public class Base58
         System.arraycopy(bytes, stripSignByte ? 1 : 0, result, leadingZeros, result.length - leadingZeros);
 
         return result;
-    }
-
-    /**
-     * Calculates and appends the checksum to the data.
-     *
-     * @param data The original data without the checksum.
-     *
-     * @return The data with the checksum appended.
-     */
-    public static byte[] addCheckSum(byte[] data)
-    {
-        byte[] checkSum = getCheckSum(data);
-
-        byte[] dataWithCheckSum = Arrays.copyOf(data, data.length + checkSum.length);
-        System.arraycopy(checkSum, 0, dataWithCheckSum, data.length, checkSum.length);
-
-        return dataWithCheckSum;
-    }
-
-    /**
-     * Get the checksum of the given data.
-     *
-     * @param data The data to getBlock the checksum of.
-     *
-     * @return The 4 byte checksum.
-     */
-    private static byte[] getCheckSum(byte[] data)
-    {
-        Hash hash = Sha256Digester.doubleDigest(data);
-
-        byte[] result = new byte[CHECK_SUM_SIZE];
-
-        System.arraycopy(hash.serialize(), 0, result, 0, CHECK_SUM_SIZE);
-
-        return result;
-    }
-
-    /**
-     * Verifies and removes te checksum from the data.
-     *
-     * @param data The data with the checksum.
-     *
-     * @return The data without the checksum. Returns null if the checksum validation fails.
-     */
-    private static byte[] verifyAndRemoveCheckSum(byte[] data)
-    {
-        byte[] result          = Arrays.copyOfRange(data, 0, data.length - CHECK_SUM_SIZE);
-        byte[] givenCheckSum   = Arrays.copyOfRange(data, data.length - CHECK_SUM_SIZE, data.length);
-        byte[] correctCheckSum = getCheckSum(result);
-
-        return Arrays.equals(givenCheckSum, correctCheckSum) ? result : null;
     }
 }

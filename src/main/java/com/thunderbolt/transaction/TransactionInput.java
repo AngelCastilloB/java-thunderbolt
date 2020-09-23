@@ -28,7 +28,7 @@ package com.thunderbolt.transaction;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
-import com.thunderbolt.security.Hash;
+import com.thunderbolt.security.Sha256Hash;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -45,7 +45,7 @@ public class TransactionInput implements ISerializable
     private static final int HASH_LENGTH  = 32;
 
     //Instance Fields
-    private Hash   m_refHash = new Hash();
+    private Sha256Hash m_refSha256Hash = new Sha256Hash();
     private int    m_index   = 0;
     private byte[] m_unlockingParameters = new byte[0];
 
@@ -59,12 +59,12 @@ public class TransactionInput implements ISerializable
     /**
      * Creates a transaction outpoint from the given hash and index.
      *
-     * @param hash  The hash of the reference transaction.
+     * @param sha256Hash  The hash of the reference transaction.
      * @param index The index of the specific output in the reference transaction.
      */
-    public TransactionInput(Hash hash, int index)
+    public TransactionInput(Sha256Hash sha256Hash, int index)
     {
-        m_refHash             = hash;
+        m_refSha256Hash = sha256Hash;
         m_index               = index;
     }
 
@@ -79,7 +79,7 @@ public class TransactionInput implements ISerializable
 
         byte[] hashData = new byte[32];
         buffer.get(hashData, 0, HASH_LENGTH);
-        m_refHash.setData(hashData);
+        m_refSha256Hash.setData(hashData);
 
         int unlockingSize = buffer.getInt();
         m_unlockingParameters = new byte[unlockingSize];
@@ -91,7 +91,7 @@ public class TransactionInput implements ISerializable
      */
     public boolean isCoinBase()
     {
-        return m_refHash.equals(new Hash());
+        return m_refSha256Hash.equals(new Sha256Hash());
     }
 
     /**
@@ -99,19 +99,19 @@ public class TransactionInput implements ISerializable
      *
      * @return The hash of the reference transaction.
      */
-    public Hash getReferenceHash()
+    public Sha256Hash getReferenceHash()
     {
-        return m_refHash;
+        return m_refSha256Hash;
     }
 
     /**
      * Sets the hash of the reference transaction.
      *
-     * @param hash The hash of the reference transaction.
+     * @param sha256Hash The hash of the reference transaction.
      */
-    public void setReferenceHash(Hash hash)
+    public void setReferenceHash(Sha256Hash sha256Hash)
     {
-        m_refHash = hash;
+        m_refSha256Hash = sha256Hash;
     }
 
     /**
@@ -147,7 +147,7 @@ public class TransactionInput implements ISerializable
         try
         {
             data.write(NumberSerializer.serialize(m_index));
-            data.write(m_refHash.serialize());
+            data.write(m_refSha256Hash.serialize());
             data.write(NumberSerializer.serialize(m_unlockingParameters.length));
             data.write(m_unlockingParameters);
         }
@@ -196,7 +196,7 @@ public class TransactionInput implements ISerializable
                 "  \"UnlockingParams\": \"%s\" %n" +
                 "}",
             isCoinBase(),
-            m_refHash,
+                m_refSha256Hash,
             m_index,
             Convert.toHexString(m_unlockingParameters));
     }

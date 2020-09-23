@@ -65,14 +65,14 @@ public class EllipticCurveProvider
      */
     public static byte[] sign(byte[] data, BigInteger privateKey)
     {
-        Hash hash = Sha256Digester.digest(data);
+        Sha256Hash sha256Hash = Sha256Digester.digest(data);
 
         ECDSASigner signer     = new ECDSASigner();
         ECPrivateKeyParameters privateKeyParameters = new ECPrivateKeyParameters(privateKey, s_domain);
 
         signer.init(true, privateKeyParameters);
 
-        BigInteger[] signature = signer.generateSignature(hash.serialize());
+        BigInteger[] signature = signer.generateSignature(sha256Hash.serialize());
         return encodeToDER(signature[0], signature[1]);
     }
 
@@ -85,7 +85,7 @@ public class EllipticCurveProvider
      */
     public static boolean verify(byte[] data, byte[] signature, byte[] publicKey)
     {
-        Hash hash = Sha256Digester.digest(data);
+        Sha256Hash sha256Hash = Sha256Digester.digest(data);
 
         BigInteger[] decodedSignature = decodeFromDer(signature);
 
@@ -96,7 +96,7 @@ public class EllipticCurveProvider
         BigInteger r = decodedSignature[0];
         BigInteger s = decodedSignature[1];
 
-        return signer.verifySignature(hash.serialize(), r, s);
+        return signer.verifySignature(sha256Hash.serialize(), r, s);
     }
 
     /**

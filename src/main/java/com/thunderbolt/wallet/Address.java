@@ -26,7 +26,11 @@ package com.thunderbolt.wallet;
 // IMPLEMENTATION ************************************************************/
 
 import com.thunderbolt.common.Convert;
+import com.thunderbolt.security.Ripemd160Digester;
 import com.thunderbolt.security.Sha256Digester;
+import com.thunderbolt.security.Sha256Hash;
+
+import java.util.Arrays;
 
 /**
  * Represents an account in the blockchain. You can send coins to a given address. The address is a hash of the public
@@ -34,6 +38,10 @@ import com.thunderbolt.security.Sha256Digester;
  */
 public class Address
 {
+    private static final int CHECK_SUM_SIZE      = 4;
+    private static final int PREFIX_SIZE         = 1;
+    private static final int ADDRESS_STRING_SIZE = 52;
+
     private byte[] m_address;
 
     /**
@@ -42,29 +50,18 @@ public class Address
      * @param prefix The prefix of the wallet, this prefix will depend on the network the wallet belongs too and the
      *               type of wallet.
      * @param data The actual data of the key, it can be either the public key of a wallet or the hash of the multi
-     *              signature public keys.
+     *             signature public keys.
      */
     Address(byte prefix, byte[] data)
     {
-        byte[] checksum = new byte[] { 0x00, 0x00, 0x00, 0x00 };
+        byte[] publicHash = Ripemd160Digester.digest(Sha256Digester.digest(data).getData());
+        byte[] checksum   = computeCheckSum(prefix, publicHash);
 
-        // Gets RIPEMD160 of main data.
-        byte[] hash160 = Sha256Digester.hash160(data);
-
-        // Concat prefix plus data.
-        byte[] hash160PlusPrefix = new byte[data.length + 1];
-        hash160PlusPrefix[0] = prefix;
-        System.arraycopy(hash160, 0, hash160PlusPrefix, 1, hash160.length);
-
-        // Calculate checksum
-        byte[] sha256 = Sha256Digester.digest(hash160PlusPrefix).getData();
-        System.arraycopy(sha256, 0, checksum, 0, checksum.length);
-
-        m_address = new byte[1 + hash160.length + checksum.length];
+        m_address = new byte[PREFIX_SIZE + publicHash.length + checksum.length];
 
         m_address[0] = prefix;
-        System.arraycopy(hash160, 0, m_address, 1, hash160.length);
-        System.arraycopy(checksum, 0, m_address, 1 + hash160.length, checksum.length);
+        System.arraycopy(publicHash, 0, m_address, PREFIX_SIZE, publicHash.length);
+        System.arraycopy(checksum, 0, m_address, PREFIX_SIZE + publicHash.length, checksum.length);
     }
 
     /**
@@ -72,9 +69,22 @@ public class Address
      *
      * @param address The string representation of the address.
      */
-    Address(String address)
+    public Address(String address)
     {
-        //TODO: implement.
+        if (address.length() != ADDRESS_STRING_SIZE)
+            throw new IllegalArgumentException("Invalid address string format. The address must be 50 chars long.");
+
+        if (!address.startsWith("0x"))
+            throw new IllegalArgumentException("Invalid address string format. The address must start with 0x.");
+
+        byte[] data = Convert.hexStringToByteArray(address.substring(2));
+
+        boolean isValid = isChecksumValid(data);
+
+        if (!isValid)
+            throw new IllegalArgumentException("Invalid address, Checksum did not match.");
+
+        m_address = data;
     }
 
     /**
@@ -95,5 +105,54 @@ public class Address
     public byte getPrefix()
     {
         return m_address[0];
+    }
+
+    /**
+     * Gets the public hash of this address.
+     *
+     * @return The public hash of the address.
+     */
+    public byte[] getPublicHash()
+    {
+        byte[] result = Arrays.copyOfRange(m_address, PREFIX_SIZE, m_address.length - CHECK_SUM_SIZE);
+        return result;
+    }
+
+    /**
+     * Computes the checksum of the given data.
+     *
+     * @param data The data to get checksum of.
+     *
+     * @return The 4 byte checksum.
+     */
+    private static byte[] computeCheckSum(byte addressPrefix, byte[] data)
+    {
+        byte[] publicHashPlusPrefix = new byte[data.length + 1];
+        publicHashPlusPrefix[0] = addressPrefix;
+        System.arraycopy(data, 0, publicHashPlusPrefix, 1, data.length);
+
+        Sha256Hash sha256Hash = Sha256Digester.digest(publicHashPlusPrefix);
+        byte[] result = new byte[CHECK_SUM_SIZE];
+
+        System.arraycopy(sha256Hash.serialize(), 0, result, 0, CHECK_SUM_SIZE);
+
+        return result;
+    }
+
+    /**
+     * Verifies the given checksum..
+     *
+     * @param data The data with the checksum.
+     *
+     * @return True if the checksum is valid; otherwise; false.
+     */
+    private static boolean isChecksumValid(byte[] data)
+    {
+        byte   prefix         = data[0];
+        byte[] result         = Arrays.copyOfRange(data, PREFIX_SIZE, data.length - CHECK_SUM_SIZE);
+        byte[] givenCheckSum  = Arrays.copyOfRange(data, data.length - CHECK_SUM_SIZE, data.length);
+        byte[] actualCheckSum = computeCheckSum(prefix, result);
+
+        return Arrays.equals(givenCheckSum, actualCheckSum);
     }
 }

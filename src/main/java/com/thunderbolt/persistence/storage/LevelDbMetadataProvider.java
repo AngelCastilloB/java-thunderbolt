@@ -31,7 +31,7 @@ import com.thunderbolt.persistence.contracts.IMetadataProvider;
 import com.thunderbolt.persistence.structures.BlockMetadata;
 import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
-import com.thunderbolt.security.Hash;
+import com.thunderbolt.security.Sha256Hash;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBIterator;
 import org.iq80.leveldb.Options;
@@ -97,7 +97,7 @@ public class LevelDbMetadataProvider implements IMetadataProvider
      * @return The block metadata.
      */
     @Override
-    public BlockMetadata getBlockMetadata(Hash id) throws StorageException
+    public BlockMetadata getBlockMetadata(Sha256Hash id) throws StorageException
     {
         BlockMetadata metadata;
 
@@ -211,7 +211,7 @@ public class LevelDbMetadataProvider implements IMetadataProvider
      * @return The transaction metadata.
      */
     @Override
-    public TransactionMetadata getTransactionMetadata(Hash id) throws StorageException
+    public TransactionMetadata getTransactionMetadata(Sha256Hash id) throws StorageException
     {
         TransactionMetadata metadata;
 
@@ -266,7 +266,7 @@ public class LevelDbMetadataProvider implements IMetadataProvider
      * @param index The index of the output inside the transaction.
      */
     @Override
-    public UnspentTransactionOutput getUnspentOutput(Hash id, int index) throws StorageException
+    public UnspentTransactionOutput getUnspentOutput(Sha256Hash id, int index) throws StorageException
     {
         UnspentTransactionOutput output;
 
@@ -328,7 +328,7 @@ public class LevelDbMetadataProvider implements IMetadataProvider
      * @param index The index of the output inside the transaction.
      */
     @Override
-    public boolean removeUnspentOutput(Hash id, int index) throws StorageException
+    public boolean removeUnspentOutput(Sha256Hash id, int index) throws StorageException
     {
         try
         {

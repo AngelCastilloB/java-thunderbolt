@@ -197,7 +197,7 @@ public class EncryptedPrivateKey implements ISerializable
         {
             byte[] stringBytes = keyPhrase.getBytes("UTF-8");
 
-            Hash digest         = Sha256Digester.digest(stringBytes);
+            Sha256Hash digest         = Sha256Digester.digest(stringBytes);
             byte[] doubleDigest = new byte[digest.getData().length + salt.length];
 
             System.arraycopy(digest.getData(), 0, doubleDigest, 0, digest.getData().length);

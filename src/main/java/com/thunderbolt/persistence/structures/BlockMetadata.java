@@ -29,7 +29,7 @@ import com.thunderbolt.blockchain.BlockHeader;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
-import com.thunderbolt.security.Hash;
+import com.thunderbolt.security.Sha256Hash;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -85,7 +85,7 @@ public class BlockMetadata implements ISerializable
      *
      * @return The hash of the block.
      */
-    public Hash getHash()
+    public Sha256Hash getHash()
     {
         return m_header.getHash();
     }

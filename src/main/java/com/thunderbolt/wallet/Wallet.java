@@ -34,7 +34,7 @@ import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.EllipticCurveKeyPair;
 import com.thunderbolt.security.EllipticCurveProvider;
 import com.thunderbolt.security.EncryptedPrivateKey;
-import com.thunderbolt.security.Hash;
+import com.thunderbolt.security.Sha256Hash;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
@@ -64,7 +64,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
 {
     private static final Logger s_logger = LoggerFactory.getLogger(Wallet.class);
 
-    private Map<Hash, UnspentTransactionOutput> m_unspentOutputs = new HashMap<>();
+    private Map<Sha256Hash, UnspentTransactionOutput> m_unspentOutputs = new HashMap<>();
     private EllipticCurveKeyPair                m_keys           = new EllipticCurveKeyPair();
     private EncryptedPrivateKey                 m_encryptedKey   = null;
 
@@ -193,7 +193,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
     {
         BigInteger total = BigInteger.ZERO;
 
-        for (Map.Entry<Hash, UnspentTransactionOutput> entry : m_unspentOutputs.entrySet())
+        for (Map.Entry<Sha256Hash, UnspentTransactionOutput> entry : m_unspentOutputs.entrySet())
         {
             UnspentTransactionOutput value = entry.getValue();
 
@@ -225,7 +225,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
 
         ArrayList<UnspentTransactionOutput> outputs = new ArrayList<>();
 
-        for (Map.Entry<Hash, UnspentTransactionOutput> entry : m_unspentOutputs.entrySet())
+        for (Map.Entry<Sha256Hash, UnspentTransactionOutput> entry : m_unspentOutputs.entrySet())
         {
             if (total.compareTo(amount) >= 0)
                 break;
@@ -327,10 +327,10 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
      * @param toAdd The new unspent outputs that were added.
      * @param toRemove The unspent outputs that are no longer available.
      */
-    public void outputsUpdated(List<UnspentTransactionOutput> toAdd, List<Hash> toRemove)
+    public void outputsUpdated(List<UnspentTransactionOutput> toAdd, List<Sha256Hash> toRemove)
     {
-        for (Hash hash: toRemove)
-            m_unspentOutputs.remove(hash);
+        for (Sha256Hash sha256Hash : toRemove)
+            m_unspentOutputs.remove(sha256Hash);
 
         for (UnspentTransactionOutput output: toAdd)
         {

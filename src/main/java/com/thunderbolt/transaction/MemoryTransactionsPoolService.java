@@ -26,7 +26,7 @@ package com.thunderbolt.transaction;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.Convert;
-import com.thunderbolt.security.Hash;
+import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
 
 import java.math.BigInteger;
@@ -42,7 +42,7 @@ import java.util.*;
  */
 public class MemoryTransactionsPoolService implements ITransactionsPoolService
 {
-    private Map<Hash, Transaction> m_memPool = new HashMap<>();
+    private Map<Sha256Hash, Transaction> m_memPool = new HashMap<>();
     private BigInteger             m_size    = BigInteger.ZERO;
 
     /**
@@ -75,7 +75,7 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService
      * @return The transaction.
      */
     @Override
-    public Transaction getTransaction(Hash id)
+    public Transaction getTransaction(Sha256Hash id)
     {
         return m_memPool.get(id);
     }
@@ -89,11 +89,11 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService
     @Override
     public Transaction pickTransaction()
     {
-        Set<Map.Entry<Hash, Transaction>> set = m_memPool.entrySet();
+        Set<Map.Entry<Sha256Hash, Transaction>> set = m_memPool.entrySet();
 
         // For now just picks the first transaction in the pool.
         // TODO: Allow to change transaction picking strategy.
-        for (Map.Entry<Hash, Transaction> entry : set)
+        for (Map.Entry<Sha256Hash, Transaction> entry : set)
             return entry.getValue();
 
         return null;
@@ -117,7 +117,7 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService
      * @param id The id of the transaction to be removed.
      */
     @Override
-    public boolean removeTransaction(Hash id)
+    public boolean removeTransaction(Sha256Hash id)
     {
         return m_memPool.remove(id) != null;
     }

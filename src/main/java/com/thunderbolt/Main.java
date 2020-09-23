@@ -40,6 +40,7 @@ import com.thunderbolt.persistence.storage.*;
 import com.thunderbolt.security.*;
 import com.thunderbolt.transaction.*;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
+import com.thunderbolt.wallet.Address;
 import com.thunderbolt.wallet.Wallet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

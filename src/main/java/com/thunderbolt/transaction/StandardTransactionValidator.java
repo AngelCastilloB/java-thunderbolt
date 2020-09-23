@@ -31,7 +31,7 @@ import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.EllipticCurveProvider;
-import com.thunderbolt.security.Hash;
+import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.contracts.ITransactionValidator;
 import com.thunderbolt.transaction.parameters.MultiSignatureParameters;
 import com.thunderbolt.transaction.parameters.SingleSignatureParameters;
@@ -236,7 +236,6 @@ public class StandardTransactionValidator implements ITransactionValidator
                // To validate this type of lock, we just need to reconstruct the data that was signed and validate the
                // signature on said data. The unlocking parameters for this output lock should be the signature and
                // the locking parameters the public key.
-
                 SingleSignatureParameters parameters = new SingleSignatureParameters(ByteBuffer.wrap(unlockingParameters));
 
                 if (!Arrays.equals(output.getLockingParameters(), parameters.getPublicKey()))
@@ -266,14 +265,14 @@ public class StandardTransactionValidator implements ITransactionValidator
 
                 MultiSignatureParameters parameters = new MultiSignatureParameters(ByteBuffer.wrap(unlockingParameters));
 
-                Hash outputLockingParametersHash = new Hash(output.getLockingParameters());
-                Hash inputLockingParametersHash  = parameters.getHash();
+                Sha256Hash outputLockingParametersSha256Hash = new Sha256Hash(output.getLockingParameters());
+                Sha256Hash inputLockingParametersSha256Hash = parameters.getHash();
 
-                if (outputLockingParametersHash != inputLockingParametersHash)
+                if (outputLockingParametersSha256Hash != inputLockingParametersSha256Hash)
                 {
                     s_logger.debug("The provided hashed locking parameters provided by the input do not match the hash provided by the output.\n" +
                             "Output: {}\n" +
-                            "Input: {}", outputLockingParametersHash, inputLockingParametersHash);
+                            "Input: {}", outputLockingParametersSha256Hash, inputLockingParametersSha256Hash);
                     result = false;
                 }
 

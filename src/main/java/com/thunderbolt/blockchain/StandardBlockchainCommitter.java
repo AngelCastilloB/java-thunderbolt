@@ -31,7 +31,7 @@ import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.BlockMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
-import com.thunderbolt.security.Hash;
+import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.Transaction;
 import com.thunderbolt.transaction.TransactionInput;
 import com.thunderbolt.transaction.TransactionOutput;
@@ -89,7 +89,7 @@ public class StandardBlockchainCommitter implements IBlockchainCommitter
 
         // Now we must remove all transactions referenced in this block from the mem pool.
         List<UnspentTransactionOutput> newOutputs     = new ArrayList<>();
-        List<Hash>                     removedOutputs = new ArrayList<>();
+        List<Sha256Hash>                     removedOutputs = new ArrayList<>();
 
         for (Transaction transaction: block.getTransactions())
         {
@@ -169,7 +169,7 @@ public class StandardBlockchainCommitter implements IBlockchainCommitter
         List<UnspentTransactionOutput> spentOutputs = m_persistence.getSpentOutputs(metadata.getHash());
 
         // Re-add all transactions referenced in this block to the mem pool.
-        List<Hash> removedOutputs = new ArrayList<>();
+        List<Sha256Hash> removedOutputs = new ArrayList<>();
 
         for (Transaction transaction: block.getTransactions())
         {

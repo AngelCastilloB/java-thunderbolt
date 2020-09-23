@@ -29,7 +29,7 @@ import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.BlockMetadata;
 import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
-import com.thunderbolt.security.Hash;
+import com.thunderbolt.security.Sha256Hash;
 
 import java.util.ArrayList;
 
@@ -47,7 +47,7 @@ public interface IMetadataProvider
      *
      * @return The block metadata.
      */
-    BlockMetadata getBlockMetadata(Hash id) throws StorageException;
+    BlockMetadata getBlockMetadata(Sha256Hash id) throws StorageException;
 
     /**
      * Adds a block metadata entry to the provider.
@@ -84,7 +84,7 @@ public interface IMetadataProvider
      *
      * @return The transaction metadata.
      */
-    TransactionMetadata getTransactionMetadata(Hash id) throws StorageException;
+    TransactionMetadata getTransactionMetadata(Sha256Hash id) throws StorageException;
 
     /**
      * Adds an unspent transaction to the provider. This outputs is now spendable by any other transaction in
@@ -100,7 +100,7 @@ public interface IMetadataProvider
      * @param id    The id of the transaction that contains the unspent output.
      * @param index The index of the output inside the transaction.
      */
-    UnspentTransactionOutput getUnspentOutput(Hash id, int index) throws StorageException;
+    UnspentTransactionOutput getUnspentOutput(Sha256Hash id, int index) throws StorageException;
 
     /**
      * Gets all the unspent outputs of a given public key.
@@ -117,5 +117,5 @@ public interface IMetadataProvider
      * @param id    The id of the transaction that contains the unspent output.
      * @param index The index of the output inside the transaction.
      */
-    boolean removeUnspentOutput(Hash id, int index) throws StorageException;
+    boolean removeUnspentOutput(Sha256Hash id, int index) throws StorageException;
 }

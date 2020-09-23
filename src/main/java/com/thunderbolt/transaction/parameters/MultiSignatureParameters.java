@@ -28,7 +28,7 @@ package com.thunderbolt.transaction.parameters;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
-import com.thunderbolt.security.Hash;
+import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.security.Sha256Digester;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -206,7 +206,7 @@ public class MultiSignatureParameters implements ISerializable
      *
      * @return The hash.
      */
-    public Hash getHash()
+    public Sha256Hash getHash()
     {
         return Sha256Digester.digest(serializeWithoutSignatures());
     }
