@@ -37,6 +37,7 @@ import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.Transaction;
 import com.thunderbolt.transaction.TransactionInput;
+import com.thunderbolt.wallet.Address;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -256,13 +257,13 @@ public class StandardPersistenceService implements IPersistenceService
     /**
      * Gets all the unspent outputs of a given public key.
      *
-     * @param publicKey The public key of the wallet to get the unspent outputs for.
+     * @param address The address of the wallet to get the unspent outputs for.
      *
      * @return An array with all the unspent outputs related to a given public address.
      */
-    public ArrayList<UnspentTransactionOutput> getUnspentOutputsForAddress(byte[] publicKey) throws StorageException
+    public ArrayList<UnspentTransactionOutput> getUnspentOutputsForAddress(Address address) throws StorageException
     {
-        return m_metadataProvider.getUnspentOutputsForAddress(publicKey);
+        return m_metadataProvider.getUnspentOutputsForAddress(address);
     }
 
     /**

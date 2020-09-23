@@ -31,6 +31,7 @@ import com.thunderbolt.persistence.structures.BlockMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.Transaction;
+import com.thunderbolt.wallet.Address;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -114,11 +115,11 @@ public interface IPersistenceService
     /**
      * Gets all the unspent outputs of a given public key.
      *
-     * @param publicKey The public key of the wallet to get the unspent outputs for.
+     * @param address The address of the wallet to get the unspent outputs for.
      *
      * @return An array with all the unspent outputs related to a given public address.
      */
-    public ArrayList<UnspentTransactionOutput> getUnspentOutputsForAddress(byte[] publicKey) throws StorageException;
+    public ArrayList<UnspentTransactionOutput> getUnspentOutputsForAddress(Address address) throws StorageException;
 
     /**
      * Adds the given unspent output to the database.

@@ -238,10 +238,10 @@ public class StandardTransactionValidator implements ITransactionValidator
                // the locking parameters the public key.
                 SingleSignatureParameters parameters = new SingleSignatureParameters(ByteBuffer.wrap(unlockingParameters));
 
-                if (!Arrays.equals(output.getLockingParameters(), parameters.getPublicKey()))
+                if (!Arrays.equals(output.getLockingParameters(), parameters.getPublicKeyHash()))
                 {
                     s_logger.debug(
-                            "Public key does not match. Locking Public Key {}, Unlocking Public Key {}",
+                            "Public key hash does not match. Locking Public Key hash {}, Unlocking Public Key hash {}",
                             Convert.toHexString(output.getLockingParameters()),
                             Convert.toHexString(parameters.getPublicKeyHash()));
 

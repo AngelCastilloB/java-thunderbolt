@@ -151,7 +151,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
         try
         {
             List<UnspentTransactionOutput> outputs =
-                    ServiceLocator.getService(IPersistenceService.class).getUnspentOutputsForAddress(m_keys.getPublicKey());
+                    ServiceLocator.getService(IPersistenceService.class).getUnspentOutputsForAddress(getAddress());
 
             for (UnspentTransactionOutput output: outputs)
                 m_unspentOutputs.put(output.getHash(), output);
@@ -206,12 +206,12 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
     /**
      * Creates a transaction with the given amount (if the funds are enough) to the given wallet.
      *
-     * @param amount    The amount to be transferred.
-     * @param publicKey The publioc key of the wallet to transfer the funds too.
+     * @param amount  The amount to be transferred.
+     * @param address The address where to transfer the funds to.
      *
      * @return The transaction.
      */
-    public Transaction createTransaction(BigInteger amount, byte[] publicKey) throws IOException
+    public Transaction createTransaction(BigInteger amount, Address address) throws IOException
     {
         Transaction transaction = new Transaction();
 
@@ -262,13 +262,13 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
             transaction.getInputs().add(input);
         }
 
-        TransactionOutput newOutput = new TransactionOutput(amount, OutputLockType.SingleSignature, publicKey);
+        TransactionOutput newOutput = new TransactionOutput(amount, OutputLockType.SingleSignature, address.getPublicHash());
 
         transaction.getOutputs().add(newOutput);
 
         if (remainder.compareTo(BigInteger.ZERO) > 0)
         {
-            TransactionOutput change = new TransactionOutput(remainder, OutputLockType.SingleSignature, m_keys.getPublicKey());
+            TransactionOutput change = new TransactionOutput(remainder, OutputLockType.SingleSignature, getAddress().getPublicHash());
             transaction.getOutputs().add(change);
         }
 
@@ -334,7 +334,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
 
         for (UnspentTransactionOutput output: toAdd)
         {
-            if (Arrays.equals(output.getOutput().getLockingParameters(), m_keys.getPublicKey()))
+            if (Arrays.equals(output.getOutput().getLockingParameters(), getAddress().getPublicHash()))
                 m_unspentOutputs.put(output.getHash(), output);
         }
     }

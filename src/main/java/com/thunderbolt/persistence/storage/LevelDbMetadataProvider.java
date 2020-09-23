@@ -32,6 +32,7 @@ import com.thunderbolt.persistence.structures.BlockMetadata;
 import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Sha256Hash;
+import com.thunderbolt.wallet.Address;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBIterator;
 import org.iq80.leveldb.Options;
@@ -291,11 +292,11 @@ public class LevelDbMetadataProvider implements IMetadataProvider
     /**
      * Gets all the unspent outputs of a given public key.
      *
-     * @param publicKey The public key of the wallet to get the unspent outputs for.
+     * @param address The address of the wallet to get the unspent outputs for.
      *
      * @return An array with all the unspent outputs related to a given public address.
      */
-    public ArrayList<UnspentTransactionOutput> getUnspentOutputsForAddress(byte[] publicKey) throws StorageException
+    public ArrayList<UnspentTransactionOutput> getUnspentOutputsForAddress(Address address) throws StorageException
     {
         ArrayList<UnspentTransactionOutput> result = new ArrayList<>();
 
@@ -307,14 +308,14 @@ public class LevelDbMetadataProvider implements IMetadataProvider
 
                 UnspentTransactionOutput output = new UnspentTransactionOutput(ByteBuffer.wrap(data));
 
-                if (Arrays.equals(output.getOutput().getLockingParameters(), publicKey))
+                if (Arrays.equals(output.getOutput().getLockingParameters(), address.getPublicHash()))
                     result.add(output);
             }
         }
          catch (Exception exception)
         {
             throw new StorageException(
-                    String.format("Unable to get unspent outputs for public key '%s'", Convert.toHexString(publicKey)),
+                    String.format("Unable to get unspent outputs for address'%s'", address.toString()),
                     exception);
         }
 

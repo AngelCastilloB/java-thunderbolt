@@ -100,14 +100,13 @@ public class Main
         s_logger.debug(wallet2.getBalance().toString());
         s_logger.debug(wallet2.getAddress().toString());
 
-        /*
+        Transaction newTransaction = wallet1.createTransaction(BigInteger.valueOf(23L), wallet.getAddress());
+        memPool.addTransaction(newTransaction);
+
         Blockchain blockchain = new Blockchain(NetworkParameters.mainNet());
         blockchain.addOutputsUpdateListener(wallet);
         blockchain.addOutputsUpdateListener(wallet1);
         blockchain.addOutputsUpdateListener(wallet2);
-
-        Transaction newTransaction = wallet1.createTransaction(BigInteger.valueOf(23L), wallet.getKeyPair().getPublicKey());
-        memPool.addTransaction(newTransaction);
 
         StandardMiner miner = new StandardMiner(memPool, blockchain, wallet2);
         Block newBlock = miner.mine();
@@ -115,7 +114,7 @@ public class Main
 
         s_logger.debug(wallet.getBalance().toString());
         s_logger.debug(wallet1.getBalance().toString());
-        s_logger.debug(wallet2.getBalance().toString());*/
+        s_logger.debug(wallet2.getBalance().toString());
     }
 
     /**

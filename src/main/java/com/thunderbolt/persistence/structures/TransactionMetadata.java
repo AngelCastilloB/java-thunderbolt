@@ -43,9 +43,9 @@ public class TransactionMetadata implements ISerializable
 {
     // Instance fields.
     private Sha256Hash m_sha256Hash = new Sha256Hash();
-    private int  m_blockFile;
-    private long m_blockPosition;
-    private int  m_transactionPosition;
+    private int        m_blockFile;
+    private long       m_blockPosition;
+    private int        m_transactionPosition;
 
     /**
      * Creates a new instance of the BlockMetadata class.

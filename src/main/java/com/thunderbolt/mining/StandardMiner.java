@@ -92,7 +92,7 @@ public class StandardMiner implements IMiner
             coinbase.getInputs().add(coinbaseInput);
             coinbase.getOutputs().add(
                     new TransactionOutput(m_blockchain.getNetworkParameters().getBlockSubsidy(m_blockchain.getChainHead().getHeight()),
-                            OutputLockType.SingleSignature, m_wallet.getKeyPair().getPublicKey()));
+                            OutputLockType.SingleSignature, m_wallet.getAddress().getPublicHash()));
 
             block.addTransaction(coinbase);
 

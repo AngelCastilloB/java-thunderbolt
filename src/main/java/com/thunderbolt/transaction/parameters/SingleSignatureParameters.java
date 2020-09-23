@@ -27,6 +27,7 @@ package com.thunderbolt.transaction.parameters;
 
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
+import com.thunderbolt.security.Ripemd160Digester;
 import com.thunderbolt.security.Sha256Digester;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -132,7 +133,7 @@ public class SingleSignatureParameters implements ISerializable
      */
     public byte[] getPublicKeyHash()
     {
-        return null; //Sha256Digester.sha256hash160(m_publicKey);
+        return Ripemd160Digester.digest(Sha256Digester.digest(m_publicKey).getData());
     }
 
     /**
