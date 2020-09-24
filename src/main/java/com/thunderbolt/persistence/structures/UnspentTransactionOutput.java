@@ -28,8 +28,8 @@ package com.thunderbolt.persistence.structures;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
-import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.security.Sha256Digester;
+import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.TransactionOutput;
 
 import java.io.ByteArrayOutputStream;

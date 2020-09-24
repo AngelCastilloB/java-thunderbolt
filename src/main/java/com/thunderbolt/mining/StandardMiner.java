@@ -122,7 +122,7 @@ public class StandardMiner implements IMiner
                 }
             }
 
-            block.getHeader().setTimeStamp(OffsetDateTime.now(ZoneOffset.UTC).toEpochSecond());
+            block.getHeader().setTimeStamp((int)OffsetDateTime.now(ZoneOffset.UTC).toEpochSecond());
             block.getHeader().setBits(m_blockchain.computeTargetDifficulty());
             block.getHeader().setParentBlockHash(m_blockchain.getChainHead().getHeader().getHash());
 

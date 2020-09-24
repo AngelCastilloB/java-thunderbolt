@@ -28,8 +28,8 @@ package com.thunderbolt.blockchain;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
-import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.security.Sha256Digester;
+import com.thunderbolt.security.Sha256Hash;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -47,12 +47,12 @@ public class BlockHeader implements ISerializable
     private static final int STARTING_DIFFICULTY = 0x1d0fffff;
 
     // Instance fields
-    private int  m_version     = 0;
+    private int        m_version     = 0;
     private Sha256Hash m_parentBlock = new Sha256Hash();
     private Sha256Hash m_markleRoot  = new Sha256Hash();
-    private long m_timeStamp   = 0;
-    private long m_bits        = STARTING_DIFFICULTY;
-    private long m_nonce       = 0;
+    private long       m_timeStamp   = 0;
+    private long       m_bits        = STARTING_DIFFICULTY;
+    private long       m_nonce       = 0;
 
     /**
      * Creates a new empty block header.
@@ -107,9 +107,9 @@ public class BlockHeader implements ISerializable
         buffer.get(m_parentBlock.getData());
         buffer.get(m_markleRoot.getData());
 
-        m_timeStamp   = buffer.getLong();
+        m_timeStamp   = buffer.getInt() & 0xffffffffL;
         m_bits        = buffer.getInt() & 0xffffffffL;
-        m_nonce       = buffer.getLong();
+        m_nonce       = buffer.getInt() & 0xffffffffL;
     }
 
     /**
@@ -259,16 +259,9 @@ public class BlockHeader implements ISerializable
             data.write(NumberSerializer.serialize(m_version));
             data.write(m_parentBlock.getData());
             data.write(m_markleRoot.getData());
-            data.write(NumberSerializer.serialize(m_timeStamp));
-
-            // Serialize m_bits as unsigned int (from long).
-            int intBits = (int)m_bits;
-            data.write((byte) ((intBits & 0xFF000000) >> 24));
-            data.write((byte) ((intBits & 0x00FF0000) >> 16));
-            data.write((byte) ((intBits & 0x0000FF00) >> 8));
-            data.write((byte) ((intBits & 0x000000FF)));
-
-            data.write(NumberSerializer.serialize(m_nonce));
+            data.write(NumberSerializer.serialize((int)m_timeStamp));
+            data.write(NumberSerializer.serialize((int)m_bits));
+            data.write(NumberSerializer.serialize((int)m_nonce));
         }
         catch (IOException e)
         {

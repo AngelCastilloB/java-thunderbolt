@@ -26,27 +26,16 @@ package com.thunderbolt;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.blockchain.Block;
-import com.thunderbolt.blockchain.Blockchain;
-import com.thunderbolt.blockchain.StandardBlockchainCommitter;
-import com.thunderbolt.blockchain.contracts.IBlockchainCommitter;
+import com.thunderbolt.blockchain.BlockHeader;
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.mining.MiningException;
-import com.thunderbolt.mining.StandardMiner;
-import com.thunderbolt.network.NetworkParameters;
-import com.thunderbolt.persistence.contracts.IContiguousStorage;
-import com.thunderbolt.persistence.contracts.IMetadataProvider;
-import com.thunderbolt.persistence.contracts.IPersistenceService;
-import com.thunderbolt.persistence.StandardPersistenceService;
 import com.thunderbolt.persistence.storage.*;
-import com.thunderbolt.transaction.*;
-import com.thunderbolt.transaction.contracts.ITransactionValidator;
-import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
-import com.thunderbolt.wallet.Wallet;
+import com.thunderbolt.security.Sha256Digester;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
@@ -79,8 +68,7 @@ public class Main
      *
      * @param args Arguments.
      */
-    public static void main(String[] args) throws IOException, GeneralSecurityException, StorageException, MiningException
-    {
+    public static void main(String[] args) throws IOException, GeneralSecurityException, StorageException, MiningException, InterruptedException {/*
         IPersistenceService      persistenceService    = createPersistenceService();
         ITransactionsPoolService memPool               = new MemoryTransactionsPoolService();
         ITransactionValidator    transactionValidator  = new StandardTransactionValidator(persistenceService, NetworkParameters.mainNet());
@@ -102,27 +90,97 @@ public class Main
         s_logger.debug(wallet2.getBalance().toString());
         s_logger.debug(wallet2.getAddress().toString());
 
-        Transaction newTransaction = wallet1.createTransaction(BigInteger.valueOf(23L), wallet.getAddress());
+        Transaction newTransaction = wallet.createTransaction(BigInteger.valueOf(250L), wallet1.getAddress());
         memPool.addTransaction(newTransaction);
 
         blockchain.addOutputsUpdateListener(wallet);
         blockchain.addOutputsUpdateListener(wallet1);
         blockchain.addOutputsUpdateListener(wallet2);
 
-        StandardMiner miner = new StandardMiner(memPool, blockchain, wallet2);
+        StandardMiner miner = new StandardMiner(memPool, blockchain, wallet);
         Block newBlock = miner.mine();
         blockchain.add(newBlock);
 
         s_logger.debug(wallet.getBalance().toString());
         s_logger.debug(wallet1.getBalance().toString());
         s_logger.debug(wallet2.getBalance().toString());
+
+        System.out.println(Convert.toHexString(newBlock.serialize()));
+        System.out.println(newBlock.getHeader().getNonce());*/
+        //CommPortIdentifier portIdentifier = CommPortIdentifier.getPortIdentifier("COM5");
+        //CommPort commPort = portIdentifier.open("Main", 2000);
+        // SerialPort serialPort = (SerialPort) commPort;
+        //serialPort.setSerialPortParams(115200, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
+
+        // This show how Icarus use the block and midstate data
+        // This will produce nonce 063c5e01 -> debug by using a bogus URL
+
+        //  Operation:
+        // No detection implement.
+        //    Input: 64B = 32B midstate + 20B fill bytes + last 12 bytes of block head.
+        //    Return: send back 32bits immediately when Icarus found a valid nonce.
+        //            no query protocol implemented here, if no data send back in ~11.3
+        //            seconds (full cover time on 32bit nonce range by 380MH/s speed)
+        //            just send another work.
+        //  Notice:
+        //    1. Icarus will start calculate when you push a work to them, even they
+        //       are busy.
+        //    2. The 2 FPGAs on Icarus will distribute the job, one will calculate the
+        //       0 ~ 7FFFFFFF, another one will cover the 80000000 ~ FFFFFFFF.
+        //    3. It's possible for 2 FPGAs both find valid nonce in the meantime, the 2
+        //       valid nonce will all be send back.
+        //   4. Icarus will stop work when: a valid nonce has been found or 32 bits
+        //       nonce range is completely calculated.
+
+        // Marker byte to point where to padding start (80)
+        // Pad n bytes with (0x00)
+        // 64 bit integer to specify padding.
+        String block = "0000000120c8222d0497a7ab44a1a2c7bf39de941c9970b1dc7cdc400000079700000000e88aabe1f353238c668d8a4df9318e614c10c474f8cdf8bc5f6397b946c33d7c4e7242c31a098ea500000000800000000000000000000000000000000000000000000000000000000000000000000000000000000080020000";
+        String midstate = "33c5bf5751ec7f7e056443b5aee3800331432c83f404d9de38b94ecbf907b92d";
+
+        byte[] data2 = Convert.hexStringToByteArray(block);
+        ByteBuffer buffer = ByteBuffer.wrap(data2);
+
+        BlockHeader blockn = new BlockHeader(buffer);
+
+        // Revers every 4 bytes;
+        byte[] firstSegment = new byte[64];
+        for (int i = 0; i < 16; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                firstSegment[i * 4 + j] = data2[i * 4 + (3 - j)];
+            }
+        }
+
+        System.out.println(Convert.toHexString(Sha256Digester.getMidstate(firstSegment)));
+    }/*
+
+        //System.out.println(Sha256Digester.digest(blockn.serialize()));
+        for (int  i = 0; i < 16; ++i)
+        {
+            byte[] s = new byte[4];
+            midStateBuffer.get(s);
+            System.out.print(Sha256Digester.digest(s).toString());
+        }
+
+        //System.out.println(Convert.toHexString(blockn.serialize()));
+    }
+        /*
+        byte[] rdata2  = block.decode('hex')[95:63:-1]
+        byte[] rmid    = midstate.decode('hex')[::-1]
+        byte[] payload = rmid + rdata2
+
+        print("Push payload1 to icarus: " + binascii.hexlify(payload))
+        ser.write(payload)
+
+        b=ser.read(4)
+        print("Result:(should be: 063c5e01): " + binascii.hexlify(b))
     }
 
     /**
      * Creates the persistence service.
      *
      * @return The newly created persistence service.
-     */
+     *//*
     private static IPersistenceService createPersistenceService() throws StorageException
     {
         IContiguousStorage blockStorage     = new DiskContiguousStorage(BLOCKS_PATH, BLOCK_PATTERN);
@@ -130,5 +188,5 @@ public class Main
         IMetadataProvider  metadataProvider = new LevelDbMetadataProvider(METADATA_PATH);
 
         return new StandardPersistenceService(blockStorage, revertsStorage, metadataProvider);
-    }
+    }*/
 }
