@@ -26,7 +26,7 @@ package com.thunderbolt;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.blockchain.BlockHeader;
+import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.mining.MiningException;
 import com.thunderbolt.persistence.storage.*;
@@ -39,6 +39,8 @@ import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -62,6 +64,11 @@ public class Main
     static private final String REVERT_PATTERN   = "revert%05d.bin";
 
     private static final Logger s_logger = LoggerFactory.getLogger(Main.class);
+
+    static int bytereverse(int x)
+    {
+        return (((x) << 24) | (((x) << 8) & 0x00ff0000) | (((x) >> 8) & 0x0000ff00) | ((x) >> 24));
+    }
 
     /**
      * Application entry point.
@@ -135,25 +142,26 @@ public class Main
         // Marker byte to point where to padding start (80)
         // Pad n bytes with (0x00)
         // 64 bit integer to specify padding.
-        String block = "0000000120c8222d0497a7ab44a1a2c7bf39de941c9970b1dc7cdc400000079700000000e88aabe1f353238c668d8a4df9318e614c10c474f8cdf8bc5f6397b946c33d7c4e7242c31a098ea500000000800000000000000000000000000000000000000000000000000000000000000000000000000000000080020000";
-        String midstate = "33c5bf5751ec7f7e056443b5aee3800331432c83f404d9de38b94ecbf907b92d";
+        String blocks = "00000000000000620D492F559522E89B1CFE667646881392184916CD10DA7056D2138739D68E8728F0DD3CF11A7F3DCCAF46610979FA11CD0CA3B0E943ABAE7629454CAA5F6CC4811DFFFFF8017CF16E0000000200000000000000017FFFFFFF000000000000000000000000000000000000000000000000000000000000000000000008000000000000000300000001000000012A05F2000000000014A42FF651E4CFEDDCABCC1AFD47048547AAA64A7A0000000000000000000000000000000100000000ED5E946C60CB1A7F58B8DB61ECA86431B72C7603BE9D22114D22BC854098435D000000690340ADFAD3067489DD020A5DC39041D12BB243FF59FECBB6123FE0F3D9D0FB53A8473045022100CA1C7E06777957167207022F6578CF882FF415E32535A92E03D6ABA409E0B13E0220091D0BDA12A4B840B35A4163D9A25410D62DCF69C06092C6C9C6632F9CD1592B0000000200000000000000FA0000000014BC2FAE1186356DE357036FDC453D76347F4C9152000000012A05F1060000000014A42FF651E4CFEDDCABCC1AFD47048547AAA64A7A0000000000000000";
 
-        byte[] data2 = Convert.hexStringToByteArray(block);
-        ByteBuffer buffer = ByteBuffer.wrap(data2);
+        ByteBuffer buffer = ByteBuffer.wrap(Convert.hexStringToByteArray(blocks));
+        Block blockn = new Block(buffer);
+        Block newBlock = new Block();
 
-        BlockHeader blockn = new BlockHeader(buffer);
+        newBlock.getHeader().setTimeStamp((int) OffsetDateTime.now(ZoneOffset.UTC).toEpochSecond());
+        newBlock.getHeader().setTargetDifficulty(blockn.getTargetDifficulty());
+        newBlock.getHeader().setParentBlockHash(blockn.getHeaderHash());
 
-        // Revers every 4 bytes;
-        byte[] firstSegment = new byte[64];
-        for (int i = 0; i < 16; ++i) {
-            for (int j = 0; j < 4; ++j) {
-                firstSegment[i * 4 + j] = data2[i * 4 + (3 - j)];
-            }
-        }
+        Sha256Digester digester = new Sha256Digester();
+        digester.hash(newBlock.getHeader().serialize());
 
-        System.out.println(Convert.toHexString(Sha256Digester.getMidstate(firstSegment)));
+        System.out.println(Convert.toHexString(digester.getMidstate(0)));
+        System.out.println(Convert.toHexString(digester.getBlock(1)));
+
+        newBlock.getHeader().setNonce(26125374);
+        System.out.println(newBlock.getHeaderHash());
     }/*
-
+DE-08-00-57-00-7E-98-2F-8A-42-91-44-37-71-CF-FB-C0-B5-A5-DB-B5-E9-5B-C2-56-39-F1-11-F1-59-A4-82-3F-92-D5-5E-1C-AB-98-AA-07-D8-01-5B-83-12-BE-85-31-24-C3-7D-0C-55-74-5D-BE-72-FE-B1-DE-80-A7-06-DC-9B-74-F1-9B-C1-C1-69-9B-E4-86-47-BE-EF-C6-9D
         //System.out.println(Sha256Digester.digest(blockn.serialize()));
         for (int  i = 0; i < 16; ++i)
         {
@@ -190,3 +198,4 @@ public class Main
         return new StandardPersistenceService(blockStorage, revertsStorage, metadataProvider);
     }*/
 }
+//DB-50-89-37-4C-65-58-6D-06-46-7F-76-34-04-F3-92-4A-D9-42-83-1D-BD-B2-09-D4-3E-F3-84-CD-D2-51-2D-FA-5C-51-77-37-86-62-76-E7-B4-68-89-CD-23-A9-11-B5-9A-7E-B9-DD-E9-D6-A2-AB-6C-D5-E0-7F-20-6C-A7-13-B6-E6-02-26-24-2D-C0-03-38-6E-0B-E0-53-8E-01

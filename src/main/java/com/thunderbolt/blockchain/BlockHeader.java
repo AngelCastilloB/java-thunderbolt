@@ -207,7 +207,7 @@ public class BlockHeader implements ISerializable
      *
      * @param bits The difficulty target.
      */
-    public void setBits(long bits)
+    public void setTargetDifficulty(long bits)
     {
         m_bits = bits;
     }
@@ -241,7 +241,7 @@ public class BlockHeader implements ISerializable
      */
     public Sha256Hash getHash()
     {
-        return Sha256Digester.digest(serialize());
+        return Sha256Digester.digest(Sha256Digester.digest(serialize()).getData());
     }
 
     /**

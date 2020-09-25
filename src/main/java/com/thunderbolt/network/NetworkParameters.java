@@ -98,7 +98,7 @@ public class NetworkParameters implements Serializable
         genesisBlock.addTransaction(transaction);
 
         genesisBlock.getHeader().setTimeStamp(1525003294);
-        genesisBlock.getHeader().setBits(0x1dfffff8);
+        genesisBlock.getHeader().setTargetDifficulty(0x1dfffff8);
         genesisBlock.getHeader().setNonce(449327816);
 
         return genesisBlock;
