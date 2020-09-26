@@ -56,7 +56,6 @@ public class ProtocolMessage implements ISerializable
     public static final int  MAX_SIZE           = 33554432; // 32 MiB
 
     private short  m_messageType;
-    private int    m_payloadSize;
     private byte[] m_payload;
     private int    m_packetMagic;
 
@@ -99,7 +98,7 @@ public class ProtocolMessage implements ISerializable
 
         ByteBuffer headerBuffer = ByteBuffer.wrap(messageHeader);
         m_messageType = headerBuffer.getShort();
-        m_payloadSize = headerBuffer.getInt();
+        int payloadSize = headerBuffer.getInt();
 
         byte[] checksum = new byte[CHECKSUM_SIZE];
         headerBuffer.get(checksum);
@@ -107,19 +106,19 @@ public class ProtocolMessage implements ISerializable
         if (checksum.length != CHECKSUM_SIZE)
             throw new IOException("Invalid header.");
 
-        if (m_payloadSize > ProtocolMessage.MAX_SIZE)
-            throw new ProtocolException("Message size too large: " + m_payloadSize); // TODO: Add protocol exception
+        if (payloadSize > ProtocolMessage.MAX_SIZE)
+            throw new ProtocolException("Message size too large: " + payloadSize);
 
-        if (m_payloadSize == 0)
+        if (payloadSize == 0)
             return;
 
-        m_payload = new byte[m_payloadSize];
+        m_payload = new byte[payloadSize];
 
         // Now try to read the whole message.
         readCursor = 0;
 
         while (readCursor < m_payload.length - 1) {
-            int bytesRead = stream.read(m_payload, readCursor, m_payloadSize - readCursor);
+            int bytesRead = stream.read(m_payload, readCursor, payloadSize - readCursor);
 
             if (bytesRead == -1)
                 throw new IOException("Socket is disconnected");
@@ -135,7 +134,7 @@ public class ProtocolMessage implements ISerializable
                     Convert.toHexString(hash) + " vs " + Convert.toHexString(checksum));
         }
 
-        s_logger.debug("Received {} bytes, message: '{}'", m_payloadSize,
+        s_logger.debug("Received {} bytes, message: '{}'", payloadSize,
                 Convert.toHexString(NumberSerializer.serialize(m_messageType)));
     }
 
@@ -153,18 +152,18 @@ public class ProtocolMessage implements ISerializable
         if (magic != packetMagic)
             throw new ProtocolException("Invalid magic");
 
-        m_payloadSize = buffer.getInt();
+        int payloadSize = buffer.getInt();
 
         byte[] checksum = new byte[CHECKSUM_SIZE];
         buffer.get(checksum,0, 4);
 
-        if (m_payloadSize == 0)
+        if (payloadSize == 0)
             return;
 
-        m_payload = new byte[m_payloadSize];
+        m_payload = new byte[payloadSize];
         buffer.get(m_payload);
 
-        if (m_payload.length != m_payloadSize)
+        if (m_payload.length != payloadSize)
             throw new ProtocolException("Invalid payload size");
 
         byte[] hash = Sha256Digester.digest(m_payload).getData();
@@ -240,7 +239,7 @@ public class ProtocolMessage implements ISerializable
         {
             data.write(NumberSerializer.serialize(m_packetMagic));
             data.write(NumberSerializer.serialize(m_messageType));
-            data.write(NumberSerializer.serialize(m_payloadSize));
+            data.write(NumberSerializer.serialize(m_payload.length));
             data.write(Sha256Digester.digest(m_payload).getData(), 0, CHECKSUM_SIZE);
             data.write(m_payload);
         }
