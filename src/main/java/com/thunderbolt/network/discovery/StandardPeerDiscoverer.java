@@ -37,7 +37,7 @@ public class StandardPeerDiscoverer
 {
     private static final int                 DEFAULT_PORT = 9567;
     private static final InetSocketAddress[] PEERS = new InetSocketAddress[]
-        { new InetSocketAddress("192.168.0.180", DEFAULT_PORT),
+        { new InetSocketAddress("192.168.0.33", DEFAULT_PORT),
           new InetSocketAddress("192.168.0.181", DEFAULT_PORT),
           new InetSocketAddress("192.168.0.182", DEFAULT_PORT),
           new InetSocketAddress("192.168.0.183", DEFAULT_PORT)

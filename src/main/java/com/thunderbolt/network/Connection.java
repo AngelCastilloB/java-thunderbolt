@@ -26,8 +26,11 @@ package com.thunderbolt.network;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.network.messages.MessageType;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import com.thunderbolt.network.messages.PingPayload;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,6 +47,8 @@ import java.time.ZoneOffset;
  */
 public class Connection
 {
+    private static final Logger s_logger = LoggerFactory.getLogger(Connection.class);
+
     private Socket            m_socket;
     private OutputStream      m_outStream;
     private InputStream       m_inStream;
@@ -110,6 +115,7 @@ public class Connection
         PingPayload payload = new PingPayload(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC));
 
         ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
+        message.setMessageType(MessageType.Ping);
         message.setPayload(payload);
 
         send(message);
@@ -175,6 +181,7 @@ public class Connection
         synchronized (m_outStream)
         {
             m_outStream.write(message.serialize());
+            m_outStream.flush();
         }
     }
 }
