@@ -219,9 +219,9 @@ public class ProtocolMessage implements ISerializable
      *
      * @param message The message type.
      */
-    public void setMessageType(short message)
+    public void setMessageType(MessageType message)
     {
-        m_messageType = message;
+        m_messageType = message.getValue();
     }
 
     /**
