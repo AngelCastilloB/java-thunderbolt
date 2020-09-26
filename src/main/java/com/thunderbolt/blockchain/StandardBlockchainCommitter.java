@@ -173,10 +173,14 @@ public class StandardBlockchainCommitter implements IBlockchainCommitter
 
         for (Transaction transaction: block.getTransactions())
         {
-            boolean added = m_memPool.addTransaction(transaction);
+            // Only add to the mempool non-coinbase transactions.
+            if (!transaction.isCoinbase())
+            {
+                boolean added = m_memPool.addTransaction(transaction);
 
-            if (!added)
-                s_logger.warn("The transaction {} could not be added to our valid transaction pool.", transaction.getTransactionId());
+                if (!added)
+                    s_logger.warn("The transaction {} could not be added to our valid transaction pool.", transaction.getTransactionId());
+            }
 
             // Remove all the Unspent outputs added by this block.
             int index = 0;

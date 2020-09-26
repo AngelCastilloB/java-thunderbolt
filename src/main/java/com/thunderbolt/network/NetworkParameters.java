@@ -22,9 +22,9 @@
  * SOFTWARE.
  */
 
-/* IMPORTS *******************************************************************/
-
 package com.thunderbolt.network;
+
+/* IMPORTS *******************************************************************/
 
 import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.transaction.*;
@@ -49,7 +49,7 @@ public class NetworkParameters implements Serializable
     static private final int        MAIN_NET_TARGET_TIMESPAN              = 7 * 24 * 60 * 60;  // 1 week per difficulty cycle, on average.
     static private final int        MAIN_NET_TARGET_SPACING               = 2 * 60; // 2 minutes per block.
     static private final int        MAIN_NET_INTERVAL                     = MAIN_NET_TARGET_TIMESPAN / MAIN_NET_TARGET_SPACING;
-    static private final long       MAIN_NET_PACKET_MAGIC                 = 0x746e6470;
+    static private final int        MAIN_NET_PACKET_MAGIC                 = 0x746e6470;
     static private final long       MAIN_NET_SUBSIDY_HALVING_INTERVAL     = 210000;
     static private final BigInteger MAIN_NET_SUBSIDY_STARTING_VALUE       = BigInteger.valueOf(5000000000L);
     public static final long        MAIN_NET_COINBASE_MATURITY            = 0; // TODO: Add back the normal maturity. 100
@@ -61,7 +61,7 @@ public class NetworkParameters implements Serializable
     private byte       m_singleSignatureAddressHeader;
     private byte       m_multiSignatureAddressHeader;
     private int        m_port;
-    private long       m_packetMagic;
+    private int        m_packetMagic;
     private int        m_interval;
     private int        m_targetTimespan;
     private int        m_protocol;
@@ -242,6 +242,16 @@ public class NetworkParameters implements Serializable
     public long getCoinbaseMaturiry()
     {
         return m_coinbaseMaturity;
+    }
+
+    /**
+     * Gets the network magic packet for this network.
+     *
+     * @return The packet magic for this network.
+     */
+    public int getPacketMagic()
+    {
+        return m_packetMagic;
     }
 
     /**

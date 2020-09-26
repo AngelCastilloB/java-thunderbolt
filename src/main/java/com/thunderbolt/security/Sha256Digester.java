@@ -139,6 +139,18 @@ public class Sha256Digester
     }
 
     /**
+     * Gets the hash of the given hash.
+     *
+     * @param hash The has to to be re-hashed.
+     *
+     * @return The new hash.
+     */
+    static public Sha256Hash digest(Sha256Hash hash)
+    {
+        return new Sha256Digester().hash(hash.getData());
+    }
+
+    /**
      * Gets the midstate at each round.
      *
      * @param round The index of the midstate.

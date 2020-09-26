@@ -123,8 +123,85 @@ public class StandardMiner implements IMiner
             }
 
             block.getHeader().setTimeStamp((int)OffsetDateTime.now(ZoneOffset.UTC).toEpochSecond());
-            block.getHeader().setTargetDifficulty(m_blockchain.computeTargetDifficulty());
+            block.getHeader().setTargetDifficulty(0x1ffffff8);
             block.getHeader().setParentBlockHash(m_blockchain.getChainHead().getHeader().getHash());
+
+            BigInteger hash = block.getHeaderHash().toBigInteger();
+            boolean solved = false;
+
+            while (!solved)
+            {
+                solved = !(hash.compareTo(block.getTargetDifficultyAsInteger()) > 0);
+
+                if (!solved)
+                {
+                    block.getHeader().setNonce(block.getHeader().getNonce() + 1);
+                    hash = block.getHeaderHash().toBigInteger();
+                }
+
+            }
+        }
+        catch(Exception exception)
+        {
+            throw new MiningException("An exception has occur while mining a new block", exception);
+        }
+
+        return block;
+    }
+
+    /**
+     * Mines a new block.
+     *
+     * @return The newly mined block.
+     */
+    public Block mine(Block parent, long height) throws MiningException
+    {
+        Block block = new Block();
+
+        try
+        {
+            // Coinbase transaction
+            Transaction coinbase = new Transaction();
+            byte[] newHeight = NumberSerializer.serialize(height + 1);
+            TransactionInput coinbaseInput = new TransactionInput(new Sha256Hash(), Integer.MAX_VALUE);
+            coinbaseInput.setUnlockingParameters(newHeight);
+
+            coinbase.getInputs().add(coinbaseInput);
+            coinbase.getOutputs().add(
+                    new TransactionOutput(m_blockchain.getNetworkParameters().getBlockSubsidy(height),
+                            OutputLockType.SingleSignature, m_wallet.getAddress().getPublicHash()));
+
+            block.addTransaction(coinbase);
+
+            // Tries to fill up the block with the transaction from the mem pool.
+            boolean reachMaxBlockSize = false;
+            while (!reachMaxBlockSize)
+            {
+                // The mem pool is empty
+                if (m_pool.getCount() == 0)
+                {
+                    reachMaxBlockSize = true;
+                    continue;
+                }
+
+                Transaction transaction = m_pool.pickTransaction();
+                long nextSize = block.serialize().length + transaction.serialize().length;
+
+                if (nextSize > m_blockchain.getNetworkParameters().getBlockMaxSize())
+                {
+                    reachMaxBlockSize = true;
+                }
+                else
+                {
+                    s_logger.debug("Added transaction {} to the block", transaction.getTransactionId());
+                    block.addTransaction(transaction);
+                    m_pool.removeTransaction(transaction.getTransactionId());
+                }
+            }
+
+            block.getHeader().setTimeStamp((int)OffsetDateTime.now(ZoneOffset.UTC).toEpochSecond());
+            block.getHeader().setTargetDifficulty(0x1ffffff8);
+            block.getHeader().setParentBlockHash(parent.getHeaderHash());
 
             BigInteger hash = block.getHeaderHash().toBigInteger();
             boolean solved = false;

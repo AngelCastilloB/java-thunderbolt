@@ -43,7 +43,7 @@ import java.util.*;
 public class MemoryTransactionsPoolService implements ITransactionsPoolService
 {
     private Map<Sha256Hash, Transaction> m_memPool = new HashMap<>();
-    private BigInteger             m_size    = BigInteger.ZERO;
+    private BigInteger                   m_size    = BigInteger.ZERO;
 
     /**
      * Gets the size of the memory pool in bytes.
@@ -108,7 +108,7 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService
     public boolean addTransaction(Transaction transaction)
     {
         m_size = m_size.add(BigInteger.valueOf(transaction.serialize().length));
-        return m_memPool.put(transaction.getTransactionId(), transaction) != null;
+        return m_memPool.put(transaction.getTransactionId(), transaction) == null;
     }
 
     /**
