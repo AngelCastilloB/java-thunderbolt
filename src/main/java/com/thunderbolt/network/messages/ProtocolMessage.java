@@ -272,7 +272,7 @@ public class ProtocolMessage implements ISerializable
             if (b == magicBytes[magicIndex])
             {
                 ++magicIndex;
-                if ((magicIndex + 1) >= MAGIC_SIZE)
+                if ((magicIndex) >= MAGIC_SIZE)
                     return;
             }
             else
