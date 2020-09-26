@@ -101,7 +101,8 @@ public class ProtocolMessage implements ISerializable
         m_messageType = headerBuffer.getShort();
         m_payloadSize = headerBuffer.getInt();
 
-        byte[] checksum = headerBuffer.array();
+        byte[] checksum = new byte[CHECKSUM_SIZE];
+        headerBuffer.get(checksum);
 
         if (checksum.length != CHECKSUM_SIZE)
             throw new IOException("Invalid header.");
@@ -160,7 +161,8 @@ public class ProtocolMessage implements ISerializable
         if (m_payloadSize == 0)
             return;
 
-        m_payload = buffer.array();
+        m_payload = new byte[m_payloadSize];
+        buffer.get(m_payload);
 
         if (m_payload.length != m_payloadSize)
             throw new ProtocolException("Invalid payload size");
