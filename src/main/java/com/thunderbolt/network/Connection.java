@@ -37,6 +37,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
@@ -104,9 +105,8 @@ public class Connection
 
     /**
      * Sends a "ping" message to the remote node. The protocol doesn't presently use this feature much.
-     * @throws IOException
      */
-    public void ping() throws IOException
+    public boolean ping() throws IOException, ProtocolException
     {
         PingPayload payload = new PingPayload(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC));
 
@@ -115,6 +115,16 @@ public class Connection
         message.setPayload(payload);
 
         send(message);
+
+        // Wait for the ping response.
+        ProtocolMessage pongResponse = receive();
+
+        if (pongResponse.getMessageType() != MessageType.Pong)
+            return false;
+
+        PingPayload responsePayload = new PingPayload(ByteBuffer.wrap(pongResponse.getPayload()));
+
+        return payload.getNonce() == responsePayload.getNonce();
     }
 
     /**

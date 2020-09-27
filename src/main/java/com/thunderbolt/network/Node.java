@@ -190,21 +190,26 @@ public class Node
                     Socket peerSocket = new Socket();
                     peerSocket.connect(peerAddress);
                     Connection connection = new Connection(m_params, peerSocket, m_blockchain.getChainHead().getHeight(), 1000);
-                    Peer newPeer = new Peer(connection, m_params);
 
-                    s_logger.info("Connected to {}", peerAddress.toString());
-                    m_peers.put(newPeer.toString(), newPeer);
+                    if (connection.ping())
+                    {
+                        Peer newPeer = new Peer(connection, m_params);
+                        s_logger.info("Connected to {}", peerAddress.toString());
+                        m_peers.put(newPeer.toString(), newPeer);
+                    }
+                    else
+                    {
+                        s_logger.info("Could not connect to peer {}. Reason: did not respond to ping", peerAddress);
+                    }
                 }
                 else
                 {
                     s_logger.info("Could not connect to peer {}. Reason: Not reachable", peerAddress);
-                    continue;
                 }
             }
             catch (Exception e)
             {
                 s_logger.info("Could not connect to peer {}. Reason: {}", peerAddress, e.getMessage());
-                continue;
             }
 
             if (m_peers.size() >= m_minConnections)
