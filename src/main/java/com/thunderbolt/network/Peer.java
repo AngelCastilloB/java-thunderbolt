@@ -66,13 +66,12 @@ public class Peer
      */
     public void start()
     {
-        m_thread = new Thread(this::run);
-
         synchronized (this)
         {
             m_isRunning = true;
         }
-
+        
+        m_thread = new Thread(this::run);
         m_watch.start();
         m_thread.setName("Peer thread: " + m_connection.toString());
         m_thread.start();

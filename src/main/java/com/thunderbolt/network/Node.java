@@ -78,13 +78,12 @@ public class Node
      */
     public void start()
     {
-        m_thread = new Thread(this::run);
-
         synchronized (this)
         {
             m_isRunning = true;
         }
 
+        m_thread = new Thread(this::run);
         m_thread.setName("Node");
         m_thread.start();
     }
