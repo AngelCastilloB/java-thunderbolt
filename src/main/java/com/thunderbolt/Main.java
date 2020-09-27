@@ -90,7 +90,7 @@ public class Main
         while (true)
         {
             Thread.sleep(2000);
-            node.pingAll();
+            //node.pingAll();
         }
         /*
         StandardPeerDiscoverer PeerDiscoverer = new StandardPeerDiscoverer();

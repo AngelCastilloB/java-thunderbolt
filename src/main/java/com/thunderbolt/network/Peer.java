@@ -156,29 +156,36 @@ public class Peer
                         }
                         else
                         {
-                            s_executor.execute(() -> {
-                                s_logger.debug("Sending a version to {}", this.toString());
-                                try
-                                {
-                                    ProtocolMessage versionMessage = new ProtocolMessage(m_params.getPacketMagic());
-                                    versionMessage.setMessageType(MessageType.Version);
-                                    versionMessage.setNonce(message.getNonce());
+                            if (new VersionPayload(ByteBuffer.wrap(message.getPayload())).getVersion() == m_params.getProtocol())
+                            {
+                                s_executor.execute(() -> {
+                                    s_logger.debug("Version match ours. Sending a version to {}", this.toString());
+                                    try
+                                    {
+                                        ProtocolMessage versionMessage = new ProtocolMessage(m_params.getPacketMagic());
+                                        versionMessage.setMessageType(MessageType.Version);
+                                        versionMessage.setNonce(message.getNonce());
 
-                                    VersionPayload versionPayload =
-                                            new VersionPayload(
-                                                    m_params.getProtocol(),
-                                                    LocalDateTime.now().toEpochSecond(ZoneOffset.UTC),
-                                                    m_blockchain.getChainHead().getHeight());
+                                        VersionPayload versionPayload =
+                                                new VersionPayload(
+                                                        m_params.getProtocol(),
+                                                        LocalDateTime.now().toEpochSecond(ZoneOffset.UTC),
+                                                        m_blockchain.getChainHead().getHeight());
 
-                                    versionMessage.setPayload(versionPayload);
+                                        versionMessage.setPayload(versionPayload);
 
-                                    m_connection.send(versionMessage);
-                                }
-                                catch (IOException | StorageException e)
-                                {
-                                    e.printStackTrace();
-                                }
-                            });
+                                        m_connection.send(versionMessage);
+                                    }
+                                    catch (IOException | StorageException e)
+                                    {
+                                        e.printStackTrace();
+                                    }
+                                });
+                            }
+                            else
+                            {
+                                throw new Exception("Peer version does not match ours.");
+                            }
                         }
                         break;
                     default:

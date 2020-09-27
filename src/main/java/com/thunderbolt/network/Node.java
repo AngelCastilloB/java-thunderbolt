@@ -220,7 +220,7 @@ public class Node
                     if (newPeer.performHandshake())
                     {
                         m_peers.put(newPeer.toString(), newPeer);
-                        s_logger.info("Connected to {}", peerAddress.toString());
+                        s_logger.info("Handshake successful. Connected to {}", peerAddress.toString());
                     }
                     else
                     {
