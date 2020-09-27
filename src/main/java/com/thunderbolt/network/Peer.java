@@ -175,6 +175,7 @@ public class Peer
                                         versionMessage.setPayload(versionPayload);
 
                                         m_connection.send(versionMessage);
+                                        m_hasHandshake = true;
                                     }
                                     catch (IOException | StorageException e)
                                     {

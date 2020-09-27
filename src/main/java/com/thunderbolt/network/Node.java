@@ -27,6 +27,7 @@ package com.thunderbolt.network;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.blockchain.Blockchain;
+import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.network.discovery.StandardPeerDiscoverer;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
@@ -164,8 +165,22 @@ public class Node
                 Peer newPeer = new Peer(connection, m_params, m_blockchain);
 
                 newPeer.start();
-                m_peers.put(newPeer.toString(), newPeer);
-                s_logger.info("Connected to {}", peerSocket.getInetAddress().toString());
+
+                Stopwatch stopwatch = new Stopwatch();
+                stopwatch.start();
+
+                while (stopwatch.getElapsedTime().getTotalSeconds() < 5 && !newPeer.hasHandshake())
+                    Thread.sleep(100);
+
+                if (newPeer.hasHandshake())
+                {
+                    m_peers.put(newPeer.toString(), newPeer);
+                    s_logger.info("Handshake successful. Connected to {}", peerSocket.getInetAddress().toString());
+                }
+                else
+                {
+                    newPeer.stop();
+                }
             }
             catch (SocketTimeoutException e)
             {
