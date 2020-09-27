@@ -28,7 +28,6 @@ package com.thunderbolt.network;
 
 import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.network.discovery.StandardPeerDiscoverer;
-import com.thunderbolt.network.messages.ProtocolMessage;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
 import org.slf4j.Logger;
@@ -47,7 +46,7 @@ import java.util.Map;
  */
 public class Node
 {
-    private static final Logger s_logger = LoggerFactory.getLogger(ProtocolMessage.class);
+    private static final Logger s_logger = LoggerFactory.getLogger(Node.class);
 
     private final Map<String, Peer>        m_peers = new HashMap<>();
     private final NetworkParameters        m_params;

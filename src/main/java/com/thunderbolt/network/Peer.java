@@ -167,6 +167,8 @@ public class Peer
         if (response == null)
             return false;
 
+        s_logger.debug("Got response from peer: {}", response.getMessageType());
+
         return response.getMessageType() == MessageType.Pong && response.getNonce() == message.getNonce();
     }
 
