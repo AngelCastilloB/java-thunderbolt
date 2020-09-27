@@ -82,10 +82,6 @@ public class ProtocolMessage implements ISerializable
         // Ignore garbage before the magic header bytes.
         findMessage(stream, packetMagic);
 
-        s_logger.debug("Available data: {}", stream.available());
-        if (stream.available() == 0)
-            throw new IOException("Socket is disconnected");
-
         byte[] messageHeader = new byte[ MESSAGE_TYPE_SIZE + NONCE_SIZE + PAYLOAD_COUNT_SIZE + CHECKSUM_SIZE ];
 
         int readCursor = 0;

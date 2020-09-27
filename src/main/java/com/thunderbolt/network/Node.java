@@ -84,7 +84,29 @@ public class Node
 
         m_thread = new Thread(this::run);
         m_thread.setName("Node");
+        m_thread.setDaemon(true);
         m_thread.start();
+    }
+
+    public void pingAll()
+    {
+        Iterator<Map.Entry<String, Peer>> iterator = m_peers.entrySet().iterator();
+
+        while(iterator.hasNext())
+        {
+            Map.Entry<String, Peer> entry = iterator.next();
+            Peer peer = entry.getValue();
+            try
+            {
+                peer.ping();
+            } catch (IOException e)
+            {
+                e.printStackTrace();
+            } catch (InterruptedException e)
+            {
+                e.printStackTrace();
+            }
+        }
     }
 
     /**
@@ -140,18 +162,10 @@ public class Node
 
                 Connection connection = new Connection(m_params, peerSocket, m_blockchain.getChainHead().getHeight(), 1000);
                 Peer newPeer = new Peer(connection, m_params);
-                newPeer.start();
 
-                if (newPeer.ping())
-                {
-                    m_peers.put(newPeer.toString(), newPeer);
-                    s_logger.info("Connected to {}", peerSocket.getInetAddress().toString());
-                }
-                else
-                {
-                    newPeer.stop();
-                    s_logger.info("Could not connect to peer {}. Did not respond to ping.", peerSocket.getInetAddress().toString());
-                }
+                newPeer.start();
+                m_peers.put(newPeer.toString(), newPeer);
+                s_logger.info("Connected to {}", peerSocket.getInetAddress().toString());
             }
             catch (SocketTimeoutException e)
             {
@@ -206,17 +220,8 @@ public class Node
 
                     Peer newPeer = new Peer(connection, m_params);
                     newPeer.start();
-
-                    if (newPeer.ping())
-                    {
-                        m_peers.put(newPeer.toString(), newPeer);
-                        s_logger.info("Connected to {}", peerAddress.toString());
-                    }
-                    else
-                    {
-                        newPeer.stop();
-                        s_logger.info("Could not connect to peer {}. Did not respond to ping.", peerAddress);
-                    }
+                    m_peers.put(newPeer.toString(), newPeer);
+                    s_logger.info("Connected to {}", peerAddress.toString());
                 }
                 else
                 {

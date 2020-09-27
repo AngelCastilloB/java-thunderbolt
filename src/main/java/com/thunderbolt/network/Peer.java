@@ -26,6 +26,7 @@ package com.thunderbolt.network;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.common.TimeSpan;
 import com.thunderbolt.network.messages.MessageResponseRegistry;
@@ -75,6 +76,7 @@ public class Peer
         m_thread = new Thread(this::run);
         m_watch.start();
         m_thread.setName("Peer thread: " + m_connection.toString());
+        m_thread.setDaemon(true);
         m_thread.start();
     }
 
@@ -108,21 +110,21 @@ public class Peer
             {
                 ProtocolMessage message = m_connection.receive(10000);
                 if (message == null)
+                {
+                    s_logger.debug("Message is null");
                     continue;
+                }
+                s_logger.debug(Convert.toHexString(message.serialize()));
 
                 // Start measuring time every time we get a message from the peer.
                 m_watch.restart();
                 switch (message.getMessageType())
                 {
                     case Ping:
-                        ProtocolMessage pongResponse = new ProtocolMessage(m_params.getPacketMagic());
-                        pongResponse.setMessageType(MessageType.Pong);
-                        message.setNonce(message.getNonce());
-                        m_connection.send(message);
+                        s_logger.debug("ping");
                         break;
                     case Pong:
-                        if (m_registry.isExpected(message))
-                            m_registry.insertResponse(message);
+                        s_logger.debug("pong");
                         break;
                     case Version:
                         break;
@@ -152,7 +154,7 @@ public class Peer
 
         m_registry.expecting(MessageType.Pong, message.getNonce());
         m_connection.send(message);
-
+/*
         Stopwatch stopwatch = new Stopwatch();
 
         stopwatch.start();
@@ -170,7 +172,8 @@ public class Peer
 
         s_logger.debug("Got response from peer: {}", response.getMessageType());
 
-        return response.getMessageType() == MessageType.Pong && response.getNonce() == message.getNonce();
+        return response.getMessageType() == MessageType.Pong && response.getNonce() == message.getNonce();*/
+        return true;
     }
 
     /**

@@ -118,6 +118,16 @@ public class Connection
     }
 
     /**
+     * Gets whether the connection is established or not.
+     *
+     * @return True if connected; otherwise; false.
+     */
+    public boolean isConnected()
+    {
+        return m_socket.isConnected();
+    }
+
+    /**
      * Closes the connection with the peer.
      */
     public void close() throws IOException
@@ -137,7 +147,7 @@ public class Connection
     @Override
     public String toString()
     {
-        return String.format("Address: %s - Port: %n - isConnected: %s",
+        return String.format("Address: %s - Port: %s - isConnected: %s",
                 m_socket.getInetAddress().getHostAddress(),
                 m_socket.getPort(),
                 m_socket.isConnected());
@@ -154,7 +164,7 @@ public class Connection
     {
         Stopwatch timeoutWatch = new Stopwatch();
 
-        while (m_inStream.available() == 0 && timeoutWatch.getElapsedTime().getTotalMilliseconds() < timeout)
+        while ((m_socket.isClosed() || m_inStream.available() == 0) && timeoutWatch.getElapsedTime().getTotalMilliseconds() < timeout)
         {
             try
             {
@@ -166,10 +176,13 @@ public class Connection
             }
         }
 
-        if (m_inStream.available() == 0)
+        if (m_socket.isClosed() || m_inStream.available() == 0)
             return null;
 
-        return new ProtocolMessage(m_inStream, m_params.getPacketMagic());
+        ProtocolMessage message = new ProtocolMessage(m_inStream, m_params.getPacketMagic());
+        s_logger.debug("Message rec: {}", Convert.toHexString(message.serialize()));
+
+        return message;
     }
 
     /**
@@ -177,12 +190,12 @@ public class Connection
      *
      * @param message The message to be sent.
      */
-    public void send(ProtocolMessage message) throws IOException
+    public synchronized void send(ProtocolMessage message) throws IOException
     {
+        s_logger.debug("Message send: {}", Convert.toHexString(message.serialize()));
         synchronized (m_outStream)
         {
             m_outStream.write(message.serialize());
-            m_outStream.flush();
         }
     }
 }
