@@ -51,11 +51,13 @@ public class ProtocolMessage implements ISerializable
 
     private static final int MAGIC_SIZE         = 4;
     private static final int MESSAGE_TYPE_SIZE  = 2;
+    private static final int NONCE_SIZE         = 8;
     private static final int PAYLOAD_COUNT_SIZE = 4;
     private static final int CHECKSUM_SIZE      = 4;
     public static final int  MAX_SIZE           = 33554432; // 32 MiB
 
     private short  m_messageType;
+    private long   m_nonce;
     private byte[] m_payload;
     private int    m_packetMagic;
 
@@ -82,7 +84,7 @@ public class ProtocolMessage implements ISerializable
         if (stream.available() == 0)
             throw new IOException("Socket is disconnected");
 
-        byte[] messageHeader = new byte[ MESSAGE_TYPE_SIZE + PAYLOAD_COUNT_SIZE + CHECKSUM_SIZE ];
+        byte[] messageHeader = new byte[ MESSAGE_TYPE_SIZE + NONCE_SIZE + PAYLOAD_COUNT_SIZE + CHECKSUM_SIZE ];
 
         int readCursor = 0;
 
@@ -98,6 +100,7 @@ public class ProtocolMessage implements ISerializable
 
         ByteBuffer headerBuffer = ByteBuffer.wrap(messageHeader);
         m_messageType = headerBuffer.getShort();
+        m_nonce = headerBuffer.getLong();
         int payloadSize = headerBuffer.getInt();
 
         byte[] checksum = new byte[CHECKSUM_SIZE];
@@ -152,6 +155,9 @@ public class ProtocolMessage implements ISerializable
         if (magic != packetMagic)
             throw new ProtocolException("Invalid magic");
 
+        m_messageType = buffer.getShort();
+        m_nonce = buffer.getLong();
+
         int payloadSize = buffer.getInt();
 
         byte[] checksum = new byte[CHECKSUM_SIZE];
@@ -196,6 +202,16 @@ public class ProtocolMessage implements ISerializable
     }
 
     /**
+     * Sets the message type.
+     *
+     * @param message The message type.
+     */
+    public void setMessageType(MessageType message)
+    {
+        m_messageType = message.getValue();
+    }
+
+    /**
      * Sets the payload of this message.
      *
      * @param payload The payload.
@@ -215,14 +231,25 @@ public class ProtocolMessage implements ISerializable
         m_payload = payload.serialize();
     }
 
+
     /**
-     * Sets the message type.
+     * Sets the nonce of this message.
      *
-     * @param message The message type.
+     * @param nonce The nonce.
      */
-    public void setMessageType(MessageType message)
+    public void setNonce(long nonce)
     {
-        m_messageType = message.getValue();
+        m_nonce = nonce;
+    }
+
+    /**
+     * Gets the nonce.
+     *
+     * @return The nonce.
+     */
+    public long getNonce()
+    {
+        return m_nonce;
     }
 
     /**
@@ -239,6 +266,7 @@ public class ProtocolMessage implements ISerializable
         {
             data.write(NumberSerializer.serialize(m_packetMagic));
             data.write(NumberSerializer.serialize(m_messageType));
+            data.write(NumberSerializer.serialize(m_nonce));
             data.write(NumberSerializer.serialize(m_payload.length));
             data.write(Sha256Digester.digest(m_payload).getData(), 0, CHECKSUM_SIZE);
             data.write(m_payload);

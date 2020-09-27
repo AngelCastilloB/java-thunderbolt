@@ -29,16 +29,9 @@ package com.thunderbolt;
 import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.blockchain.StandardBlockchainCommitter;
 import com.thunderbolt.blockchain.contracts.IBlockchainCommitter;
-import com.thunderbolt.common.Convert;
-import com.thunderbolt.common.NumberSerializer;
-import com.thunderbolt.mining.MiningException;
-import com.thunderbolt.network.Connection;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.Node;
 import com.thunderbolt.network.ProtocolException;
-import com.thunderbolt.network.discovery.StandardPeerDiscoverer;
-import com.thunderbolt.network.messages.PingPayload;
-import com.thunderbolt.network.messages.ProtocolMessage;
 import com.thunderbolt.persistence.StandardPersistenceService;
 import com.thunderbolt.persistence.contracts.IContiguousStorage;
 import com.thunderbolt.persistence.contracts.IMetadataProvider;
@@ -52,14 +45,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.GeneralSecurityException;
-import java.time.LocalDateTime;
 
 /* IMPLEMENTATION ************************************************************/
 

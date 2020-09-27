@@ -28,11 +28,16 @@ package com.thunderbolt.network;
 
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.common.TimeSpan;
+import com.thunderbolt.network.messages.MessageResponseRegistry;
+import com.thunderbolt.network.messages.MessageType;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -43,11 +48,12 @@ public class Peer
 {
     private static final Logger s_logger = LoggerFactory.getLogger(ProtocolMessage.class);
 
-    private Connection        m_connection;
-    private NetworkParameters m_params;
-    private boolean           m_isRunning = true;
-    private Thread            m_thread;
-    private Stopwatch         m_watch = new Stopwatch();
+    private Connection              m_connection;
+    private NetworkParameters       m_params;
+    private boolean                 m_isRunning = true;
+    private Thread                  m_thread;
+    private Stopwatch               m_watch = new Stopwatch();
+    private MessageResponseRegistry m_registry = new MessageResponseRegistry();
 
     /**
      * Initializes a new instance of the peer.
@@ -108,8 +114,14 @@ public class Peer
                 switch (message.getMessageType())
                 {
                     case Ping:
+                        ProtocolMessage pongResponse = new ProtocolMessage(m_params.getPacketMagic());
+                        pongResponse.setMessageType(MessageType.Pong);
+                        message.setNonce(message.getNonce());
+                        m_connection.send(message);
                         break;
                     case Pong:
+                        if (m_registry.isExpected(message))
+                            m_registry.insertResponse(message);
                         break;
                     case Version:
                         break;
@@ -127,6 +139,48 @@ public class Peer
             e.printStackTrace();
         }
     }
+
+    /**
+     * Sends a "ping" message to the remote node.
+     */
+    public boolean ping() throws IOException, InterruptedException
+    {
+        ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
+        message.setMessageType(MessageType.Ping);
+        message.setNonce(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC));
+
+        m_registry.expecting(MessageType.Pong, message.getNonce());
+        m_connection.send(message);
+
+        Stopwatch stopwatch = new Stopwatch();
+
+        stopwatch.start();
+
+        while(!m_registry.hasResponseArrived(MessageType.Pong, message.getNonce()) &&
+                stopwatch.getElapsedTime().getTotalSeconds() < 5)
+        {
+            Thread.sleep(100);
+        }
+
+        ProtocolMessage response = m_registry.getResponse(MessageType.Pong, message.getNonce());
+
+        if (response == null)
+            return false;
+
+        return response.getMessageType() == MessageType.Pong && response.getNonce() == message.getNonce();
+    }
+
+    /**
+     * Gets the peer protocol version.
+     *
+     * @return The protocol version.
+     */
+    public int getVersion()
+    {
+        int m_peerVersion = 0;
+        return m_peerVersion;
+    }
+
     /**
      * Creates a string representation of the hash value of this object.
      *

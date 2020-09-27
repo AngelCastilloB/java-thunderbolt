@@ -191,9 +191,10 @@ public class Node
                     peerSocket.connect(peerAddress);
                     Connection connection = new Connection(m_params, peerSocket, m_blockchain.getChainHead().getHeight(), 1000);
 
-                    if (connection.ping())
+                    Peer newPeer = new Peer(connection, m_params);
+
+                    if (newPeer.ping())
                     {
-                        Peer newPeer = new Peer(connection, m_params);
                         s_logger.info("Connected to {}", peerAddress.toString());
                         m_peers.put(newPeer.toString(), newPeer);
                     }

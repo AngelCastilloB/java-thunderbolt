@@ -26,20 +26,14 @@ package com.thunderbolt.network;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.network.messages.MessageType;
 import com.thunderbolt.network.messages.ProtocolMessage;
-import com.thunderbolt.network.messages.PingPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.nio.ByteBuffer;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -104,38 +98,17 @@ public class Connection
     }
 
     /**
-     * Sends a "ping" message to the remote node. The protocol doesn't presently use this feature much.
-     */
-    public boolean ping() throws IOException, ProtocolException
-    {
-        PingPayload payload = new PingPayload(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC));
-
-        ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
-        message.setMessageType(MessageType.Ping);
-        message.setPayload(payload);
-
-        send(message);
-
-        // Wait for the ping response.
-        ProtocolMessage pongResponse = receive();
-
-        if (pongResponse.getMessageType() != MessageType.Pong)
-            return false;
-
-        PingPayload responsePayload = new PingPayload(ByteBuffer.wrap(pongResponse.getPayload()));
-
-        return payload.getNonce() == responsePayload.getNonce();
-    }
-
-    /**
-     * Gets the peer protocol version.
+     * Test whether that address is reachable. Best effort is made by the implementation to try to reach the host, but
+     * firewalls and server configuration may block requests resulting in a unreachable status while some specific
+     * ports may be accessible.
      *
-     * @return The protocol version.
+     * @param timeout the time, in milliseconds, before the call aborts.
+     *
+     * @return a {@code boolean} indicating if the address is reachable.
      */
-    public int getVersion()
+    public boolean isReachable(int timeout) throws IOException
     {
-        int m_peerVersion = 0;
-        return m_peerVersion;
+        return m_socket.getInetAddress().isReachable(timeout);
     }
 
     /**
