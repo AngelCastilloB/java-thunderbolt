@@ -45,7 +45,7 @@ public class Peer
 
     private Connection        m_connection;
     private NetworkParameters m_params;
-    private boolean           m_isRunning = false;
+    private boolean           m_isRunning = true;
     private Thread            m_thread;
     private Stopwatch         m_watch = new Stopwatch();
 
@@ -66,11 +66,7 @@ public class Peer
      */
     public void start()
     {
-        synchronized (this)
-        {
-            m_isRunning = true;
-        }
-        
+        m_isRunning = true;
         m_thread = new Thread(this::run);
         m_watch.start();
         m_thread.setName("Peer thread: " + m_connection.toString());
@@ -85,10 +81,7 @@ public class Peer
         if (m_thread == null && !m_isRunning)
             return;
 
-        synchronized (this)
-        {
-            m_isRunning = false;
-        }
+        m_isRunning = false;
 
         try
         {
