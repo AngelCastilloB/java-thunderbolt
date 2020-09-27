@@ -145,14 +145,23 @@ public class Node
                 Connection connection = new Connection(m_params, peerSocket, m_blockchain.getChainHead().getHeight(), 1000);
                 Peer newPeer = new Peer(connection, m_params);
 
-                s_logger.info("Connected to {}", peerSocket.getInetAddress().toString());
-                m_peers.put(newPeer.toString(), newPeer);
+                newPeer.start();
+                if (newPeer.ping())
+                {
+                    s_logger.info("Connected to {}", peerSocket.getInetAddress().toString());
+                    m_peers.put(newPeer.toString(), newPeer);
+                }
+                else
+                {
+                    newPeer.stop();
+                    s_logger.info("Could not connect to peer {}. Reason: did not respond to ping", peerSocket.getInetAddress().toString());
+                }
             }
             catch (SocketTimeoutException e)
             {
                 // We are expecting this exception if we get no new connections in the given timeout.
             }
-            catch (IOException | StorageException e)
+            catch (IOException | StorageException | InterruptedException e)
             {
                 m_isRunning = false;
                 s_logger.error("Critical error while running the node. The node will stop.");
@@ -192,13 +201,16 @@ public class Node
 
                     Peer newPeer = new Peer(connection, m_params);
 
+                    newPeer.start();
                     if (newPeer.ping())
                     {
                         s_logger.info("Connected to {}", peerAddress.toString());
+
                         m_peers.put(newPeer.toString(), newPeer);
                     }
                     else
                     {
+                        newPeer.stop();
                         s_logger.info("Could not connect to peer {}. Reason: did not respond to ping", peerAddress);
                     }
                 }
