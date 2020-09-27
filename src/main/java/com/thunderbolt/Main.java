@@ -26,25 +26,40 @@ package com.thunderbolt;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.blockchain.Blockchain;
+import com.thunderbolt.blockchain.StandardBlockchainCommitter;
+import com.thunderbolt.blockchain.contracts.IBlockchainCommitter;
+import com.thunderbolt.common.Convert;
+import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.mining.MiningException;
 import com.thunderbolt.network.Connection;
 import com.thunderbolt.network.NetworkParameters;
+import com.thunderbolt.network.Node;
 import com.thunderbolt.network.ProtocolException;
 import com.thunderbolt.network.discovery.StandardPeerDiscoverer;
+import com.thunderbolt.network.messages.PingPayload;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import com.thunderbolt.persistence.StandardPersistenceService;
 import com.thunderbolt.persistence.contracts.IContiguousStorage;
 import com.thunderbolt.persistence.contracts.IMetadataProvider;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.storage.*;
+import com.thunderbolt.transaction.MemoryTransactionsPoolService;
+import com.thunderbolt.transaction.StandardTransactionValidator;
+import com.thunderbolt.transaction.contracts.ITransactionValidator;
+import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
+import java.time.LocalDateTime;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -74,17 +89,55 @@ public class Main
      *
      * @param args Arguments.
      */
-    public static void main(String[] args) throws IOException, ProtocolException
+    public static void main(String[] args) throws IOException, ProtocolException, InterruptedException, StorageException
     {
+        IPersistenceService      persistenceService    = createPersistenceService();
+        ITransactionsPoolService memPool               = new MemoryTransactionsPoolService();
+        ITransactionValidator    transactionValidator  = new StandardTransactionValidator(persistenceService, NetworkParameters.mainNet());
+        IBlockchainCommitter     committer             = new StandardBlockchainCommitter(persistenceService, memPool);
+        Blockchain               blockchain            = new Blockchain(NetworkParameters.mainNet(), transactionValidator, committer, persistenceService);
+
+        Node node = new Node(NetworkParameters.mainNet(), blockchain, memPool);
+        node.start();
+
+        while (true)
+        {
+            Thread.sleep(100);
+        }
+        /*
         StandardPeerDiscoverer PeerDiscoverer = new StandardPeerDiscoverer();
         InetSocketAddress[] peers = PeerDiscoverer.getPeers();
 
+        ServerSocket serverSocket = new ServerSocket(NetworkParameters.mainNet().getPort());
+        serverSocket.setSoTimeout(0);
+
+        System.out.println("Waiting for client on port " + serverSocket.getLocalPort() + "...");
+        Socket server = serverSocket.accept();
+
+        System.out.println("Just connected to " + server.getRemoteSocketAddress());
+
+        while(true)
+        {
+            Thread.sleep(500);
+            while (server.getInputStream().available() > 0)
+            {/*
+                System.out.println(server.getInputStream().available());
+                byte[] message = server.getInputStream().readNBytes(server.getInputStream().available());
+                s_logger.debug(Convert.toHexString(message));
+
+                ProtocolMessage protocolMessage = new ProtocolMessage(server.getInputStream(), NetworkParameters.mainNet().getPacketMagic());
+                PingPayload payload = new PingPayload(ByteBuffer.wrap(protocolMessage.getPayload()));
+                s_logger.debug("{}", payload.getNonce());
+            }
+        }*/
+
+        /*
         if (peers[1].getAddress().isReachable(1000))
         {
             Connection connection = new Connection(NetworkParameters.mainNet(), peers[1], 0, 1000);
             connection.ping();
             ProtocolMessage message = connection.receive();
-        }
+        }*/
 
         /*
         IPersistenceService      persistenceService    = createPersistenceService();

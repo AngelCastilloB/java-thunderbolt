@@ -190,9 +190,9 @@ public class ProtocolMessage implements ISerializable
      *
      * @return The message type.
      */
-    public short getMessageType()
+    public MessageType getMessageType()
     {
-        return m_messageType;
+        return MessageType.from(m_messageType);
     }
 
     /**

@@ -49,27 +49,23 @@ public class Connection
 {
     private static final Logger s_logger = LoggerFactory.getLogger(Connection.class);
 
-    private Socket            m_socket;
-    private OutputStream      m_outStream;
-    private InputStream       m_inStream;
-    private NetworkParameters m_params;
-    private InetSocketAddress m_peerAddress;
-    private int               m_peerVersion = 0;
+    private final Socket            m_socket;
+    private final OutputStream      m_outStream;
+    private final InputStream       m_inStream;
+    private final NetworkParameters m_params;
+
     /**
      * Creates a connection with a given peer.
      *
      * @param params      The network parameters.
-     * @param peerAddress The peer address.
+     * @param peerSocket  The peer socket.
      * @param chainHeight Our current chain height.
      * @param timeout     The timeout value to be used for this connection in milliseconds.
      */
-    public Connection(NetworkParameters params, InetSocketAddress peerAddress, int chainHeight, int timeout) throws IOException
+    public Connection(NetworkParameters params, Socket peerSocket, long chainHeight, int timeout) throws IOException
     {
         m_params = params;
-        m_socket = new Socket();
-        m_peerAddress = peerAddress;
-
-        m_socket.connect(peerAddress, timeout);
+        m_socket = peerSocket;
 
         m_outStream = m_socket.getOutputStream();
         m_inStream = m_socket.getInputStream();
@@ -128,6 +124,7 @@ public class Connection
      */
     public int getVersion()
     {
+        int m_peerVersion = 0;
         return m_peerVersion;
     }
 
@@ -151,13 +148,9 @@ public class Connection
     @Override
     public String toString()
     {
-        return String.format(
-                "{                            %n" +
-                        "  \"address\"      \"%s\", %n" +
-                        "  \"port\":        %d,     %n" +
-                        "  \"isConnected\": \"%s\", %n}",
-                m_peerAddress.getAddress().getHostAddress(),
-                m_peerAddress.getPort(),
+        return String.format("Address: %s - Port: %n - isConnected: %s",
+                m_socket.getInetAddress().getHostAddress(),
+                m_socket.getPort(),
                 m_socket.isConnected());
     }
 
