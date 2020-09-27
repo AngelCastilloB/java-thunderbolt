@@ -161,7 +161,6 @@ public class Node
 
                 Connection connection = new Connection(m_params, peerSocket, m_blockchain.getChainHead().getHeight(), 1000);
                 Peer newPeer = new Peer(connection, m_params);
-
                 newPeer.start();
                 m_peers.put(newPeer.toString(), newPeer);
                 s_logger.info("Connected to {}", peerSocket.getInetAddress().toString());

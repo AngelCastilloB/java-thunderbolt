@@ -26,7 +26,6 @@ package com.thunderbolt.network;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.common.TimeSpan;
 import com.thunderbolt.network.messages.MessageResponseRegistry;
@@ -109,11 +108,7 @@ public class Peer
             {
                 ProtocolMessage message = m_connection.receive(10000);
                 if (message == null)
-                {
-                    s_logger.debug("Message is null");
                     continue;
-                }
-                s_logger.debug(Convert.toHexString(message.serialize()));
 
                 // Start measuring time every time we get a message from the peer.
                 m_watch.restart();
