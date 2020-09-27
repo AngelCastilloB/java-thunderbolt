@@ -26,6 +26,9 @@ package com.thunderbolt.network;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.Convert;
+import com.thunderbolt.common.Stopwatch;
+import com.thunderbolt.network.messages.MessageType;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +37,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -57,7 +62,7 @@ public class Connection
      * @param chainHeight Our current chain height.
      * @param timeout     The timeout value to be used for this connection in milliseconds.
      */
-    public Connection(NetworkParameters params, Socket peerSocket, long chainHeight, int timeout) throws IOException
+    public Connection(NetworkParameters params, Socket peerSocket, long chainHeight, int timeout) throws IOException, ProtocolException, InterruptedException
     {
         m_params = params;
         m_socket = peerSocket;
@@ -65,6 +70,7 @@ public class Connection
         m_outStream = m_socket.getOutputStream();
         m_inStream = m_socket.getInputStream();
 
+        //s_logger.debug("Resonse OK: {}", response.getNonce() == message.getNonce() && response.getMessageType() == message.getMessageType());
         // the version message never uses checksumming. Update checkumming property after version is read.
         //this.serializer = new BitcoinSerializer(params, false);
 
@@ -140,10 +146,29 @@ public class Connection
     /**
      * Receives a message from the peer.
      *
+     * @param timeout Timeout in milliseconds.
+     *
      * @return The message from the peer.
      */
-    public ProtocolMessage receive() throws IOException, ProtocolException
+    public ProtocolMessage receive(int timeout) throws IOException, ProtocolException
     {
+        Stopwatch timeoutWatch = new Stopwatch();
+
+        while (m_inStream.available() == 0 && timeoutWatch.getElapsedTime().getTotalMilliseconds() < timeout)
+        {
+            try
+            {
+                Thread.sleep(100);
+            }
+            catch (InterruptedException e)
+            {
+                e.printStackTrace();
+            }
+        }
+
+        if (m_inStream.available() == 0)
+            return null;
+
         return new ProtocolMessage(m_inStream, m_params.getPacketMagic());
     }
 

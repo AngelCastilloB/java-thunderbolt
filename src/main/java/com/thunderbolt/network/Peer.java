@@ -35,7 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
@@ -107,7 +106,9 @@ public class Peer
         {
             while (m_isRunning)
             {
-                ProtocolMessage message = m_connection.receive();
+                ProtocolMessage message = m_connection.receive(10000);
+                if (message == null)
+                    continue;
 
                 // Start measuring time every time we get a message from the peer.
                 m_watch.restart();

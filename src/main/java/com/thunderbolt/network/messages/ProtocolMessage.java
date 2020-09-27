@@ -78,9 +78,11 @@ public class ProtocolMessage implements ISerializable
      */
     public ProtocolMessage(InputStream stream, int packetMagic) throws IOException, ProtocolException
     {
+        s_logger.debug("Available data: {}", stream.available());
         // Ignore garbage before the magic header bytes.
         findMessage(stream, packetMagic);
 
+        s_logger.debug("Available data: {}", stream.available());
         if (stream.available() == 0)
             throw new IOException("Socket is disconnected");
 
@@ -270,7 +272,7 @@ public class ProtocolMessage implements ISerializable
 
             if (m_payload == null)
             {
-                data.write((int)0);
+                data.write(NumberSerializer.serialize((int)0));
                 byte[] checksum = new byte[]{ 0x00, 0x00, 0x00, 0x00 };
                 data.write(checksum, 0, CHECKSUM_SIZE);
             }
