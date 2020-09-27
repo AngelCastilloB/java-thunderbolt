@@ -255,6 +255,16 @@ public class NetworkParameters implements Serializable
     }
 
     /**
+     * Gets the protocol version.
+     *
+     * @return The protocol version.
+     */
+    public int getProtocol()
+    {
+        return m_protocol;
+    }
+
+    /**
      * Calculates the block subsidy for the given height.
      *
      * @param height The block height.

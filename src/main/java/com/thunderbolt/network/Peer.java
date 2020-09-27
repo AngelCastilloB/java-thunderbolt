@@ -26,18 +26,23 @@ package com.thunderbolt.network;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.common.Convert;
+import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.common.TimeSpan;
 import com.thunderbolt.network.messages.MessageResponseRegistry;
 import com.thunderbolt.network.messages.MessageType;
 import com.thunderbolt.network.messages.ProtocolMessage;
+import com.thunderbolt.network.messages.VersionPayload;
+import com.thunderbolt.persistence.storage.StorageException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -46,23 +51,29 @@ import java.time.ZoneOffset;
  */
 public class Peer
 {
-    private static final Logger s_logger = LoggerFactory.getLogger(ProtocolMessage.class);
+    private static final ThreadPoolExecutor s_executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(16);
+    private static final Logger             s_logger   = LoggerFactory.getLogger(Peer.class);
 
-    private Connection              m_connection;
-    private NetworkParameters       m_params;
-    private boolean                 m_isRunning = true;
-    private Thread                  m_thread;
-    private Stopwatch               m_watch = new Stopwatch();
-    private MessageResponseRegistry m_registry = new MessageResponseRegistry();
+    private Connection              m_connection   = null;
+    private NetworkParameters       m_params       = null;
+    private boolean                 m_isRunning    = true;
+    private Thread                  m_thread       = null;
+    private Stopwatch               m_watch        = new Stopwatch();
+    private MessageResponseRegistry m_registry     = new MessageResponseRegistry();
+    private boolean                 m_hasHandshake = false;
+    private int                     m_version      = 0; // Peer version.
+    private Blockchain              m_blockchain   = null;
 
     /**
      * Initializes a new instance of the peer.
      *
      * @param connection The connection with the peer.
      * @param params The network parameters.
+     * @param blockchain The blockchain.
      */
-    public Peer(Connection connection, NetworkParameters params)
+    public Peer(Connection connection, NetworkParameters params, Blockchain blockchain)
     {
+        m_blockchain = blockchain;
         m_connection = connection;
         m_params = params;
     }
@@ -110,25 +121,65 @@ public class Peer
             {
                 ProtocolMessage message = m_connection.receive(10000);
                 if (message == null)
-                {
-                    s_logger.debug("Message is null");
                     continue;
-                }
-                s_logger.debug(Convert.toHexString(message.serialize()));
 
                 // Start measuring time every time we get a message from the peer.
                 m_watch.restart();
                 switch (message.getMessageType())
                 {
                     case Ping:
-                        s_logger.debug("ping");
+                        s_logger.debug("Got a ping command from {}", this.toString());
+                        s_executor.execute(() -> {
+                            s_logger.debug("Sending a pong back to {}", this.toString());
+                            ProtocolMessage pongMessage = new ProtocolMessage(m_params.getPacketMagic());
+                            pongMessage.setMessageType(MessageType.Pong);
+                            pongMessage.setNonce(message.getNonce());
+                            try
+                            {
+                                m_connection.send(pongMessage);
+                            } catch (IOException e)
+                            {
+                                e.printStackTrace();
+                            }
+                        });
                         break;
                     case Pong:
-                        s_logger.debug("pong");
+                        s_logger.debug("Got a pong command from peer: {}", this.toString());
+                        if (m_registry.isExpected(message))
+                            m_registry.insertResponse(message);
                         break;
                     case Version:
-                        break;
-                    case VersionAck:
+                        s_logger.debug("Got a version command from peer: {}", this.toString());
+                        if (m_registry.isExpected(message))
+                        {
+                            m_registry.insertResponse(message);
+                        }
+                        else
+                        {
+                            s_executor.execute(() -> {
+                                s_logger.debug("Sending a version to {}", this.toString());
+                                try
+                                {
+                                    ProtocolMessage versionMessage = new ProtocolMessage(m_params.getPacketMagic());
+                                    versionMessage.setMessageType(MessageType.Version);
+                                    versionMessage.setNonce(message.getNonce());
+
+                                    VersionPayload versionPayload =
+                                            new VersionPayload(
+                                                    m_params.getProtocol(),
+                                                    LocalDateTime.now().toEpochSecond(ZoneOffset.UTC),
+                                                    m_blockchain.getChainHead().getHeight());
+
+                                    versionMessage.setPayload(versionPayload);
+
+                                    m_connection.send(versionMessage);
+                                }
+                                catch (IOException | StorageException e)
+                                {
+                                    e.printStackTrace();
+                                }
+                            });
+                        }
                         break;
                     default:
                         s_logger.warn("Unexpected value: {}", message.getMessageType());
@@ -154,7 +205,7 @@ public class Peer
 
         m_registry.expecting(MessageType.Pong, message.getNonce());
         m_connection.send(message);
-/*
+
         Stopwatch stopwatch = new Stopwatch();
 
         stopwatch.start();
@@ -170,10 +221,61 @@ public class Peer
         if (response == null)
             return false;
 
-        s_logger.debug("Got response from peer: {}", response.getMessageType());
+        s_logger.debug("Got response from peer: {}  {}", response.getNonce(), message.getNonce()  );
 
-        return response.getMessageType() == MessageType.Pong && response.getNonce() == message.getNonce();*/
-        return true;
+        return response.getMessageType() == MessageType.Pong && response.getNonce() == message.getNonce();
+    }
+
+    /**
+     * Perform a handshake between this node and the peer.
+     *
+     * @return true if the handshake was successful; otherwise; false.
+     */
+    public boolean performHandshake() throws StorageException, IOException, InterruptedException
+    {
+        // Announce ourselves.
+        VersionPayload versionPayload =
+                new VersionPayload(
+                        m_params.getProtocol(),
+                        LocalDateTime.now().toEpochSecond(ZoneOffset.UTC),
+                        m_blockchain.getChainHead().getHeight());
+
+        ProtocolMessage versionMessage = new ProtocolMessage(m_params.getPacketMagic());
+        versionMessage.setMessageType(MessageType.Version);
+        versionMessage.setPayload(versionPayload);
+
+        m_registry.expecting(MessageType.Version, versionMessage.getNonce());
+        m_connection.send(versionMessage);
+
+        Stopwatch stopwatch = new Stopwatch();
+
+        stopwatch.start();
+
+        while(!m_registry.hasResponseArrived(MessageType.Version, versionMessage.getNonce()) &&
+                stopwatch.getElapsedTime().getTotalSeconds() < 5)
+        {
+            Thread.sleep(100);
+        }
+
+        ProtocolMessage response = m_registry.getResponse(MessageType.Version, versionMessage.getNonce());
+
+        if (response == null)
+            return false;
+
+        VersionPayload responsePayload = new VersionPayload(ByteBuffer.wrap(response.getPayload()));
+
+        m_hasHandshake = responsePayload.getVersion() == m_params.getProtocol();
+        return m_hasHandshake;
+    }
+
+    /**
+     * Gets whether this instance has handshake successfully.
+     *
+     * @return True if the handshake was successful; otherwise; false.
+     */
+    public boolean hasHandshake()
+    {
+        return m_hasHandshake;
     }
 
     /**

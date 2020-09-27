@@ -160,8 +160,8 @@ public class Node
 
                 s_logger.debug("{} is trying to connect...", peerSocket.getRemoteSocketAddress());
 
-                Connection connection = new Connection(m_params, peerSocket, m_blockchain.getChainHead().getHeight(), 1000);
-                Peer newPeer = new Peer(connection, m_params);
+                Connection connection = new Connection(m_params, peerSocket, 1000);
+                Peer newPeer = new Peer(connection, m_params, m_blockchain);
 
                 newPeer.start();
                 m_peers.put(newPeer.toString(), newPeer);
@@ -171,18 +171,14 @@ public class Node
             {
                 // We are expecting this exception if we get no new connections in the given timeout.
             }
-            catch (IOException | StorageException e)
+            catch (IOException e)
             {
                 m_isRunning = false;
                 s_logger.error("Critical error while running the node. The node will stop.");
                 e.printStackTrace();
                 return;
             }
-            catch (ProtocolException e)
-            {
-                e.printStackTrace();
-            }
-            catch (InterruptedException e)
+            catch (ProtocolException | InterruptedException e)
             {
                 e.printStackTrace();
             }
@@ -216,12 +212,20 @@ public class Node
                     Socket peerSocket = new Socket();
 
                     peerSocket.connect(peerAddress);
-                    Connection connection = new Connection(m_params, peerSocket, m_blockchain.getChainHead().getHeight(), 1000);
+                    Connection connection = new Connection(m_params, peerSocket, 1000);
 
-                    Peer newPeer = new Peer(connection, m_params);
+                    Peer newPeer = new Peer(connection, m_params, m_blockchain);
                     newPeer.start();
-                    m_peers.put(newPeer.toString(), newPeer);
-                    s_logger.info("Connected to {}", peerAddress.toString());
+
+                    if (newPeer.performHandshake())
+                    {
+                        m_peers.put(newPeer.toString(), newPeer);
+                        s_logger.info("Connected to {}", peerAddress.toString());
+                    }
+                    else
+                    {
+                        newPeer.stop();
+                    }
                 }
                 else
                 {

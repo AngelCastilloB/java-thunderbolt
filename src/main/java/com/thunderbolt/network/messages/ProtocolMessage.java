@@ -78,7 +78,6 @@ public class ProtocolMessage implements ISerializable
      */
     public ProtocolMessage(InputStream stream, int packetMagic) throws IOException, ProtocolException
     {
-        s_logger.debug("Available data: {}", stream.available());
         // Ignore garbage before the magic header bytes.
         findMessage(stream, packetMagic);
 
@@ -134,9 +133,6 @@ public class ProtocolMessage implements ISerializable
             throw new ProtocolException("Checksum failed to verify, actual " +
                     Convert.toHexString(hash) + " vs " + Convert.toHexString(checksum));
         }
-
-        s_logger.debug("Received {} bytes, message: '{}'", payloadSize,
-                Convert.toHexString(NumberSerializer.serialize(m_messageType)));
     }
 
     /**

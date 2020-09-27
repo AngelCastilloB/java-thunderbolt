@@ -59,10 +59,9 @@ public class Connection
      *
      * @param params      The network parameters.
      * @param peerSocket  The peer socket.
-     * @param chainHeight Our current chain height.
      * @param timeout     The timeout value to be used for this connection in milliseconds.
      */
-    public Connection(NetworkParameters params, Socket peerSocket, long chainHeight, int timeout) throws IOException, ProtocolException, InterruptedException
+    public Connection(NetworkParameters params, Socket peerSocket, int timeout) throws IOException, ProtocolException, InterruptedException
     {
         m_params = params;
         m_socket = peerSocket;
@@ -177,7 +176,6 @@ public class Connection
         }
 
         ProtocolMessage message = new ProtocolMessage(m_inStream, m_params.getPacketMagic());
-        s_logger.debug("Message rec: {}", Convert.toHexString(message.serialize()));
 
         return message;
     }
@@ -189,7 +187,6 @@ public class Connection
      */
     public synchronized void send(ProtocolMessage message) throws IOException
     {
-        s_logger.debug("Message send: {}", Convert.toHexString(message.serialize()));
         synchronized (m_outStream)
         {
             m_outStream.write(message.serialize());

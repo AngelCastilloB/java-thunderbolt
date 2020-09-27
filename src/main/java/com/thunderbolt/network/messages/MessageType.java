@@ -50,13 +50,7 @@ public enum MessageType
      * When a node creates an outgoing connection, it will immediately advertise its version. The remote node will
      * respond with its version. No further communication is possible until both peers have exchanged their version.
      */
-    Version((short)0x02),
-
-    /**
-     * The verack message is sent in reply to version. This message consists of only a message header with the message
-     * verack.
-     */
-    VersionAck((short)0x02);
+    Version((short)0x02);
 
     // Instance fields.
     private short m_value;
