@@ -73,6 +73,7 @@ public class Peer
             m_isRunning = true;
         }
 
+        m_watch.start();
         m_thread.setName("Peer thread: " + m_connection.toString());
         m_thread.start();
     }
@@ -133,6 +134,16 @@ public class Peer
             s_logger.error("Shutting down peer: {}", m_connection.toString());
             e.printStackTrace();
         }
+    }
+    /**
+     * Creates a string representation of the hash value of this object.
+     *
+     * @return The string representation.
+     */
+    @Override
+    public String toString()
+    {
+        return m_connection.toString();
     }
 
     /**
