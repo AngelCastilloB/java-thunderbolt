@@ -87,6 +87,27 @@ public class Node
         m_thread.start();
     }
 
+    public void pingAll()
+    {
+        Iterator<Map.Entry<String, Peer>> iterator = m_peers.entrySet().iterator();
+
+        while(iterator.hasNext())
+        {
+            Map.Entry<String, Peer> entry = iterator.next();
+            Peer peer = entry.getValue();
+            try
+            {
+                peer.ping();
+            } catch (IOException e)
+            {
+                e.printStackTrace();
+            } catch (InterruptedException e)
+            {
+                e.printStackTrace();
+            }
+        }
+    }
+
     /**
      * Stops the node
      */
@@ -95,10 +116,7 @@ public class Node
         if (m_thread == null && !m_isRunning)
             return;
 
-        synchronized (this)
-        {
-            m_isRunning = false;
-        }
+        m_isRunning = false;
 
         try
         {
@@ -121,7 +139,6 @@ public class Node
             bootstrap();
 
             serverSocket = new ServerSocket(NetworkParameters.mainNet().getPort());
-            serverSocket.setSoTimeout(5000);
         }
         catch (IOException e)
         {
@@ -146,27 +163,27 @@ public class Node
                 Peer newPeer = new Peer(connection, m_params);
 
                 newPeer.start();
-                if (newPeer.ping())
-                {
-                    s_logger.info("Connected to {}", peerSocket.getInetAddress().toString());
-                    m_peers.put(newPeer.toString(), newPeer);
-                }
-                else
-                {
-                    newPeer.stop();
-                    s_logger.info("Could not connect to peer {}. Reason: did not respond to ping", peerSocket.getInetAddress().toString());
-                }
+                m_peers.put(newPeer.toString(), newPeer);
+                s_logger.info("Connected to {}", peerSocket.getInetAddress().toString());
             }
             catch (SocketTimeoutException e)
             {
                 // We are expecting this exception if we get no new connections in the given timeout.
             }
-            catch (IOException | StorageException | InterruptedException e)
+            catch (IOException | StorageException e)
             {
                 m_isRunning = false;
                 s_logger.error("Critical error while running the node. The node will stop.");
                 e.printStackTrace();
                 return;
+            }
+            catch (ProtocolException e)
+            {
+                e.printStackTrace();
+            }
+            catch (InterruptedException e)
+            {
+                e.printStackTrace();
             }
 
             // Remove inactive peers.
@@ -196,32 +213,25 @@ public class Node
                 if (peerAddress.getAddress().isReachable(1000))
                 {
                     Socket peerSocket = new Socket();
+
                     peerSocket.connect(peerAddress);
                     Connection connection = new Connection(m_params, peerSocket, m_blockchain.getChainHead().getHeight(), 1000);
 
                     Peer newPeer = new Peer(connection, m_params);
-
                     newPeer.start();
-                    if (newPeer.ping())
-                    {
-                        s_logger.info("Connected to {}", peerAddress.toString());
-
-                        m_peers.put(newPeer.toString(), newPeer);
-                    }
-                    else
-                    {
-                        newPeer.stop();
-                        s_logger.info("Could not connect to peer {}. Reason: did not respond to ping", peerAddress);
-                    }
+                    m_peers.put(newPeer.toString(), newPeer);
+                    s_logger.info("Connected to {}", peerAddress.toString());
                 }
                 else
                 {
                     s_logger.info("Could not connect to peer {}. Reason: Not reachable", peerAddress);
+                    continue;
                 }
             }
             catch (Exception e)
             {
                 s_logger.info("Could not connect to peer {}. Reason: {}", peerAddress, e.getMessage());
+                continue;
             }
 
             if (m_peers.size() >= m_minConnections)

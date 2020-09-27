@@ -26,6 +26,7 @@ package com.thunderbolt.network;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.common.TimeSpan;
 import com.thunderbolt.network.messages.MessageResponseRegistry;
@@ -35,7 +36,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
@@ -107,21 +107,23 @@ public class Peer
         {
             while (m_isRunning)
             {
-                ProtocolMessage message = m_connection.receive();
+                ProtocolMessage message = m_connection.receive(10000);
+                if (message == null)
+                {
+                    s_logger.debug("Message is null");
+                    continue;
+                }
+                s_logger.debug(Convert.toHexString(message.serialize()));
 
                 // Start measuring time every time we get a message from the peer.
                 m_watch.restart();
                 switch (message.getMessageType())
                 {
                     case Ping:
-                        ProtocolMessage pongResponse = new ProtocolMessage(m_params.getPacketMagic());
-                        pongResponse.setMessageType(MessageType.Pong);
-                        message.setNonce(message.getNonce());
-                        m_connection.send(message);
+                        s_logger.debug("ping");
                         break;
                     case Pong:
-                        if (m_registry.isExpected(message))
-                            m_registry.insertResponse(message);
+                        s_logger.debug("pong");
                         break;
                     case Version:
                         break;

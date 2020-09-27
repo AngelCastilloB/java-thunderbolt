@@ -26,6 +26,9 @@ package com.thunderbolt.network;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.Convert;
+import com.thunderbolt.common.Stopwatch;
+import com.thunderbolt.network.messages.MessageType;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +37,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -57,7 +62,7 @@ public class Connection
      * @param chainHeight Our current chain height.
      * @param timeout     The timeout value to be used for this connection in milliseconds.
      */
-    public Connection(NetworkParameters params, Socket peerSocket, long chainHeight, int timeout) throws IOException
+    public Connection(NetworkParameters params, Socket peerSocket, long chainHeight, int timeout) throws IOException, ProtocolException, InterruptedException
     {
         m_params = params;
         m_socket = peerSocket;
@@ -65,6 +70,7 @@ public class Connection
         m_outStream = m_socket.getOutputStream();
         m_inStream = m_socket.getInputStream();
 
+        //s_logger.debug("Resonse OK: {}", response.getNonce() == message.getNonce() && response.getMessageType() == message.getMessageType());
         // the version message never uses checksumming. Update checkumming property after version is read.
         //this.serializer = new BitcoinSerializer(params, false);
 
@@ -91,9 +97,9 @@ public class Connection
         // BitCoinJ is a client mode implementation. That means there's not much point in us talking to other client
         // mode nodes because we can't download the data from them we need to find/verify transactions.
         //if (!versionMessage.hasBlockChain())
-       //     throw new ProtocolException("Peer does not have a copy of the block chain.");
+        //     throw new ProtocolException("Peer does not have a copy of the block chain.");
         // newer clients use checksumming
-       // serializer.useChecksumming(peerVersion >= 209);
+        // serializer.useChecksumming(peerVersion >= 209);
         // Handshake is done!
     }
 
@@ -109,6 +115,16 @@ public class Connection
     public boolean isReachable(int timeout) throws IOException
     {
         return m_socket.getInetAddress().isReachable(timeout);
+    }
+
+    /**
+     * Gets whether the connection is established or not.
+     *
+     * @return True if connected; otherwise; false.
+     */
+    public boolean isConnected()
+    {
+        return m_socket.isConnected();
     }
 
     /**
@@ -140,11 +156,30 @@ public class Connection
     /**
      * Receives a message from the peer.
      *
+     * @param timeout Timeout in milliseconds.
+     *
      * @return The message from the peer.
      */
-    public ProtocolMessage receive() throws IOException, ProtocolException
+    public ProtocolMessage receive(int timeout) throws IOException, ProtocolException
     {
-        return new ProtocolMessage(m_inStream, m_params.getPacketMagic());
+        Stopwatch timeoutWatch = new Stopwatch();
+
+        while ((m_socket.isClosed() || m_inStream.available() == 0) && timeoutWatch.getElapsedTime().getTotalMilliseconds() < timeout)
+        {
+            try
+            {
+                Thread.sleep(100);
+            }
+            catch (InterruptedException e)
+            {
+                e.printStackTrace();
+            }
+        }
+
+        ProtocolMessage message = new ProtocolMessage(m_inStream, m_params.getPacketMagic());
+        s_logger.debug("Message rec: {}", Convert.toHexString(message.serialize()));
+
+        return message;
     }
 
     /**
@@ -152,12 +187,12 @@ public class Connection
      *
      * @param message The message to be sent.
      */
-    public void send(ProtocolMessage message) throws IOException
+    public synchronized void send(ProtocolMessage message) throws IOException
     {
+        s_logger.debug("Message send: {}", Convert.toHexString(message.serialize()));
         synchronized (m_outStream)
         {
             m_outStream.write(message.serialize());
-            m_outStream.flush();
         }
     }
 }
