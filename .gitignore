@@ -24,13 +24,13 @@
 # CMake
 cmake-build-debug/
 cmake-build-release/
-
+.idea/misc.xml
 # Mongo Explorer plugin
 .idea/**/mongoSettings.xml
-
+.idea/artifacts
 # File-based project format
 *.iws
-
+*.jar
 # IntelliJ
 out/
 target/
