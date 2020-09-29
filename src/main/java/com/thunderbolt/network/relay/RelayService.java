@@ -176,7 +176,10 @@ public class RelayService
                     {
                         // If the node has a new message that wants to relay to the peer.
                         // take it out from the queue and send it to the peer.
-                        ProtocolMessage message = connection.getOutputQueue().poll();
+                        ProtocolMessage message = null;
+
+                        if (connection.getOutputQueue().peek() != null)
+                            message = connection.getOutputQueue().poll();
 
                         if (message != null)
                             connection.send(message);

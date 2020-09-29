@@ -26,6 +26,7 @@ package com.thunderbolt.network.discovery;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.network.discovery.contracts.IPeerDiscoverer;
 import java.net.InetSocketAddress;
 
 /* IMPLEMENTATION ************************************************************/
@@ -33,7 +34,7 @@ import java.net.InetSocketAddress;
 /**
  * This discoverer will get the peers from a list of hardcoded addresses.
  */
-public class StandardPeerDiscoverer
+public class StandardPeerDiscoverer implements IPeerDiscoverer
 {
     private static final int                 DEFAULT_PORT = 9567;
     private static final InetSocketAddress[] PEERS = new InetSocketAddress[]
