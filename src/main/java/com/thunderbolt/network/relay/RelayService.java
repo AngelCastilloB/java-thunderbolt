@@ -60,6 +60,16 @@ public class RelayService
     }
 
     /**
+     * Gets an iterator to the first connection on the relay service.
+     *
+     * @return An iterator to the first connection of the relay service.
+     */
+    public Iterator<Connection> begin()
+    {
+        return m_connections.iterator();
+    }
+
+    /**
      * Starts the service.
      */
     public void start()
@@ -126,7 +136,7 @@ public class RelayService
         m_isRunning = true;
         while (m_isRunning)
         {
-            for (Iterator it = m_connections.iterator(); it.hasNext(); )
+            for (Iterator<Connection> it = m_connections.iterator(); it.hasNext(); )
             {
                 Connection connection = (Connection) it;
 
@@ -161,7 +171,7 @@ public class RelayService
         m_isRunning = true;
         while (m_isRunning)
         {
-            for (Iterator it = m_connections.iterator(); it.hasNext();)
+            for (Iterator<Connection> it = m_connections.iterator(); it.hasNext();)
             {
                 Connection connection = (Connection)it;
 

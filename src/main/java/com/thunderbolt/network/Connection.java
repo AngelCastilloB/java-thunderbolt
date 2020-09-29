@@ -207,6 +207,9 @@ public class Connection
      */
     public ProtocolMessage receive(int timeout) throws IOException, ProtocolException
     {
+        if (!isConnected())
+            return null;
+
         Stopwatch timeoutWatch = new Stopwatch();
 
         while (m_inStream.available() == 0 && timeoutWatch.getElapsedTime().getTotalMilliseconds() < timeout)
@@ -233,6 +236,9 @@ public class Connection
      */
     public synchronized void send(ProtocolMessage message) throws IOException
     {
+        if (!isConnected())
+            return;
+
         synchronized (m_outStream)
         {
             m_outStream.write(message.serialize());

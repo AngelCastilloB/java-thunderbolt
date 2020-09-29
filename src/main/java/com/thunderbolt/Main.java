@@ -29,9 +29,12 @@ package com.thunderbolt;
 import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.blockchain.StandardBlockchainCommitter;
 import com.thunderbolt.blockchain.contracts.IBlockchainCommitter;
+import com.thunderbolt.network.Connection;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.Node;
 import com.thunderbolt.network.ProtocolException;
+import com.thunderbolt.network.messages.ProtocolMessage;
+import com.thunderbolt.network.relay.RelayService;
 import com.thunderbolt.persistence.StandardPersistenceService;
 import com.thunderbolt.persistence.contracts.IContiguousStorage;
 import com.thunderbolt.persistence.contracts.IMetadataProvider;
@@ -47,6 +50,7 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Iterator;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -84,14 +88,39 @@ public class Main
         IBlockchainCommitter     committer             = new StandardBlockchainCommitter(persistenceService, memPool);
         Blockchain               blockchain            = new Blockchain(NetworkParameters.mainNet(), transactionValidator, committer, persistenceService);
 
-        Node node = new Node(NetworkParameters.mainNet(), blockchain, memPool);
-        node.start();
+        //Node node = new Node(NetworkParameters.mainNet(), blockchain, memPool);
+        //node.start();
+
+        RelayService service = new RelayService();
+
+        // Add connection to peers.
+        // service.addConnection();
 
         while (true)
         {
-            Thread.sleep(2000);
-            //node.pingAll();
+            Iterator<Connection> it = service.begin();
+            while (it.hasNext())
+            {
+                Connection connection = it.next();
+
+                while (!connection.getInputQueue().isEmpty())
+                {
+                    ProtocolMessage message = connection.getInputQueue().poll();
+
+                    // Do something.
+
+                    // Punish peer.
+                    connection.addBanScore(100);
+
+                    // Send new message.
+                    connection.getOutputQueue().add(new ProtocolMessage(NetworkParameters.mainNet().getPacketMagic()));
+                }
+
+                Thread.sleep(2000);
+                //node.pingAll();
+            }
         }
+
         /*
         StandardPeerDiscoverer PeerDiscoverer = new StandardPeerDiscoverer();
         InetSocketAddress[] peers = PeerDiscoverer.getPeers();
