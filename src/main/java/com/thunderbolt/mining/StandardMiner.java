@@ -123,7 +123,7 @@ public class StandardMiner implements IMiner
             }
 
             block.getHeader().setTimeStamp((int)OffsetDateTime.now(ZoneOffset.UTC).toEpochSecond());
-            block.getHeader().setTargetDifficulty(0x1ffffff8);
+            block.getHeader().setTargetDifficulty(0x1ffffff8); // TODO: Compute correct difficulty for next block.
             block.getHeader().setParentBlockHash(m_blockchain.getChainHead().getHeader().getHash());
 
             BigInteger hash = block.getHeaderHash().toBigInteger();

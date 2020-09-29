@@ -37,6 +37,8 @@ import java.nio.ByteBuffer;
 
 /**
  * Version message payload.
+ *
+ * TODO: Make this a sub class of ProtocolMessage.
  */
 public class VersionPayload implements ISerializable
 {

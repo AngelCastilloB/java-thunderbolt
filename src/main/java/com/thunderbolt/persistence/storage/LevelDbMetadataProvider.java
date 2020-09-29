@@ -40,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -78,6 +79,7 @@ public class LevelDbMetadataProvider implements IMetadataProvider
     {
         Options options = new Options();
         options.createIfMissing(true);
+        options.logger(s_logger::debug);
 
         try
         {

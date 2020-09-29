@@ -43,7 +43,7 @@ import java.nio.ByteBuffer;
  */
 public class UnspentTransactionOutput implements ISerializable
 {
-    private Sha256Hash m_transactionSha256Hash = new Sha256Hash();
+    private Sha256Hash              m_transactionHash = new Sha256Hash();
     private int                     m_index           = 0;
     private int                     m_version         = 0;
     private long                    m_blockHeight     = 0;
@@ -64,7 +64,7 @@ public class UnspentTransactionOutput implements ISerializable
      */
     public UnspentTransactionOutput(ByteBuffer buffer)
     {
-        m_transactionSha256Hash = new Sha256Hash(buffer);
+        m_transactionHash = new Sha256Hash(buffer);
         m_index           = buffer.getInt();
         m_version         = buffer.getInt();
         m_blockHeight     = buffer.getLong();
@@ -83,7 +83,7 @@ public class UnspentTransactionOutput implements ISerializable
 
         try
         {
-            data.write(m_transactionSha256Hash.serialize());
+            data.write(m_transactionHash.serialize());
             data.write(NumberSerializer.serialize(m_index));
         }
         catch (Exception exception)
@@ -101,7 +101,7 @@ public class UnspentTransactionOutput implements ISerializable
      */
     public Sha256Hash getTransactionHash()
     {
-        return m_transactionSha256Hash;
+        return m_transactionHash;
     }
 
     /**
@@ -111,7 +111,7 @@ public class UnspentTransactionOutput implements ISerializable
      */
     public void setTransactionHash(Sha256Hash sha256Hash)
     {
-        m_transactionSha256Hash = sha256Hash;
+        m_transactionHash = sha256Hash;
     }
 
     /**
@@ -226,7 +226,7 @@ public class UnspentTransactionOutput implements ISerializable
 
         try
         {
-            data.write(m_transactionSha256Hash.serialize());
+            data.write(m_transactionHash.serialize());
             data.write(NumberSerializer.serialize(m_index));
             data.write(NumberSerializer.serialize(m_version));
             data.write(NumberSerializer.serialize(m_blockHeight));
@@ -263,7 +263,7 @@ public class UnspentTransactionOutput implements ISerializable
                         "  \"blockHeight\":   %d,%n" +
                         "  \"isCoinbase\":    %s,%n" +
                         "  \"output\":%s%n",
-                        m_transactionSha256Hash,
+                        m_transactionHash,
                         m_index,
                         m_version,
                         m_blockHeight,

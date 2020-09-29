@@ -26,9 +26,7 @@ package com.thunderbolt.network;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.Stopwatch;
-import com.thunderbolt.network.messages.MessageType;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,8 +35,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -49,57 +47,31 @@ public class Connection
 {
     private static final Logger s_logger = LoggerFactory.getLogger(Connection.class);
 
-    private final Socket            m_socket;
-    private final OutputStream      m_outStream;
-    private final InputStream       m_inStream;
-    private final NetworkParameters m_params;
+    private final Socket                 m_socket;
+    private final OutputStream           m_outStream;
+    private final InputStream            m_inStream;
+    private final NetworkParameters      m_params;
+    private final Queue<ProtocolMessage> m_inbound   = new LinkedBlockingQueue<>();
+    private final Queue<ProtocolMessage> m_outbound  = new LinkedBlockingQueue<>();
+    private int                          m_banScore  = 0;
+    private boolean                      m_isInbound = false;
 
     /**
      * Creates a connection with a given peer.
      *
      * @param params      The network parameters.
      * @param peerSocket  The peer socket.
-     * @param timeout     The timeout value to be used for this connection in milliseconds.
+     * @param isInbound   Whether this connection came from a peer connecting to us, or from a peer we connected to
+     *                    during bootstrap.
      */
-    public Connection(NetworkParameters params, Socket peerSocket, int timeout) throws IOException, ProtocolException, InterruptedException
+    public Connection(NetworkParameters params, Socket peerSocket, boolean isInbound) throws IOException
     {
         m_params = params;
         m_socket = peerSocket;
 
         m_outStream = m_socket.getOutputStream();
-        m_inStream = m_socket.getInputStream();
-
-        //s_logger.debug("Resonse OK: {}", response.getNonce() == message.getNonce() && response.getMessageType() == message.getMessageType());
-        // the version message never uses checksumming. Update checkumming property after version is read.
-        //this.serializer = new BitcoinSerializer(params, false);
-
-        // Announce ourselves. This has to come first to connect to clients beyond v0.30.20.2 which wait to hear
-        // from us until they send their version message back.
-        //writeMessage(new VersionMessage(params, bestHeight));
-        // When connecting, the remote peer sends us a version message with various bits of
-        // useful data in it. We need to know the peer protocol version before we can talk to it.
-        //versionMessage = (VersionMessage) readMessage();
-        // Now it's our turn ...
-        // Send an ACK message stating we accept the peers protocol version.
-        //writeMessage(new VersionAck());
-        // And get one back ...
-        //readMessage();
-        // Switch to the new protocol version.
-        //int peerVersion = versionMessage.clientVersion;
-        //log.info("Connected to peer: version={}, subVer='{}', services=0x{}, time={}, blocks={}", new Object[] {
-        //        peerVersion,
-        //        versionMessage.subVer,
-        //        versionMessage.localServices,
-        //        new Date(versionMessage.time * 1000),
-        //        versionMessage.bestHeight
-        //});
-        // BitCoinJ is a client mode implementation. That means there's not much point in us talking to other client
-        // mode nodes because we can't download the data from them we need to find/verify transactions.
-        //if (!versionMessage.hasBlockChain())
-        //     throw new ProtocolException("Peer does not have a copy of the block chain.");
-        // newer clients use checksumming
-        // serializer.useChecksumming(peerVersion >= 209);
-        // Handshake is done!
+        m_inStream  = m_socket.getInputStream();
+        m_isInbound = isInbound;
     }
 
     /**
@@ -111,9 +83,63 @@ public class Connection
      *
      * @return a {@code boolean} indicating if the address is reachable.
      */
-    public boolean isReachable(int timeout) throws IOException
+    public boolean isReachable(int timeout)
     {
-        return m_socket.getInetAddress().isReachable(timeout);
+        boolean isReachable = false;
+
+        try
+        {
+            isReachable = m_socket.getInetAddress().isReachable(timeout);
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+            return false;
+        }
+        return isReachable;
+    }
+
+    /**
+     * Gets the ban score for this peer connection.
+     *
+     * @return The ban score.
+     */
+    public int getBanScore()
+    {
+        return m_banScore;
+    }
+
+    /**
+     * Adds to the ban score of this peer. The higher the ban score, the more likely the peer will be
+     * disconnected.
+     *
+     * @param score The ban score to be added.
+     *
+     * @return The new ban score.
+     */
+    public int addBanScore(int score)
+    {
+        m_banScore += score;
+
+        return m_banScore;
+    }
+
+    /**
+     * Sets the ban score of this peer.
+     *
+     * @param score The ban score.
+     */
+    public void setBanScore(int score)
+    {
+        m_banScore = score;
+    }
+
+    /**
+     * Gets whether this connection came from a peer connecting to us, or from a peer we connected to during bootstrap.
+     */
+    public boolean isInbound()
+    {
+        return m_isInbound;
     }
 
     /**
@@ -124,6 +150,26 @@ public class Connection
     public boolean isConnected()
     {
         return m_socket.isConnected();
+    }
+
+    /**
+     * Gets the inout queue of this connection.
+     *
+     * @return The input queue.
+     */
+    public Queue<ProtocolMessage> getInputQueue()
+    {
+        return m_inbound;
+    }
+
+    /**
+     * Gets the output queue of this connection.
+     *
+     * @return the output queue.
+     */
+    public Queue<ProtocolMessage> getOutputQueue()
+    {
+        return m_outbound;
     }
 
     /**
@@ -163,7 +209,7 @@ public class Connection
     {
         Stopwatch timeoutWatch = new Stopwatch();
 
-        while ((m_socket.isClosed() || m_inStream.available() == 0) && timeoutWatch.getElapsedTime().getTotalMilliseconds() < timeout)
+        while (m_inStream.available() == 0 && timeoutWatch.getElapsedTime().getTotalMilliseconds() < timeout)
         {
             try
             {

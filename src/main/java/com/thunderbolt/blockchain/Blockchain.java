@@ -51,10 +51,10 @@ public class Blockchain
 {
     private static final Logger s_logger = LoggerFactory.getLogger(Blockchain.class);
 
-    private NetworkParameters        m_params;
-    private ITransactionValidator    m_transactionValidator;
-    private IBlockchainCommitter     m_committer;
-    private IPersistenceService      m_persistence;
+    private final NetworkParameters     m_params;
+    private final ITransactionValidator m_transactionValidator;
+    private final IBlockchainCommitter  m_committer;
+    private final IPersistenceService   m_persistence;
 
     /**
      * Creates a new instance of the blockchain.

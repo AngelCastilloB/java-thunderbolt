@@ -58,10 +58,10 @@ public class Transaction implements ISerializable
     private static final long MAX_COINBASE_SIZE = 100;
 
     // Instance Fields
-    private int                          m_version             = 0;
-    private ArrayList<TransactionInput>  m_inputs              = new ArrayList<>();
-    private ArrayList<TransactionOutput> m_outputs             = new ArrayList<>();
-    private long                         m_lockTime            = 0;
+    private int                          m_version  = 0;
+    private ArrayList<TransactionInput>  m_inputs   = new ArrayList<>();
+    private ArrayList<TransactionOutput> m_outputs  = new ArrayList<>();
+    private long                         m_lockTime = 0;
 
     /**
      * Creates a new instance of the Transaction class.

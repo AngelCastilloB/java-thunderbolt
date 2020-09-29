@@ -56,7 +56,7 @@ public class DiskContiguousStorage implements IContiguousStorage
 
     // Constants
     static private final long   FILE_SIZE          = 1024 * 1000 * 128 ; // 128 MB
-    static private final int    FILE_MAGIC         = 0xAAAAAAAA; // This magic needs to be the network magic.
+    static private final int    FILE_MAGIC         = 0xAAAAAAAA; // TODO: This magic needs to be the network magic.
     static private final String METADATA_FILE_NAME = "metadata";
     static private final String LAST_FILE_PREFIX   = "l";
 

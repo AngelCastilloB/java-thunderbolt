@@ -37,7 +37,7 @@ import java.nio.ByteBuffer;
 // IMPLEMENTATION ************************************************************/
 
 /**
- * A transaction output is the end result of spending an inputs.
+ * A transaction output is the end result of spending inputs.
  */
 public class TransactionOutput implements ISerializable
 {

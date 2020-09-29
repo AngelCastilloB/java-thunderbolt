@@ -161,7 +161,7 @@ public class Node
 
                 s_logger.debug("{} is trying to connect...", peerSocket.getRemoteSocketAddress());
 
-                Connection connection = new Connection(m_params, peerSocket, 1000);
+                Connection connection = new Connection(m_params, peerSocket, true);
                 Peer newPeer = new Peer(connection, m_params, m_blockchain);
 
                 newPeer.start();
@@ -193,7 +193,7 @@ public class Node
                 e.printStackTrace();
                 return;
             }
-            catch (ProtocolException | InterruptedException e)
+            catch (InterruptedException e)
             {
                 e.printStackTrace();
             }
@@ -227,7 +227,7 @@ public class Node
                     Socket peerSocket = new Socket();
 
                     peerSocket.connect(peerAddress);
-                    Connection connection = new Connection(m_params, peerSocket, 1000);
+                    Connection connection = new Connection(m_params, peerSocket, false);
 
                     Peer newPeer = new Peer(connection, m_params, m_blockchain);
                     newPeer.start();

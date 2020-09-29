@@ -45,9 +45,9 @@ public class TransactionInput implements ISerializable
     private static final int HASH_LENGTH  = 32;
 
     //Instance Fields
-    private Sha256Hash m_refSha256Hash = new Sha256Hash();
-    private int    m_index   = 0;
-    private byte[] m_unlockingParameters = new byte[0];
+    private Sha256Hash m_refSha256Hash       = new Sha256Hash();
+    private int        m_index               = 0;
+    private byte[]     m_unlockingParameters = new byte[0];
 
     /**
      * Creates a transaction outpoint.
@@ -65,7 +65,7 @@ public class TransactionInput implements ISerializable
     public TransactionInput(Sha256Hash sha256Hash, int index)
     {
         m_refSha256Hash = sha256Hash;
-        m_index               = index;
+        m_index         = index;
     }
 
     /**
@@ -196,7 +196,7 @@ public class TransactionInput implements ISerializable
                 "  \"UnlockingParams\": \"%s\" %n" +
                 "}",
             isCoinBase(),
-                m_refSha256Hash,
+            m_refSha256Hash,
             m_index,
             Convert.toHexString(m_unlockingParameters));
     }

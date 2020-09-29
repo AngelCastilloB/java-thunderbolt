@@ -48,6 +48,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Handles all the communication with the given peer, and is in charge of processing the messages coming from the peer.
+ *
+ * TODO: Remove this class move all logic to a MessageProcessor class.
  */
 public class Peer
 {

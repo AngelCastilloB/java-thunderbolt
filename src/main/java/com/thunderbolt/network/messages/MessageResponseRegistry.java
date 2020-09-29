@@ -33,10 +33,12 @@ import java.util.Map;
 
 /**
  * Thread safe central registry for all message responses.
+ *
+ * TODO: Remove this class.
  */
 public class MessageResponseRegistry
 {
-    private Map<String, ProtocolMessage> m_registry = new HashMap<>();
+    private final Map<String, ProtocolMessage> m_registry = new HashMap<>();
 
     /**
      * Initializes a new instance of the MessageResponseRegistry class.
