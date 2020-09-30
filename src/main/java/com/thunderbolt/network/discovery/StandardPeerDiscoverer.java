@@ -26,7 +26,7 @@ package com.thunderbolt.network.discovery;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.network.discovery.contracts.IPeerDiscoverer;
+import com.thunderbolt.network.contracts.IPeerDiscoverer;
 import java.net.InetSocketAddress;
 
 /* IMPLEMENTATION ************************************************************/

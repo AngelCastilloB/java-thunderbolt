@@ -27,18 +27,14 @@ package com.thunderbolt.network;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.blockchain.Blockchain;
-import com.thunderbolt.common.Stopwatch;
-import com.thunderbolt.network.discovery.StandardPeerDiscoverer;
-import com.thunderbolt.persistence.storage.StorageException;
+import com.thunderbolt.network.contracts.IPeer;
+import com.thunderbolt.network.contracts.IPeerManager;
+import com.thunderbolt.network.messages.ProtocolMessage;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.net.*;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -47,17 +43,15 @@ import java.util.Map;
  */
 public class Node
 {
+    private static final int MAIN_LOOP_DELAY = 100; // ms
+
     private static final Logger s_logger = LoggerFactory.getLogger(Node.class);
 
-    private final Map<String, Peer>        m_peers = new HashMap<>();
     private final NetworkParameters        m_params;
     private final Blockchain               m_blockchain;
-    private final int                      m_maxConnections  = 16;
-    private int                            m_minConnections  = 0; // Should be a more sensible number.
-    private int                            m_maxInactiveTime = 60 * 30; // In seconds.
     private boolean                        m_isRunning;
-    private Thread                         m_thread;
     private final ITransactionsPoolService m_memPool;
+    private final IPeerManager             m_peerManager;
 
     /**
      * Initializes a new instance of the Node class.
@@ -65,236 +59,73 @@ public class Node
      * @param params The network parameters.
      * @param blockchain The blockchain instance.
      * @param transactionsPoolService The transaction pool service.
+     * @param peerManager The peer manager.
      */
-    public Node(NetworkParameters params, Blockchain blockchain, ITransactionsPoolService transactionsPoolService)
+    public Node(NetworkParameters params,
+                Blockchain blockchain,
+                ITransactionsPoolService transactionsPoolService,
+                IPeerManager peerManager)
     {
         m_params = params;
         m_blockchain = blockchain;
         m_memPool = transactionsPoolService;
+        m_peerManager = peerManager;
     }
 
     /**
-     * Starts the node.
+     * Shuts down the node
      */
-    public void start()
+    public void shutdown()
     {
-        synchronized (this)
-        {
-            m_isRunning = true;
-        }
-
-        m_thread = new Thread(this::run);
-        m_thread.setName("Node");
-        m_thread.setDaemon(true);
-        m_thread.start();
-    }
-
-    public void pingAll()
-    {
-        Iterator<Map.Entry<String, Peer>> iterator = m_peers.entrySet().iterator();
-
-        while(iterator.hasNext())
-        {
-            Map.Entry<String, Peer> entry = iterator.next();
-            Peer peer = entry.getValue();
-            try
-            {
-                peer.ping();
-            } catch (IOException e)
-            {
-                e.printStackTrace();
-            } catch (InterruptedException e)
-            {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    /**
-     * Stops the node
-     */
-    public void stop()
-    {
-        if (m_thread == null && !m_isRunning)
+        if (!m_isRunning)
             return;
 
         m_isRunning = false;
 
-        try
-        {
-            s_logger.debug("Please wait while the node shuts down");
-            m_thread.join(1000);
-            m_thread = null;
-            removesAllPeers();
-        }
-        catch (InterruptedException e) {}
+        s_logger.debug("Please wait while the node shuts down");
+        m_peerManager.stop();
     }
 
     /**
-     * Tries to connect to seed peers, listen for new incoming connections by peers and cleans inative peers.
+     * Tries to connect to seed peers.
      */
-    private void run()
+    public void run()
     {
-        ServerSocket serverSocket = null;
-        try
+        if (!m_peerManager.start())
         {
-            bootstrap();
-
-            serverSocket = new ServerSocket(NetworkParameters.mainNet().getPort());
-        }
-        catch (IOException e)
-        {
-            m_isRunning = false;
-            s_logger.error("Node could not start.");
-            e.printStackTrace();
+            s_logger.debug("The peer manager could not be started. The node will shutdown");
             return;
         }
 
-        s_logger.debug("Waiting for new peers on port: {}...", serverSocket.getLocalPort());
         while (m_isRunning)
         {
-            Socket peerSocket = null;
-
-            try
+            Iterator<IPeer> it = m_peerManager.getPeers();
+            while (it.hasNext())
             {
-                peerSocket = serverSocket.accept();
+                IPeer standardPeer = it.next();
 
-                s_logger.debug("{} is trying to connect...", peerSocket.getRemoteSocketAddress());
-
-                Connection connection = new Connection(m_params, peerSocket, true);
-                Peer newPeer = new Peer(connection, m_params, m_blockchain);
-
-                newPeer.start();
-
-                Stopwatch stopwatch = new Stopwatch();
-                stopwatch.start();
-
-                while (stopwatch.getElapsedTime().getTotalSeconds() < 5 && !newPeer.hasHandshake())
-                    Thread.sleep(100);
-
-                if (newPeer.hasHandshake())
+                while (standardPeer.hasMessage())
                 {
-                    m_peers.put(newPeer.toString(), newPeer);
-                    s_logger.info("Handshake successful. Connected to {}", peerSocket.getInetAddress().toString());
+                    ProtocolMessage message = standardPeer.getMessage();
+
+                    // Do something.
+
+                    // Punish peer.
+                    //standardPeer.addBanScore(100);
+
+                    // Send new message.
+                    //standardPeer.sendMessage(new ProtocolMessage(NetworkParameters.mainNet().getPacketMagic()));
                 }
-                else
+
+                try
                 {
-                    newPeer.stop();
+                    Thread.sleep(MAIN_LOOP_DELAY);
+                }
+                catch (InterruptedException e)
+                {
+                    e.printStackTrace();
                 }
             }
-            catch (SocketTimeoutException e)
-            {
-                // We are expecting this exception if we get no new connections in the given timeout.
-            }
-            catch (IOException e)
-            {
-                m_isRunning = false;
-                s_logger.error("Critical error while running the node. The node will stop.");
-                e.printStackTrace();
-                return;
-            }
-            catch (InterruptedException e)
-            {
-                e.printStackTrace();
-            }
-
-            // Remove inactive peers.
-            removeInactive();
-        }
-    }
-
-    /**
-     * Boostrap the node by connecting to a few well known nodes.
-     */
-    private void bootstrap() throws IOException
-    {
-        StandardPeerDiscoverer PeerDiscoverer = new StandardPeerDiscoverer();
-        InetSocketAddress[] peers = PeerDiscoverer.getPeers();
-
-        for (InetSocketAddress peerAddress: peers)
-        {
-            // Skip own address.
-            InetAddress localhost = InetAddress.getLocalHost();
-            if (peerAddress.getAddress().equals(localhost))
-                continue;
-
-            s_logger.info("Trying to connect with peer {}", peerAddress.toString());
-
-            try
-            {
-                if (peerAddress.getAddress().isReachable(1000))
-                {
-                    Socket peerSocket = new Socket();
-
-                    peerSocket.connect(peerAddress);
-                    Connection connection = new Connection(m_params, peerSocket, false);
-
-                    Peer newPeer = new Peer(connection, m_params, m_blockchain);
-                    newPeer.start();
-
-                    if (newPeer.performHandshake())
-                    {
-                        m_peers.put(newPeer.toString(), newPeer);
-                        s_logger.info("Handshake successful. Connected to {}", peerAddress.toString());
-                    }
-                    else
-                    {
-                        newPeer.stop();
-                    }
-                }
-                else
-                {
-                    s_logger.info("Could not connect to peer {}. Reason: Not reachable", peerAddress);
-                    continue;
-                }
-            }
-            catch (Exception e)
-            {
-                s_logger.info("Could not connect to peer {}. Reason: {}", peerAddress, e.getMessage());
-                continue;
-            }
-
-            if (m_peers.size() >= m_minConnections)
-                break;
-        }
-    }
-
-    /**
-     * Remove all inactive peers.
-     */
-    private void removeInactive()
-    {
-        Iterator<Map.Entry<String, Peer>> iterator = m_peers.entrySet().iterator();
-
-        while(iterator.hasNext())
-        {
-            Map.Entry<String, Peer> entry = iterator.next();
-            Peer peer = entry.getValue();
-
-            if (!peer.isRunning() || peer.getInactiveTime().getTotalSeconds() >= m_maxInactiveTime)
-            {
-                s_logger.debug("Removing peer {} due to inactivity.", peer);
-                peer.stop();
-                iterator.remove();
-            }
-        }
-    }
-
-    /**
-     * Disconnects and removes all peers from the node.
-     */
-    private void removesAllPeers()
-    {
-        Iterator<Map.Entry<String, Peer>> iterator = m_peers.entrySet().iterator();
-
-        while(iterator.hasNext())
-        {
-            Map.Entry<String, Peer> entry = iterator.next();
-            Peer peer = entry.getValue();
-
-            s_logger.debug("Removing peer {} due to inactivity.", peer);
-            peer.stop();
-            iterator.remove();
         }
     }
 }

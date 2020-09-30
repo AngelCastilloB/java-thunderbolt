@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.network.discovery.contracts;
+package com.thunderbolt.network.contracts;
 
 /* IMPORTS *******************************************************************/
 

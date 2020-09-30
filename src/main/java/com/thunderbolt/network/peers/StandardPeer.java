@@ -22,11 +22,15 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.network;
+package com.thunderbolt.network.peers;
 
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.Stopwatch;
+import com.thunderbolt.common.TimeSpan;
+import com.thunderbolt.network.NetworkParameters;
+import com.thunderbolt.network.ProtocolException;
+import com.thunderbolt.network.contracts.IPeer;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,18 +47,19 @@ import java.util.concurrent.LinkedBlockingQueue;
 /**
  * A network connection between our node and a peer.
  */
-public class Connection
+public class StandardPeer implements IPeer
 {
-    private static final Logger s_logger = LoggerFactory.getLogger(Connection.class);
+    private static final Logger s_logger = LoggerFactory.getLogger(StandardPeer.class);
 
     private final Socket                 m_socket;
     private final OutputStream           m_outStream;
     private final InputStream            m_inStream;
-    private final NetworkParameters      m_params;
+    private final NetworkParameters m_params;
     private final Queue<ProtocolMessage> m_inbound   = new LinkedBlockingQueue<>();
     private final Queue<ProtocolMessage> m_outbound  = new LinkedBlockingQueue<>();
     private int                          m_banScore  = 0;
     private boolean                      m_isInbound = false;
+    private final Stopwatch              m_watch     = new Stopwatch();
 
     /**
      * Creates a connection with a given peer.
@@ -64,7 +69,7 @@ public class Connection
      * @param isInbound   Whether this connection came from a peer connecting to us, or from a peer we connected to
      *                    during bootstrap.
      */
-    public Connection(NetworkParameters params, Socket peerSocket, boolean isInbound) throws IOException
+    public StandardPeer(NetworkParameters params, Socket peerSocket, boolean isInbound) throws IOException
     {
         m_params = params;
         m_socket = peerSocket;
@@ -72,6 +77,8 @@ public class Connection
         m_outStream = m_socket.getOutputStream();
         m_inStream  = m_socket.getInputStream();
         m_isInbound = isInbound;
+
+        m_watch.restart();
     }
 
     /**
@@ -135,9 +142,11 @@ public class Connection
     }
 
     /**
-     * Gets whether this connection came from a peer connecting to us, or from a peer we connected to during bootstrap.
+     * Gets whether this peer connected to us, or from a peer we connected to during bootstrap.
+     *
+     * @return True if the peer connected to use; otherwise; false.
      */
-    public boolean isInbound()
+    public boolean isClient()
     {
         return m_isInbound;
     }
@@ -150,6 +159,46 @@ public class Connection
     public boolean isConnected()
     {
         return m_socket.isConnected();
+    }
+
+    /**
+     * Gets whether there are new messages to be read in this connection object.
+     *
+     * @return True if the peer has new messages; otherwise; false.
+     */
+    public boolean hasMessage()
+    {
+        return !m_inbound.isEmpty();
+    }
+
+    /**
+     * Gets a new message from the peer.
+     *
+     * @return The new message.
+     */
+    public ProtocolMessage getMessage()
+    {
+        return m_inbound.poll();
+    }
+
+    /**
+     * Sends a new message to the peer.
+     *
+     * @param message The message to be send.
+     */
+    public void sendMessage(ProtocolMessage message)
+    {
+        m_outbound.add(message);
+    }
+
+    /**
+     * Gets the time elapsed since the last message from this peer was received.
+     *
+     * @return The time elapsed since the last message arrived from this peer.
+     */
+    public TimeSpan getInactiveTime()
+    {
+        return m_watch.getElapsedTime();
     }
 
     /**
@@ -175,13 +224,20 @@ public class Connection
     /**
      * Closes the connection with the peer.
      */
-    public void close() throws IOException
+    public void disconnect()
     {
-        m_outStream.flush();
+        try
+        {
+            m_outStream.flush();
 
-        m_socket.shutdownOutput();
-        m_socket.shutdownInput();
-        m_socket.close();
+            m_socket.shutdownOutput();
+            m_socket.shutdownInput();
+            m_socket.close();
+        }
+        catch (IOException exception)
+        {
+            s_logger.warn("There was an error closing the connection with peer {}", toString());
+        }
     }
 
     /**
@@ -211,12 +267,13 @@ public class Connection
             return null;
 
         Stopwatch timeoutWatch = new Stopwatch();
+        timeoutWatch.start();
 
         while (m_inStream.available() == 0 && timeoutWatch.getElapsedTime().getTotalMilliseconds() < timeout)
         {
             try
             {
-                Thread.sleep(100);
+                Thread.sleep(10);
             }
             catch (InterruptedException e)
             {
@@ -224,7 +281,13 @@ public class Connection
             }
         }
 
-        ProtocolMessage message = new ProtocolMessage(m_inStream, m_params.getPacketMagic());
+        ProtocolMessage message = null;
+
+        if (m_inStream.available() > 0)
+        {
+            message = new ProtocolMessage(m_inStream, m_params.getPacketMagic());
+            m_watch.restart();
+        }
 
         return message;
     }
