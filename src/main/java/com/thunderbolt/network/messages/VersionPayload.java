@@ -37,8 +37,6 @@ import java.nio.ByteBuffer;
 
 /**
  * Version message payload.
- *
- * TODO: Make this a sub class of ProtocolMessage.
  */
 public class VersionPayload implements ISerializable
 {
@@ -61,13 +59,15 @@ public class VersionPayload implements ISerializable
     /**
      * Creates a new instance of the Transaction class.
      *
-     * @param buffer A buffer containing the VersionPayload object.
+     * @param data A buffer containing the VersionPayload object.
      */
-    public VersionPayload(ByteBuffer buffer)
+    public VersionPayload(byte[] data)
     {
+        ByteBuffer buffer = ByteBuffer.wrap(data);
+
         setVersion(buffer.getInt());
         setTimestamp(buffer.getLong());
-        setBlockHeight(buffer.getInt() & 0xffffffffL);;
+        setBlockHeight(buffer.getInt() & 0xffffffffL);
     }
 
     /**

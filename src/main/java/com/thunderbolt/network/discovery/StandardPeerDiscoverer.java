@@ -41,7 +41,7 @@ public class StandardPeerDiscoverer implements IPeerDiscoverer
         { new InetSocketAddress("192.168.0.33", DEFAULT_PORT),
           new InetSocketAddress("192.168.0.181", DEFAULT_PORT),
           new InetSocketAddress("192.168.0.182", DEFAULT_PORT),
-          new InetSocketAddress("192.168.0.183", DEFAULT_PORT)
+          new InetSocketAddress("192.168.0.57", DEFAULT_PORT)
         };
 
     /**

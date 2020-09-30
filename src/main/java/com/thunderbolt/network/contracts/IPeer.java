@@ -112,4 +112,51 @@ public interface IPeer
      * @return The time elapsed since the last message arrived from this peer.
      */
     TimeSpan getInactiveTime();
+
+    /**
+     * Gets whether this peer has successfully cleared the handshake phase.
+     *
+     * @return true if it has handshake, otherwise; false.
+     */
+    boolean hasClearedHandshake();
+
+    /**
+     * Sets whether this peer has cleared the handshake phase.
+     *
+     * @param cleared Set to true if it has handshake, otherwise; false.
+     */
+    void setClearedHandshake(boolean cleared);
+
+    /**
+     * Gets whether a pong response from this peer is pending.
+     *
+     * @return true if pong is pending; otherwise; false.
+     */
+    boolean isPongPending();
+
+    /**
+     * Sets whether a pong response from this peer is pending.
+     *
+     * @param pending Set to true if pong is pending; otherwise; false.
+     */
+    void setPongPending(boolean pending);
+
+    /**
+     * Closes the connection with the peer.
+     */
+    void disconnect();
+
+    /**
+     * Gets the protocol version of this peer.
+     *
+     * @return The protocol version.
+     */
+    int getProtocolVersion();
+
+    /**
+     * Sets the protocol version of this peer.
+     *
+     * @param version The protocol version.
+     */
+    void setProtocolVersion(int version);
 }

@@ -54,12 +54,15 @@ public class StandardPeer implements IPeer
     private final Socket                 m_socket;
     private final OutputStream           m_outStream;
     private final InputStream            m_inStream;
-    private final NetworkParameters m_params;
-    private final Queue<ProtocolMessage> m_inbound   = new LinkedBlockingQueue<>();
-    private final Queue<ProtocolMessage> m_outbound  = new LinkedBlockingQueue<>();
-    private int                          m_banScore  = 0;
-    private boolean                      m_isInbound = false;
-    private final Stopwatch              m_watch     = new Stopwatch();
+    private final NetworkParameters      m_params;
+    private final Queue<ProtocolMessage> m_inbound          = new LinkedBlockingQueue<>();
+    private final Queue<ProtocolMessage> m_outbound         = new LinkedBlockingQueue<>();
+    private int                          m_banScore         = 0;
+    private boolean                      m_isInbound        = false;
+    private final Stopwatch              m_watch            = new Stopwatch();
+    private boolean                      m_pongPending      = false;
+    private boolean                      m_clearedHandshake = false;
+    private int                          m_protocolVersion  = 0;
 
     /**
      * Creates a connection with a given peer.
@@ -202,6 +205,66 @@ public class StandardPeer implements IPeer
     }
 
     /**
+     * Gets whether this peer has successfully cleared the handshake phase.
+     *
+     * @return true if it has handshake, otherwise; false.
+     */
+    public boolean hasClearedHandshake()
+    {
+        return m_clearedHandshake;
+    }
+
+    /**
+     * Sets whether this peer has cleared the handshake phase.
+     *
+     * @param cleared Set to true if it has handshake, otherwise; false.
+     */
+    public void setClearedHandshake(boolean cleared)
+    {
+        m_clearedHandshake = cleared;
+    }
+
+    /**
+     * Gets whether a pong response from this peer is pending.
+     *
+     * @return true if pong is pending; otherwise; false.
+     */
+    public boolean isPongPending()
+    {
+        return m_pongPending;
+    }
+
+    /**
+     * Sets whether a pong response from this peer is pending.
+     *
+     * @param pending Set to true if pong is pending; otherwise; false.
+     */
+    public void setPongPending(boolean pending)
+    {
+        m_pongPending = pending;
+    }
+
+    /**
+     * Gets the protocol version of this peer.
+     *
+     * @return The protocol version.
+     */
+    public int getProtocolVersion()
+    {
+        return m_protocolVersion;
+    }
+
+    /**
+     * Sets the protocol version of this peer.
+     *
+     * @param version The protocol version.
+     */
+    public void setProtocolVersion(int version)
+    {
+        m_protocolVersion = version;
+    }
+
+    /**
      * Gets the inout queue of this connection.
      *
      * @return The input queue.
@@ -228,8 +291,6 @@ public class StandardPeer implements IPeer
     {
         try
         {
-            m_outStream.flush();
-
             m_socket.shutdownOutput();
             m_socket.shutdownInput();
             m_socket.close();
@@ -248,9 +309,10 @@ public class StandardPeer implements IPeer
     @Override
     public String toString()
     {
-        return String.format("Address: %s - Port: %s - isConnected: %s",
+        return String.format("Address: %s - Port: %s - isClient: %s - isConnected: %s",
                 m_socket.getInetAddress().getHostAddress(),
                 m_socket.getPort(),
+                isClient(),
                 m_socket.isConnected());
     }
 

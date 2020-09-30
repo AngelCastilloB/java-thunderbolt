@@ -92,7 +92,7 @@ public class Main
         StandardPeerManager peerManager = new StandardPeerManager(
                 0,
                 16,
-                10000,
+                1800000, // 30 minutes
                 discoverer,
                 NetworkParameters.mainNet());
         Node node = new Node(NetworkParameters.mainNet(), blockchain, memPool, peerManager);

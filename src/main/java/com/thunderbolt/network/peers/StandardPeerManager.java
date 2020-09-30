@@ -31,12 +31,17 @@ import com.thunderbolt.network.ProtocolException;
 import com.thunderbolt.network.contracts.IPeer;
 import com.thunderbolt.network.contracts.IPeerDiscoverer;
 import com.thunderbolt.network.contracts.IPeerManager;
+import com.thunderbolt.network.messages.MessageType;
 import com.thunderbolt.network.messages.ProtocolMessage;
+import com.thunderbolt.network.messages.VersionPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -190,7 +195,7 @@ public class StandardPeerManager implements IPeerManager
      *                    during bootstrap.
      */
     @Override
-    public synchronized void add(NetworkParameters params, Socket peerSocket, boolean isInbound)
+    public synchronized IPeer add(NetworkParameters params, Socket peerSocket, boolean isInbound)
     {
         StandardPeer peer = null;
 
@@ -205,6 +210,7 @@ public class StandardPeerManager implements IPeerManager
         }
 
         m_peers.add(peer);
+        return peer;
     }
 
     /**
@@ -311,10 +317,6 @@ public class StandardPeerManager implements IPeerManager
             StandardPeer peer = (StandardPeer)(it.next());
 
             long elapsed = peer.getInactiveTime().getTotalMilliseconds();
-            s_logger.debug(
-                    "{} elapsed {} ms",
-                    peer,
-                    elapsed);
 
             if (!peer.isConnected() || elapsed >= m_maxInactiveTime)
             {
@@ -358,7 +360,7 @@ public class StandardPeerManager implements IPeerManager
 
                 s_logger.debug("{} is trying to connect...", peerSocket.getRemoteSocketAddress());
 
-                add(m_params, peerSocket, false);
+                add(m_params, peerSocket, true);
             }
             catch (SocketTimeoutException e)
             {
@@ -397,7 +399,19 @@ public class StandardPeerManager implements IPeerManager
                     Socket peerSocket = new Socket();
 
                     peerSocket.connect(peerAddress);
-                    add(m_params, peerSocket, false);
+                    IPeer peer = add(m_params, peerSocket, false);
+
+                    ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
+                    message.setMessageType(MessageType.Version);
+
+                    VersionPayload payload = new VersionPayload(
+                            m_params.getProtocol(),
+                            LocalDateTime.now().toEpochSecond(ZoneOffset.UTC), 0); // TODO: Where do we put this?
+                    message.setPayload(payload);
+
+                    peer.sendMessage(message);
+
+                    s_logger.debug("Sending version message to peer {}", peer);
                 }
                 else
                 {

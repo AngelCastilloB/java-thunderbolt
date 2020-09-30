@@ -140,7 +140,7 @@ public class ProtocolMessage implements ISerializable
      *
      * @param data The data containing the message.
      */
-    public ProtocolMessage(byte[] data, int packetMagic) throws IOException, ProtocolException
+    public ProtocolMessage(byte[] data, int packetMagic) throws ProtocolException
     {
         ByteBuffer buffer = ByteBuffer.wrap(data);
 

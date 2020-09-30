@@ -71,8 +71,10 @@ public interface IPeerManager
      * @param peerSocket  The peer socket.
      * @param isInbound   Whether this connection came from a peer connecting to us, or from a peer we connected to
      *                    during bootstrap.
+     *
+     * @return The newly added peer.
      */
-    void add(NetworkParameters params, Socket peerSocket, boolean isInbound);
+    IPeer add(NetworkParameters params, Socket peerSocket, boolean isInbound);
 
     /**
      * Removes a peer from this node.
