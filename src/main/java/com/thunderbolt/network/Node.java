@@ -174,13 +174,19 @@ public class Node
 
                 VersionPayload payload = new VersionPayload(message.getPayload());
 
+                if (payload.getNonce() == peer.getVersionNonce())
+                {
+                    s_logger.debug("Connected to self. Reject connection");
+                    return;
+                }
+
                 if (payload.getVersion() == m_params.getProtocol())
                 {
                     peer.setProtocolVersion(payload.getVersion());
 
                     if (weAreServer)
                     {
-                        peer.sendMessage(ProtocolMessageFactory.createVersion());
+                        peer.sendMessage(ProtocolMessageFactory.createVersion(peer));
                     }
 
                     peer.sendMessage(ProtocolMessageFactory.createVerack());

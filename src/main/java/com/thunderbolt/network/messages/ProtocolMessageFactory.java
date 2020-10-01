@@ -27,6 +27,7 @@ package com.thunderbolt.network.messages;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.network.NetworkParameters;
+import com.thunderbolt.network.contracts.IPeer;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.storage.StorageException;
 import org.slf4j.Logger;
@@ -68,9 +69,11 @@ public class ProtocolMessageFactory
     /**
      * Creates a version message.
      *
+     * @param peer The peer this message is directed too.
+     *
      * @return A version message.
      */
-    public static ProtocolMessage createVersion()
+    public static ProtocolMessage createVersion(IPeer peer)
     {
         if (!s_initialized)
             throw new IllegalStateException("Persistence service was no initialized.");
@@ -82,13 +85,15 @@ public class ProtocolMessageFactory
             message = new ProtocolMessage(m_params.getPacketMagic());
             message.setMessageType(MessageType.Version);
 
+            long nonce = s_secureRandom.nextLong();
+            peer.setVersionNonce(nonce);
+
             VersionPayload payload = new VersionPayload(
                     m_params.getProtocol(),
                     NodeServices.Network,
                     LocalDateTime.now().toEpochSecond(ZoneOffset.UTC),
                     s_persistenceService.getChainHead().getHeight(),
-                    s_secureRandom.nextLong(), null
-                    );
+                    nonce);
 
             message.setPayload(payload);
         }

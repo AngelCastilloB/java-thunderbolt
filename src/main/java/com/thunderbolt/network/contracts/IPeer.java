@@ -159,4 +159,19 @@ public interface IPeer
      * @param version The protocol version.
      */
     void setProtocolVersion(int version);
+
+    /**
+     * Sets a random nonce, randomly generated every time a version packet is sent. This nonce is used to detect
+     * connections to self.
+     *
+     * @param nonce The random nonce.
+     */
+    void setVersionNonce(long nonce);
+
+    /**
+     * Gets the random version nonce.
+     *
+     * @return The random version nonce.
+     */
+    long getVersionNonce();
 }

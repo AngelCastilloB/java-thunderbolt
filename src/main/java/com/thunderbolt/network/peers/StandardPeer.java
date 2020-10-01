@@ -63,6 +63,7 @@ public class StandardPeer implements IPeer
     private boolean                      m_pongPending      = false;
     private boolean                      m_clearedHandshake = false;
     private int                          m_protocolVersion  = 0;
+    private long                         m_versionNonce     = 0;
 
     /**
      * Creates a connection with a given peer.
@@ -76,7 +77,6 @@ public class StandardPeer implements IPeer
     {
         m_params = params;
         m_socket = peerSocket;
-        m_socket.getInetAddress()
         m_outStream = m_socket.getOutputStream();
         m_inStream  = m_socket.getInputStream();
         m_isInbound = isInbound;
@@ -285,6 +285,27 @@ public class StandardPeer implements IPeer
     public Queue<ProtocolMessage> getOutputQueue()
     {
         return m_outbound;
+    }
+
+    /**
+     * Sets a random nonce, randomly generated every time a version packet is sent. This nonce is used to detect
+     * connections to self.
+     *
+     * @param nonce The random nonce.
+     */
+    public void setVersionNonce(long nonce)
+    {
+        m_versionNonce = nonce;
+    }
+
+    /**
+     * Gets the random version nonce.
+     *
+     * @return The random version nonce.
+     */
+    public long getVersionNonce()
+    {
+        return m_versionNonce;
     }
 
     /**

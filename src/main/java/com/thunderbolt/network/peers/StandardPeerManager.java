@@ -434,7 +434,7 @@ public class StandardPeerManager implements IPeerManager
                     peerSocket.connect(peerAddress);
                     IPeer peer = add(m_params, peerSocket, false);
 
-                    peer.sendMessage(ProtocolMessageFactory.createVersion());
+                    peer.sendMessage(ProtocolMessageFactory.createVersion(peer));
 
                     s_logger.debug("Sending version message to peer {}", peer);
                 }
