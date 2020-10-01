@@ -28,6 +28,7 @@ package com.thunderbolt.network.contracts;
 
 import com.thunderbolt.common.TimeSpan;
 import com.thunderbolt.network.messages.ProtocolMessage;
+import com.thunderbolt.network.messages.structures.NetworkAddress;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -46,6 +47,13 @@ public interface IPeer
      * @return a {@code boolean} indicating if the address is reachable.
      */
     boolean isReachable(int timeout);
+
+    /**
+     * Gets the peer network address.
+     *
+     * @return The network address
+     */
+    NetworkAddress getNetworkAddress();
 
     /**
      * Gets the ban score for this peer connection.

@@ -51,7 +51,7 @@ public class ProtocolMessage implements ISerializable
 
     private static final int MAGIC_SIZE         = 4;
     private static final int MESSAGE_TYPE_SIZE  = 2;
-    private static final int NONCE_SIZE         = 8;
+    private static final int PAYLOAD_COUNT_SIZE = 4;
     private static final int CHECKSUM_SIZE      = 4;
     public static final int  MAX_SIZE           = 33554432; // 32 MiB
 
@@ -79,7 +79,7 @@ public class ProtocolMessage implements ISerializable
         // Ignore garbage before the magic header bytes.
         findMessage(stream, packetMagic);
 
-        byte[] messageHeader = new byte[ MESSAGE_TYPE_SIZE + NONCE_SIZE  + CHECKSUM_SIZE ];
+        byte[] messageHeader = new byte[ MESSAGE_TYPE_SIZE + PAYLOAD_COUNT_SIZE + CHECKSUM_SIZE ];
 
         int readCursor = 0;
 

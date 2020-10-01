@@ -93,7 +93,8 @@ public class ProtocolMessageFactory
                     NodeServices.Network,
                     LocalDateTime.now().toEpochSecond(ZoneOffset.UTC),
                     s_persistenceService.getChainHead().getHeight(),
-                    nonce);
+                    nonce,
+                    peer.getNetworkAddress());
 
             message.setPayload(payload);
         }

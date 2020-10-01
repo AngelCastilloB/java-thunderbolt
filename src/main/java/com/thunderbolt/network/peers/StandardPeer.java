@@ -32,6 +32,7 @@ import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.ProtocolException;
 import com.thunderbolt.network.contracts.IPeer;
 import com.thunderbolt.network.messages.ProtocolMessage;
+import com.thunderbolt.network.messages.structures.NetworkAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,6 +108,20 @@ public class StandardPeer implements IPeer
             return false;
         }
         return isReachable;
+    }
+
+    /**
+     * Gets the peer network address.
+     *
+     * @return The network address
+     */
+    public NetworkAddress getNetworkAddress()
+    {
+        NetworkAddress address = new NetworkAddress();
+        address.setAddress(m_socket.getInetAddress());
+        address.setPort(m_socket.getPort());
+
+        return address;
     }
 
     /**

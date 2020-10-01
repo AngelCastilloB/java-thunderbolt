@@ -34,7 +34,7 @@ public enum NodeServices
     /**
      * 	This node can be asked for full blocks and transactions.
      */
-    Network(0x01);
+    Network(0x00);
 
     // Instance fields.
     private final int m_value;

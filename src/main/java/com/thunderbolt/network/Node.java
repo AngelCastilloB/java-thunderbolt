@@ -174,6 +174,7 @@ public class Node
 
                 VersionPayload payload = new VersionPayload(message.getPayload());
 
+                s_logger.debug("Reached by peer from {}", payload.getReceiveAddress());
                 if (payload.getNonce() == peer.getVersionNonce())
                 {
                     s_logger.debug("Connected to self. Reject connection");
