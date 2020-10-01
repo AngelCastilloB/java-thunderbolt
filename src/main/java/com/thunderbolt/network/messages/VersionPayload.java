@@ -28,6 +28,7 @@ package com.thunderbolt.network.messages;
 
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.common.contracts.ISerializable;
+import com.thunderbolt.network.messages.structures.NetworkAddress;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -40,20 +41,38 @@ import java.nio.ByteBuffer;
  */
 public class VersionPayload implements ISerializable
 {
-    private int  m_version     = 0;
-    private long m_timestamp   = 0;
-    private long m_blockHeight = 0;
+    private static final int NETWORK_ADDRESS_SIZE = 18;
+
+    private int            m_version     = 0;
+    private NodeServices   m_services    = NodeServices.Network;
+    private long           m_timestamp   = 0;
+    private long           m_blockHeight = 0;
+    private long           m_nonce       = 0;
+    private NetworkAddress m_addrRecv    = new NetworkAddress();
 
     /**
+     * Initializes a new instance of the VersionPayload class.
+     *
      * @param version The protocol version.
      * @param timestamp The current time of the node.
      * @param blockHeight The current block height the node is at.
+     * @param nonce Random number generated everytime a version message is sent.
+     * @param address The address of the peer we are going to send the mssage to.
      */
-    public VersionPayload(int version, long timestamp, long blockHeight)
+    public VersionPayload(
+            int version,
+            NodeServices services,
+            long timestamp,
+            long blockHeight,
+            long nonce,
+            NetworkAddress address)
     {
         setVersion(version);
+        setServices(services);
         setTimestamp(timestamp);
         setBlockHeight(blockHeight);
+        setNonce(nonce);
+        setReceiveAddress(address);
     }
 
     /**
@@ -66,8 +85,11 @@ public class VersionPayload implements ISerializable
         ByteBuffer buffer = ByteBuffer.wrap(data);
 
         setVersion(buffer.getInt());
+        setServices(NodeServices.from(buffer.getInt()));
         setTimestamp(buffer.getLong());
-        setBlockHeight(buffer.getInt() & 0xffffffffL);
+        setBlockHeight(buffer.getInt() & 0xFFFFFFFFL);
+        setNonce(buffer.getLong());
+        setReceiveAddress(new NetworkAddress(buffer));
     }
 
     /**
@@ -83,8 +105,12 @@ public class VersionPayload implements ISerializable
         try
         {
             data.write(NumberSerializer.serialize(getVersion()));
+            data.write(NumberSerializer.serialize(getServices().getValue()));
             data.write(NumberSerializer.serialize(getTimestamp()));
-            data.write(NumberSerializer.serialize((int) getBlockHeight()));
+            data.write(NumberSerializer.serialize((int)getBlockHeight()));
+            data.write(NumberSerializer.serialize(getNonce()));
+            data.write(getReceiveAddress().serialize());
+
         }
         catch (IOException e)
         {
@@ -152,5 +178,66 @@ public class VersionPayload implements ISerializable
     public void setBlockHeight(long blockHeight)
     {
         m_blockHeight = blockHeight;
+    }
+
+    /**
+     * Gets the node services.
+     *
+     * @return The node services.
+     */
+    public NodeServices getServices()
+    {
+        return m_services;
+    }
+
+    /**
+     * Sets the node services.
+     *
+     * @param service The node services.
+     */
+    public void setServices(NodeServices service)
+    {
+        m_services = service;
+    }
+
+    /**
+     * Sets the nonce field of this message.
+     *
+     * @param nonce The nonce value.
+     */
+    public void setNonce(long nonce)
+    {
+        m_nonce = nonce;
+    }
+
+    /**
+     * Gets the nonce value of this message.
+     *
+     * @return The nonce value.
+     */
+    public long getNonce()
+    {
+        return m_nonce;
+    }
+
+    /**
+     * Sets the address of the peer as seeing by this node. This information will be useful
+     * for the peer to determine his reachable public address.
+     *
+     * @param address The network address of the peer as seen from this node.
+     */
+    public void setReceiveAddress(NetworkAddress address)
+    {
+        m_addrRecv = address;
+    }
+
+    /**
+     * Gets the network address of the receiving peer as seen by the sending peer.
+     *
+     * @return The network address.
+     */
+    public NetworkAddress getReceiveAddress()
+    {
+        return m_addrRecv;
     }
 }

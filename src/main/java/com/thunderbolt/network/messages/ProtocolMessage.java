@@ -52,12 +52,10 @@ public class ProtocolMessage implements ISerializable
     private static final int MAGIC_SIZE         = 4;
     private static final int MESSAGE_TYPE_SIZE  = 2;
     private static final int NONCE_SIZE         = 8;
-    private static final int PAYLOAD_COUNT_SIZE = 4;
     private static final int CHECKSUM_SIZE      = 4;
     public static final int  MAX_SIZE           = 33554432; // 32 MiB
 
     private short  m_messageType;
-    private long   m_nonce;
     private byte[] m_payload;
     private int    m_packetMagic;
 
@@ -81,7 +79,7 @@ public class ProtocolMessage implements ISerializable
         // Ignore garbage before the magic header bytes.
         findMessage(stream, packetMagic);
 
-        byte[] messageHeader = new byte[ MESSAGE_TYPE_SIZE + NONCE_SIZE + PAYLOAD_COUNT_SIZE + CHECKSUM_SIZE ];
+        byte[] messageHeader = new byte[ MESSAGE_TYPE_SIZE + NONCE_SIZE  + CHECKSUM_SIZE ];
 
         int readCursor = 0;
 
@@ -97,14 +95,10 @@ public class ProtocolMessage implements ISerializable
 
         ByteBuffer headerBuffer = ByteBuffer.wrap(messageHeader);
         m_messageType = headerBuffer.getShort();
-        m_nonce = headerBuffer.getLong();
         int payloadSize = headerBuffer.getInt();
 
         byte[] checksum = new byte[CHECKSUM_SIZE];
         headerBuffer.get(checksum);
-
-        if (checksum.length != CHECKSUM_SIZE)
-            throw new IOException("Invalid header.");
 
         if (payloadSize > ProtocolMessage.MAX_SIZE)
             throw new ProtocolException("Message size too large: " + payloadSize);
@@ -150,7 +144,6 @@ public class ProtocolMessage implements ISerializable
             throw new ProtocolException("Invalid magic");
 
         m_messageType = buffer.getShort();
-        m_nonce = buffer.getLong();
 
         int payloadSize = buffer.getInt();
 
@@ -225,27 +218,6 @@ public class ProtocolMessage implements ISerializable
         m_payload = payload.serialize();
     }
 
-
-    /**
-     * Sets the nonce of this message.
-     *
-     * @param nonce The nonce.
-     */
-    public void setNonce(long nonce)
-    {
-        m_nonce = nonce;
-    }
-
-    /**
-     * Gets the nonce.
-     *
-     * @return The nonce.
-     */
-    public long getNonce()
-    {
-        return m_nonce;
-    }
-
     /**
      * Serializes an object in ray byte format.
      *
@@ -260,7 +232,6 @@ public class ProtocolMessage implements ISerializable
         {
             data.write(NumberSerializer.serialize(m_packetMagic));
             data.write(NumberSerializer.serialize(m_messageType));
-            data.write(NumberSerializer.serialize(m_nonce));
 
             if (m_payload == null)
             {

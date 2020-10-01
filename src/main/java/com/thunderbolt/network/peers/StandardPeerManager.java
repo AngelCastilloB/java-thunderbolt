@@ -33,6 +33,7 @@ import com.thunderbolt.network.contracts.IPeerDiscoverer;
 import com.thunderbolt.network.contracts.IPeerManager;
 import com.thunderbolt.network.messages.MessageType;
 import com.thunderbolt.network.messages.ProtocolMessage;
+import com.thunderbolt.network.messages.ProtocolMessageFactory;
 import com.thunderbolt.network.messages.VersionPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +58,7 @@ public class StandardPeerManager implements IPeerManager
     private static final int READ_TIMEOUT      = 50; // ms
     private static final int PEER_LISTEN_DELAY = 500;
     private static final int PING_TIMEOUT      = 1000;
+    private static final int PONG_TIMEOUT      = 60000;
 
     private static final Logger s_logger = LoggerFactory.getLogger(StandardPeerManager.class);
 
@@ -326,13 +328,13 @@ public class StandardPeerManager implements IPeerManager
             StandardPeer peer = (StandardPeer)(it.next());
 
             long elapsed = peer.getInactiveTime().getTotalMilliseconds();
+            boolean disconnect = false;
 
             if (!peer.isConnected())
             {
                 s_logger.debug("Peer {} is disconnected. Removing it from the peer pool.", peer);
 
-                peer.disconnect();
-                it.remove();
+                disconnect = true;
             }
 
             if (!peer.isConnected() || elapsed >= m_maxInactiveTime)
@@ -342,6 +344,20 @@ public class StandardPeerManager implements IPeerManager
                         peer,
                         elapsed);
 
+                disconnect = true;
+            }
+
+            if (peer.isPongPending() && elapsed >= PONG_TIMEOUT)
+            {
+                s_logger.debug(
+                        "Peer {} didn't return Pong message in time. Removing it from the peer pool.",
+                        peer);
+
+                disconnect = true;
+            }
+
+            if (disconnect)
+            {
                 peer.disconnect();
                 it.remove();
             }
@@ -418,15 +434,7 @@ public class StandardPeerManager implements IPeerManager
                     peerSocket.connect(peerAddress);
                     IPeer peer = add(m_params, peerSocket, false);
 
-                    ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
-                    message.setMessageType(MessageType.Version);
-
-                    VersionPayload payload = new VersionPayload(
-                            m_params.getProtocol(),
-                            LocalDateTime.now().toEpochSecond(ZoneOffset.UTC), 0); // TODO: Where do we put this?
-                    message.setPayload(payload);
-
-                    peer.sendMessage(message);
+                    peer.sendMessage(ProtocolMessageFactory.createVersion());
 
                     s_logger.debug("Sending version message to peer {}", peer);
                 }

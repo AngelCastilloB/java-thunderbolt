@@ -76,7 +76,7 @@ public class StandardPeer implements IPeer
     {
         m_params = params;
         m_socket = peerSocket;
-
+        m_socket.getInetAddress()
         m_outStream = m_socket.getOutputStream();
         m_inStream  = m_socket.getInputStream();
         m_isInbound = isInbound;

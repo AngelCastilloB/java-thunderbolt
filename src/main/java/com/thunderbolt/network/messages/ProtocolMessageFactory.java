@@ -32,6 +32,7 @@ import com.thunderbolt.persistence.storage.StorageException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
@@ -42,6 +43,9 @@ import java.time.ZoneOffset;
  */
 public class ProtocolMessageFactory
 {
+    // Static Fields
+    private static final SecureRandom s_secureRandom = new SecureRandom();
+
     private static final Logger s_logger = LoggerFactory.getLogger(ProtocolMessageFactory.class);
 
     private static NetworkParameters   m_params             = null;
@@ -80,7 +84,12 @@ public class ProtocolMessageFactory
 
             VersionPayload payload = new VersionPayload(
                     m_params.getProtocol(),
-                    LocalDateTime.now().toEpochSecond(ZoneOffset.UTC), s_persistenceService.getChainHead().getHeight());
+                    NodeServices.Network,
+                    LocalDateTime.now().toEpochSecond(ZoneOffset.UTC),
+                    s_persistenceService.getChainHead().getHeight(),
+                    s_secureRandom.nextLong(), null
+                    );
+
             message.setPayload(payload);
         }
         catch (StorageException e)
