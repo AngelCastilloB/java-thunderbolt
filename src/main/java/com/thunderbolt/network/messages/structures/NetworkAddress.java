@@ -132,6 +132,22 @@ public class NetworkAddress implements ISerializable
     }
 
     /**
+     * Gets whether this ip address can be reached from the internet.
+     *
+     * @return true if this ip is routable; otherwise; false.
+     */
+    public boolean isRoutable()
+    {
+        boolean isPrivate =
+            m_address[3] == 10 ||
+           /* (m_address[3] == (byte)192 && m_address[2] == (byte)168) ||*/ //TODO: Uncomment this.
+             m_address[3] == 127 ||
+             m_address[3] == 0;
+
+        return !isPrivate;
+    }
+
+    /**
      * Gets the raw bytes of the network address.
      *
      * @return The network address as a byte array.

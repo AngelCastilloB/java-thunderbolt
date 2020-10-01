@@ -28,6 +28,7 @@ package com.thunderbolt.persistence.contracts;
 import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.BlockMetadata;
+import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.Transaction;
@@ -119,7 +120,7 @@ public interface IPersistenceService
      *
      * @return An array with all the unspent outputs related to a given public address.
      */
-    public ArrayList<UnspentTransactionOutput> getUnspentOutputsForAddress(Address address) throws StorageException;
+    public List<UnspentTransactionOutput> getUnspentOutputsForAddress(Address address) throws StorageException;
 
     /**
      * Adds the given unspent output to the database.
@@ -150,4 +151,20 @@ public interface IPersistenceService
      * @throws StorageException If there is an error querying the required metadata to create the revert data.
      */
     byte[] getRevertData(Block block, long height) throws StorageException;
+
+    /**
+     * Persist a new network address.
+     *
+     * @param addressMetadata The metadata of the network address.
+     *
+     * @return true if the address was added; otherwise; false.
+     */
+    boolean addAddress(NetworkAddressMetadata addressMetadata) throws StorageException;
+
+    /**
+     * Gets all the address stored in disk.
+     *
+     * @return The list of all address.
+     */
+    List<NetworkAddressMetadata> getAllAddresses() throws StorageException;
 }

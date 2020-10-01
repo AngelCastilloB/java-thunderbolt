@@ -27,12 +27,15 @@ package com.thunderbolt.persistence.contracts;
 
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.BlockMetadata;
+import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
 import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.wallet.Address;
 
+import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -110,7 +113,7 @@ public interface IMetadataProvider
      *
      * @return An array with all the unspent outputs related to a given public address.
      */
-    ArrayList<UnspentTransactionOutput> getUnspentOutputsForAddress(Address address) throws StorageException;
+    List<UnspentTransactionOutput> getUnspentOutputsForAddress(Address address) throws StorageException;
 
     /**
      * Removes the unspent output transaction from the metadata provider.
@@ -119,4 +122,20 @@ public interface IMetadataProvider
      * @param index The index of the output inside the transaction.
      */
     boolean removeUnspentOutput(Sha256Hash id, int index) throws StorageException;
+
+    /**
+     * Persist a new network address.
+     *
+     * @param addressMetadata The metadata of the network address.
+     *
+     * @return true if the address was added; otherwise; false.
+     */
+    boolean addAddress(NetworkAddressMetadata addressMetadata) throws StorageException;
+
+    /**
+     * Gets all the address stored in disk.
+     *
+     * @return The list of all address.
+     */
+    List<NetworkAddressMetadata> getAllAddresses() throws StorageException;
 }

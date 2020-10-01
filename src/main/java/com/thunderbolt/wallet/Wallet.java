@@ -152,7 +152,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
     {
         try
         {
-            ArrayList<UnspentTransactionOutput> outputs = service.getUnspentOutputsForAddress(getAddress());
+            List<UnspentTransactionOutput> outputs = service.getUnspentOutputsForAddress(getAddress());
 
             for (UnspentTransactionOutput output: outputs)
                 m_unspentOutputs.put(output.getHash(), output);

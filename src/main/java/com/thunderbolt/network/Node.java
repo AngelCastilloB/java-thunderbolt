@@ -32,10 +32,13 @@ import com.thunderbolt.network.contracts.IPeerManager;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import com.thunderbolt.network.messages.ProtocolMessageFactory;
 import com.thunderbolt.network.messages.VersionPayload;
+import com.thunderbolt.network.messages.structures.NetworkAddress;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.net.InetAddress;
 import java.util.Iterator;
 
 /* IMPLEMENTATION ************************************************************/
@@ -174,12 +177,13 @@ public class Node
 
                 VersionPayload payload = new VersionPayload(message.getPayload());
 
-                s_logger.debug("Reached by peer from {}", payload.getReceiveAddress());
                 if (payload.getNonce() == peer.getVersionNonce())
                 {
                     s_logger.debug("Connected to self. Reject connection");
                     return;
                 }
+
+                s_logger.debug("Reached by peer from {}", payload.getReceiveAddress());
 
                 if (payload.getVersion() == m_params.getProtocol())
                 {
@@ -213,6 +217,29 @@ public class Node
                 }
 
                 peer.setClearedHandshake(true);
+                break;
+            case Address:
+                try
+                {
+                    // Add address.
+                    NetworkAddress address = new NetworkAddress();
+                    if (!address.isRoutable())
+                        return;
+
+                    if (!address.getAddress().isReachable(100))
+                        return;
+
+                    // Check if we have it in our cache, if not, si a new address, add it to the database and the cache.
+                    // if not, check if the services changed, if so, update the services.
+                    // if either the address was new, or the services were updated, broadcast it to the peers.
+                    break;
+                }
+                catch (IOException exception)
+                {
+                    return;
+                }
+
+            case GetAddress:
                 break;
             default:
         }

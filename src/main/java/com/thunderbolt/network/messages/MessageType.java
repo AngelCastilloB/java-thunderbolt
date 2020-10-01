@@ -52,7 +52,22 @@ public enum MessageType
      */
     Version((short)0x02),
 
-    Verack((short)0x03);
+    /**
+     * The verack message is sent in reply to version.
+     */
+    Verack((short)0x03),
+
+    /**
+     * Provide information on known nodes of the network.
+     */
+    Address((short)0x04),
+
+    /**
+     * Sends a request to a node asking for information about known active peers to help with
+     * finding potential nodes in the network. The response to receiving this message is to transmit one or more Address
+     * messages with one or more peers from a database of known active peers.
+     */
+    GetAddress((short)0x05);
 
     // Instance fields.
     private short m_value;
