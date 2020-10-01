@@ -161,7 +161,7 @@ public class StandardPeer implements IPeer
      */
     public boolean isConnected()
     {
-        return m_socket.isConnected();
+        return m_socket.isConnected() && !m_socket.isClosed();
     }
 
     /**
@@ -221,6 +221,9 @@ public class StandardPeer implements IPeer
      */
     public void setClearedHandshake(boolean cleared)
     {
+        if (cleared)
+            s_logger.debug("Handshake with Peer {} successful.", this);
+
         m_clearedHandshake = cleared;
     }
 
@@ -297,7 +300,7 @@ public class StandardPeer implements IPeer
         }
         catch (IOException exception)
         {
-            s_logger.warn("There was an error closing the connection with peer {}", toString());
+            // Connection probably broke on the other end.
         }
     }
 
@@ -309,11 +312,11 @@ public class StandardPeer implements IPeer
     @Override
     public String toString()
     {
-        return String.format("Address: %s - Port: %s - isClient: %s - isConnected: %s",
+        return String.format("[Address: %s - Port: %s - isClient: %s - isConnected: %s]",
                 m_socket.getInetAddress().getHostAddress(),
                 m_socket.getPort(),
                 isClient(),
-                m_socket.isConnected());
+                isConnected());
     }
 
     /**
@@ -351,6 +354,9 @@ public class StandardPeer implements IPeer
             m_watch.restart();
         }
 
+        if (message != null)
+            s_logger.debug("Received message {} from peer {}", message.getMessageType(), this);
+
         return message;
     }
 
@@ -364,8 +370,12 @@ public class StandardPeer implements IPeer
         if (!isConnected())
             return;
 
+        if (message == null)
+            return;
+
         synchronized (m_outStream)
         {
+            s_logger.debug("Sending message {} to peer {}", message.getMessageType(), this);
             m_outStream.write(message.serialize());
         }
     }

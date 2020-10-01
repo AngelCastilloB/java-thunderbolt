@@ -34,6 +34,7 @@ import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.ProtocolException;
 import com.thunderbolt.network.contracts.IPeerDiscoverer;
 import com.thunderbolt.network.discovery.StandardPeerDiscoverer;
+import com.thunderbolt.network.messages.ProtocolMessageFactory;
 import com.thunderbolt.network.peers.StandardPeerManager;
 import com.thunderbolt.persistence.StandardPersistenceService;
 import com.thunderbolt.persistence.contracts.IContiguousStorage;
@@ -88,7 +89,7 @@ public class Main
         Blockchain               blockchain            = new Blockchain(NetworkParameters.mainNet(), transactionValidator, committer, persistenceService);
         IPeerDiscoverer          discoverer            = new StandardPeerDiscoverer();
 
-
+        ProtocolMessageFactory.initialize(NetworkParameters.mainNet(), persistenceService);
         StandardPeerManager peerManager = new StandardPeerManager(
                 0,
                 16,

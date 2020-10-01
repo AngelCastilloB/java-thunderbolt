@@ -29,16 +29,13 @@ package com.thunderbolt.network;
 import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.network.contracts.IPeer;
 import com.thunderbolt.network.contracts.IPeerManager;
-import com.thunderbolt.network.messages.MessageType;
 import com.thunderbolt.network.messages.ProtocolMessage;
+import com.thunderbolt.network.messages.ProtocolMessageFactory;
 import com.thunderbolt.network.messages.VersionPayload;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.ByteBuffer;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Iterator;
 
 /* IMPLEMENTATION ************************************************************/
@@ -115,13 +112,6 @@ public class Node
                 {
                     ProtocolMessage message = peer.getMessage();
                     process(message, peer);
-                    // Do something.
-
-                    // Punish peer.
-                    //standardPeer.addBanScore(100);
-
-                    // Send new message.
-                    //standardPeer.sendMessage(new ProtocolMessage(NetworkParameters.mainNet().getPacketMagic()));
                 }
 
                 try
@@ -144,6 +134,8 @@ public class Node
      */
     public void process(ProtocolMessage message, IPeer peer)
     {
+        boolean weAreServer = peer.isClient();
+
         switch (message.getMessageType())
         {
             case Ping:
@@ -153,10 +145,8 @@ public class Node
                     return;
                 }
 
-                ProtocolMessage response = new ProtocolMessage(m_params.getPacketMagic());
-                response.setNonce(message.getNonce());
+                peer.sendMessage(ProtocolMessageFactory.createPong());
 
-                peer.sendMessage(response);
                 break;
             case Pong:
                 if (!peer.hasClearedHandshake())
@@ -170,9 +160,13 @@ public class Node
                     peer.addBanScore(1);
                     return;
                 }
+
+                peer.setPongPending(false);
+
                 break;
             case Version:
-                if (peer.hasClearedHandshake())
+                // Can only get this message once.
+                if (peer.getProtocolVersion() != 0)
                 {
                     peer.addBanScore(1);
                     return;
@@ -182,48 +176,35 @@ public class Node
 
                 if (payload.getVersion() == m_params.getProtocol())
                 {
-                    if (!peer.isClient())
+                    peer.setProtocolVersion(payload.getVersion());
+
+                    if (weAreServer)
                     {
-                        s_logger.debug("Sending version message to peer {}", peer);
-                        ProtocolMessage version = new ProtocolMessage(m_params.getPacketMagic());
-                        version.setMessageType(MessageType.Version);
-
-                        VersionPayload versionPayload = new VersionPayload(
-                                m_params.getProtocol(),
-                                LocalDateTime.now().toEpochSecond(ZoneOffset.UTC), 0); // TODO: Where do we put this?
-                        version.setPayload(versionPayload);
-
-                        peer.sendMessage(version);
+                        peer.sendMessage(ProtocolMessageFactory.createVersion());
                     }
-                    else
-                    {
-                        ProtocolMessage verack = new ProtocolMessage(m_params.getPacketMagic());
-                        verack.setMessageType(MessageType.Verack);
 
-                        peer.setProtocolVersion(payload.getVersion());
-                        peer.sendMessage(verack);
-                        s_logger.debug("Sending verack message to peer {}", peer);
-                    }
+                    peer.sendMessage(ProtocolMessageFactory.createVerack());
                 }
                 else
                 {
                     s_logger.debug(
-                            "Peer {} disconnected since version is incompatible. Ours {}, his {}.",
+                            "Peer {} is being disconnected since our versions are incompatible. Ours {}, his {}.",
                             peer,
-                            payload.getVersion(),
-                            m_params.getProtocol());
+                            m_params.getProtocol(),
+                            payload.getVersion());
 
                     peer.disconnect();
                 }
                 break;
             case Verack:
-                if (peer.getProtocolVersion() == 0 && peer.isClient())
+                // If we haven't received a version message yet or the handshake already finish. Add to this node
+                // ban score.
+                if (peer.getProtocolVersion() == 0 || peer.hasClearedHandshake())
                 {
                     peer.addBanScore(1);
                     return;
                 }
 
-                s_logger.debug("Handshake with Peer {} successful.", peer);
                 peer.setClearedHandshake(true);
                 break;
             default:

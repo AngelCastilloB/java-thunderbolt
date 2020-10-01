@@ -263,6 +263,10 @@ public class StandardPeerManager implements IPeerManager
                     if (message != null)
                         peer.getInputQueue().add(message);
                 }
+                catch (SocketException e)
+                {
+                    s_logger.debug("Peer {} has disconnected.", peer);
+                }
                 catch (IOException | ProtocolException e)
                 {
                     e.printStackTrace();
@@ -299,6 +303,11 @@ public class StandardPeerManager implements IPeerManager
                     if (message != null)
                         peer.send(message);
                 }
+                catch (SocketException e)
+                {
+                    peer.disconnect();
+                    s_logger.debug("Peer {} has disconnected.", peer);
+                }
                 catch (IOException e)
                 {
                     e.printStackTrace();
@@ -318,10 +327,18 @@ public class StandardPeerManager implements IPeerManager
 
             long elapsed = peer.getInactiveTime().getTotalMilliseconds();
 
+            if (!peer.isConnected())
+            {
+                s_logger.debug("Peer {} is disconnected. Removing it from the peer pool.", peer);
+
+                peer.disconnect();
+                it.remove();
+            }
+
             if (!peer.isConnected() || elapsed >= m_maxInactiveTime)
             {
                 s_logger.debug(
-                        "Removing peer {} due to inactivity. Time elapsed without any messages: {} ms",
+                        "Removing peer {} from peer pool due to inactivity. Time elapsed without any messages: {} ms.",
                         peer,
                         elapsed);
 

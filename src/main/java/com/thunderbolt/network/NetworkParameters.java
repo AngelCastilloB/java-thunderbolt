@@ -43,7 +43,7 @@ import java.nio.charset.StandardCharsets;
 public class NetworkParameters implements Serializable
 {
     // Constants
-    static private final int        PROTOCOL_VERSION                      = 1;
+    static private final int        PROTOCOL_VERSION                      = 2;
     static private final byte       MAIN_NET_SINGLE_SIGNATURE_PREFIX      = 0x10;
     static private final byte       MAIN_NET_MULTI_SIGNATURE_PREFIX       = 0x20;
     static private final int        MAIN_NET_TARGET_TIMESPAN              = 7 * 24 * 60 * 60;  // 1 week per difficulty cycle, on average.
@@ -125,6 +125,7 @@ public class NetworkParameters implements Serializable
         parameters.m_genesisBlock                 = createGenesis();
         parameters.m_coinbaseMaturity             = MAIN_NET_COINBASE_MATURITY;
         parameters.m_blockSize                    = MAIN_NET_MAX_BLOCK_SIZE;
+        parameters.m_protocol                     = PROTOCOL_VERSION;
 
         String genesisHash = parameters.getGenesisBlock().getHeaderHash().toString();
 
