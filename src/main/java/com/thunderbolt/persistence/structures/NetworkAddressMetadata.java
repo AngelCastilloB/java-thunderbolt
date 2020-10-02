@@ -29,11 +29,14 @@ package com.thunderbolt.persistence.structures;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.network.messages.structures.NetworkAddress;
+import com.thunderbolt.network.messages.structures.TimestampedNetworkAddress;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.time.ZoneOffset;
 
 /* IMPLEMENTATION ************************************************************/
@@ -43,11 +46,27 @@ import java.time.ZoneOffset;
  */
 public class NetworkAddressMetadata implements ISerializable
 {
-    private LocalDateTime  m_lastMessageDate;
-    private NetworkAddress m_address;
-    private int            m_banScore;
-    private boolean        m_isBan;
-    private LocalDateTime  m_banDate;
+    // Constants
+    private static final int ACTIVE_PERIOD  = 3600 * 3; // in seconds
+
+    // Instance fields
+    private LocalDateTime  m_lastMessageDate = null;
+    private NetworkAddress m_address         = null;
+    private int            m_banScore        = 0;
+    private boolean        m_isBan           = false;
+    private LocalDateTime  m_banDate         = LocalDateTime.now().minusDays(10);
+
+    /**
+     * Initializes a new instance of the address metadata.
+     *
+     * @param lastSeen The last time this address was seeing.
+     * @param address The address.
+     */
+    public NetworkAddressMetadata(LocalDateTime lastSeen, NetworkAddress address)
+    {
+        m_lastMessageDate = lastSeen;
+        m_address = address;
+    }
 
     /**
      * Initializes a new instance of the address metadata.
@@ -84,7 +103,7 @@ public class NetworkAddressMetadata implements ISerializable
             data.write(NumberSerializer.serialize(lastMessageDate));
             data.write(m_address.serialize());
             data.write(NumberSerializer.serialize(m_banScore));
-            data.write((byte)(m_isBan ? 0x01 : 0x1));
+            data.write((byte)(m_isBan ? 0x01 : 0x0));
             data.write(NumberSerializer.serialize(banDate));
         }
         catch (IOException e)
@@ -120,7 +139,7 @@ public class NetworkAddressMetadata implements ISerializable
      *
      * @return The network address.
      */
-    public NetworkAddress NetworkAddress()
+    public NetworkAddress getNetworkAddress()
     {
         return m_address;
     }
@@ -130,7 +149,7 @@ public class NetworkAddressMetadata implements ISerializable
      *
      * @param address The network address.
      */
-    public void setAddress(NetworkAddress address)
+    public void setNetworkAddress(NetworkAddress address)
     {
         m_address = address;
     }
@@ -193,5 +212,39 @@ public class NetworkAddressMetadata implements ISerializable
     public void setBanDate(LocalDateTime banDate)
     {
         m_banDate = banDate;
+    }
+
+    /**
+     * Gets whether this address is active. An active address is and address which we have heard from
+     * in the last three hours.
+     *
+     * @return Gets whether this address is active or not.
+     */
+    public boolean isActive()
+    {
+        long period =
+                LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) -  getLastMessageDate().toEpochSecond(ZoneOffset.UTC);
+
+        return period < ACTIVE_PERIOD;
+    }
+
+    /**
+     * Gets a timestamped address from this address metadata object.
+     *
+     * @return The timestamped address.
+     */
+    public TimestampedNetworkAddress getTimeStampedAddress()
+    {
+        return new TimestampedNetworkAddress(m_lastMessageDate, m_address);
+    }
+
+    /**
+     * Gets an InetSocket address from this address metadata object.
+     *
+     * @return The InetSocketAddress object.
+     */
+    public InetSocketAddress getInetSocketAddress()
+    {
+        return new InetSocketAddress(m_address.getAddress(), m_address.getPort());
     }
 }

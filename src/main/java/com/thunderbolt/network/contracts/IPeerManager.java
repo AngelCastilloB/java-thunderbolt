@@ -27,6 +27,7 @@ package com.thunderbolt.network.contracts;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.network.NetworkParameters;
+import com.thunderbolt.persistence.contracts.INetworkAddressPool;
 
 import java.net.Socket;
 import java.util.Iterator;
@@ -85,4 +86,10 @@ public interface IPeerManager
      */
     void remove(IPeer peer);
 
+    /**
+     * Gets a reference fo the address pool instance.
+     *
+     * @return The pool instance.
+     */
+    INetworkAddressPool getAddressPool();
 }

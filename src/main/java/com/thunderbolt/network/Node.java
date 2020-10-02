@@ -29,17 +29,25 @@ package com.thunderbolt.network;
 import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.network.contracts.IPeer;
 import com.thunderbolt.network.contracts.IPeerManager;
+import com.thunderbolt.network.messages.AddressPayload;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import com.thunderbolt.network.messages.ProtocolMessageFactory;
 import com.thunderbolt.network.messages.VersionPayload;
 import com.thunderbolt.network.messages.structures.NetworkAddress;
+import com.thunderbolt.network.messages.structures.TimestampedNetworkAddress;
+import com.thunderbolt.persistence.contracts.INetworkAddressPool;
+import com.thunderbolt.persistence.storage.StorageException;
+import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
+import org.bouncycastle.util.Times;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.net.InetAddress;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -48,15 +56,20 @@ import java.util.Iterator;
  */
 public class Node
 {
-    private static final int MAIN_LOOP_DELAY = 100; // ms
+    // Constants
+    private static final int MAIN_LOOP_DELAY          = 100; // ms
+    private static final int MAX_GET_ADDRESS_RESPONSE = 1000;
+    private static final int RELAY_ADDRESS_LIMIT      = 2;
 
     private static final Logger s_logger = LoggerFactory.getLogger(Node.class);
 
-    private final NetworkParameters        m_params;
-    private final Blockchain               m_blockchain;
-    private boolean                        m_isRunning;
-    private final ITransactionsPoolService m_memPool;
-    private final IPeerManager             m_peerManager;
+    // Instance fields
+    private final NetworkParameters               m_params;
+    private final Blockchain                      m_blockchain;
+    private boolean                               m_isRunning;
+    private final ITransactionsPoolService        m_memPool;
+    private final IPeerManager                    m_peerManager;
+    private NetworkAddress                        m_publicAddress = null;
 
     /**
      * Initializes a new instance of the Node class.
@@ -126,6 +139,8 @@ public class Node
                     e.printStackTrace();
                 }
             }
+
+            broadcast();
         }
     }
 
@@ -192,6 +207,15 @@ public class Node
                     if (weAreServer)
                     {
                         peer.sendMessage(ProtocolMessageFactory.createVersion(peer));
+
+                        // If we are server and have no IP public set, we were the first node to get up in the network.
+                        if (m_publicAddress == null)
+                            m_publicAddress = payload.getReceiveAddress();
+                    }
+                    else
+                    {
+                        // if we are client, we are going to take the public address from the server message.
+                        m_publicAddress = payload.getReceiveAddress();
                     }
 
                     peer.sendMessage(ProtocolMessageFactory.createVerack());
@@ -217,41 +241,149 @@ public class Node
                 }
 
                 peer.setClearedHandshake(true);
+                
+                if (!weAreServer)
+                {
+                    peer.sendMessage(ProtocolMessageFactory.createAddress(m_publicAddress));
+                    peer.sendMessage(ProtocolMessageFactory.createGetAddress());
+                }
                 break;
             case Address:
                 try
                 {
-                    // Add address.
-                    NetworkAddress address = new NetworkAddress();
-                    if (!address.isRoutable())
+                    if (!peer.hasClearedHandshake())
+                    {
+                        peer.addBanScore(1);
                         return;
+                    }
 
-                    if (!address.getAddress().isReachable(100))
+                    AddressPayload addressPayload = null;
+                    try
+                    {
+                        addressPayload = new AddressPayload(message.getPayload());
+                    }
+                    catch (ProtocolException e)
+                    {
+                        e.printStackTrace();
+                        peer.addBanScore(20);
                         return;
+                    }
 
-                    // Check if we have it in our cache, if not, si a new address, add it to the database and the cache.
-                    // if not, check if the services changed, if so, update the services.
-                    // if either the address was new, or the services were updated, broadcast it to the peers.
+                    INetworkAddressPool pool = m_peerManager.getAddressPool();
 
+                    for (TimestampedNetworkAddress timeStamped: addressPayload.getAddresses())
+                    {
 
-                    //Every 24 hours, the node advertises its own address to all connected nodes.
+                        NetworkAddress networkAddress = timeStamped.getNetworkAddress();
+                        byte[]         rawAddress     = networkAddress.getAddress().getAddress();
 
-                    // The node erases addresses that have not been used in 10 days as long as there are at least 1000
-                    // addresses in the map, and as long as the erasing process has not taken more than 20 seconds.
-                    break;
+                        // If we have the address and services haven't change, ignore.
+                        if (pool.contains(rawAddress))
+                        {
+                            NetworkAddressMetadata metadata = pool.getAddress(rawAddress);
+
+                            if (metadata.getNetworkAddress().getServices() == networkAddress.getServices())
+                                continue;
+                        }
+
+                        // If the address is not routable from the internet, ignore.
+                        if (!networkAddress.isRoutable())
+                            continue;
+
+                        // We don't add our own address.
+                        if (m_publicAddress.equals(timeStamped.getNetworkAddress()))
+                            continue;
+
+                        // Add address.
+                        pool.upsertAddress(new NetworkAddressMetadata(timeStamped.getTimestamp(),
+                                timeStamped.getNetworkAddress()));
+
+                        // If either the address was new, or the services were updated, broadcast it to the peers.
+                        // However we only relay address messages that send RELAY_ADDRESS_LIMIT addresses.
+                        if (addressPayload.getAddresses().size() <= RELAY_ADDRESS_LIMIT)
+                        {
+                            queueAddresses(timeStamped);
+                            s_logger.debug("Added and will be broadcast to connected to peers.");
+                        }
+
+                        s_logger.debug("Total address to our pool: {}", pool.count());
+                    }
                 }
-                catch (IOException exception)
+                catch (StorageException e)
                 {
-                    return;
+                    e.printStackTrace();
                 }
-
+                break;
             case GetAddress:
 
                 // Check how many address have a timestamp in the last three hours
                 // if we have more than 1000 address, we select a random 1000 sample.
                 // send addresses
+                List<NetworkAddressMetadata> activeAddresses = m_peerManager.getAddressPool().getRandom(MAX_GET_ADDRESS_RESPONSE);
+                List<TimestampedNetworkAddress> timestampedAddress = new ArrayList<>();
+
+                for (NetworkAddressMetadata networkAddressMetadata: activeAddresses)
+                {
+                    if (!networkAddressMetadata.getNetworkAddress().equals(peer.getNetworkAddress()))
+                        timestampedAddress.add(networkAddressMetadata.getTimeStampedAddress());
+                }
+
+                if (timestampedAddress.size() == 0)
+                {
+                    s_logger.warn("We don't have any active peers to send.");
+                    break;
+                }
+
+                ProtocolMessage addressMessage = ProtocolMessageFactory.createAddress(timestampedAddress);
+
+                peer.sendMessage(addressMessage);
                 break;
             default:
+        }
+
+        try
+        {
+            m_peerManager.getAddressPool().updateLastSeen(peer.getNetworkAddress(), LocalDateTime.now());
+        }
+        catch (StorageException e)
+        {
+            e.printStackTrace();
+            s_logger.warn("Could not update address last seen date.");
+        }
+    }
+
+    /**
+     * Queues the address to be send to the peers.
+     *
+     * @param address The address to be send.
+     */
+    void queueAddresses(TimestampedNetworkAddress address)
+    {
+        Iterator<IPeer> it = m_peerManager.getPeers();
+        while (it.hasNext())
+        {
+            IPeer peer = it.next();
+
+            peer.queueAddressForBroadcast(address);
+        }
+    }
+
+    /**
+     * Broadcast messages to the peers.
+     */
+    void broadcast()
+    {
+        Iterator<IPeer> it = m_peerManager.getPeers();
+        while (it.hasNext())
+        {
+            IPeer peer = it.next();
+
+            if (peer.getQueuedAddresses().size() > 0)
+            {
+                ProtocolMessage addressMessage = ProtocolMessageFactory.createAddress(peer.getQueuedAddresses());
+                peer.sendMessage(addressMessage);
+                peer.getQueuedAddresses().clear();
+            }
         }
     }
 }

@@ -28,6 +28,7 @@ package com.thunderbolt.network.messages.structures;
 
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.common.contracts.ISerializable;
+import com.thunderbolt.network.messages.NodeServices;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -54,8 +55,9 @@ public class NetworkAddress implements ISerializable
     private static final int ADDRESS_SIZE = IPV6_SIZE;
     private static final int PORT_SIZE    = 2;
 
-    private byte[] m_address = new byte[ADDRESS_SIZE];
-    private int    m_port    = 0;
+    private NodeServices m_services = NodeServices.Network;
+    private byte[]       m_address  = new byte[ADDRESS_SIZE];
+    private int          m_port     = 0;
 
     /**
      * Creates a new instance of the NetworkAddress class.
@@ -71,6 +73,7 @@ public class NetworkAddress implements ISerializable
      */
     public NetworkAddress(ByteBuffer buffer)
     {
+        m_services = NodeServices.from(buffer.getInt());
         buffer.get(m_address);
         setPort(buffer.getShort() & 0x0000ffff);
     }
@@ -87,6 +90,7 @@ public class NetworkAddress implements ISerializable
 
         try
         {
+            data.write(NumberSerializer.serialize(m_services.getValue()));
             data.write(m_address);
             data.write(NumberSerializer.serialize((short) getPort()));
         }
@@ -139,10 +143,10 @@ public class NetworkAddress implements ISerializable
     public boolean isRoutable()
     {
         boolean isPrivate =
-            m_address[3] == 10 ||
-           /* (m_address[3] == (byte)192 && m_address[2] == (byte)168) ||*/ //TODO: Uncomment this.
-             m_address[3] == 127 ||
-             m_address[3] == 0;
+            m_address[15] == 10 ||
+           /* (m_address[15] == (byte)192 && m_address[14] == (byte)168) ||*/ //TODO: Uncomment this.
+             m_address[15] == 127 ||
+             m_address[15] == 0;
 
         return !isPrivate;
     }
@@ -155,6 +159,26 @@ public class NetworkAddress implements ISerializable
     public byte[] getRawAddress()
     {
         return m_address;
+    }
+
+    /**
+     * Gets the services offered by tis address.
+     *
+     * @return The services.
+     */
+    public NodeServices getServices()
+    {
+        return m_services;
+    }
+
+    /**
+     * Sets the services for this address.
+     *
+     * @param services The services.
+     */
+    public void setServices(NodeServices services)
+    {
+        m_services = services;
     }
 
     /**
@@ -209,8 +233,46 @@ public class NetworkAddress implements ISerializable
     @Override
     public String toString()
     {
-        return String.format("[Address: %s - Port: %s]",
+        return String.format("[Address: %s - Port: %s - Services: %s]",
                 getAddress().getHostAddress(),
-                getPort());
+                getPort(),
+                getServices());
+    }
+
+    /**
+     * Returns a hashcode for this network address.
+     *
+     * @return a hash code value for this network address.
+     */
+    @Override
+    public int hashCode()
+    {
+        return Arrays.hashCode(getAddress().getAddress());
+    }
+
+    /**
+     * The method determines whether the Number object that invokes the method is equal to the object that is
+     * passed as an argument.
+     *
+     * @param other The other instance to be compared.
+     *
+     * @return True if the objects are equal; otherwise; false.
+     */
+    @Override
+    public boolean equals(Object other)
+    {
+        if (other == null)
+            return false;
+
+        if (other == this)
+            return true;
+
+        if (!(other instanceof NetworkAddress))
+            return false;
+
+        NetworkAddress otherAddress = (NetworkAddress)other;
+
+        return Arrays.equals(otherAddress.getAddress().getAddress(),
+                this.getAddress().getAddress());
     }
 }

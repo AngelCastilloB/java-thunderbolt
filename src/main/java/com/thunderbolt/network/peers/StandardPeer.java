@@ -33,6 +33,7 @@ import com.thunderbolt.network.ProtocolException;
 import com.thunderbolt.network.contracts.IPeer;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import com.thunderbolt.network.messages.structures.NetworkAddress;
+import com.thunderbolt.network.messages.structures.TimestampedNetworkAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +41,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.util.Queue;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /* IMPLEMENTATION ************************************************************/
@@ -52,19 +54,21 @@ public class StandardPeer implements IPeer
 {
     private static final Logger s_logger = LoggerFactory.getLogger(StandardPeer.class);
 
-    private final Socket                 m_socket;
-    private final OutputStream           m_outStream;
-    private final InputStream            m_inStream;
-    private final NetworkParameters      m_params;
-    private final Queue<ProtocolMessage> m_inbound          = new LinkedBlockingQueue<>();
-    private final Queue<ProtocolMessage> m_outbound         = new LinkedBlockingQueue<>();
-    private int                          m_banScore         = 0;
-    private boolean                      m_isInbound        = false;
-    private final Stopwatch              m_watch            = new Stopwatch();
-    private boolean                      m_pongPending      = false;
-    private boolean                      m_clearedHandshake = false;
-    private int                          m_protocolVersion  = 0;
-    private long                         m_versionNonce     = 0;
+    private final Socket                    m_socket;
+    private final OutputStream              m_outStream;
+    private final InputStream               m_inStream;
+    private final NetworkParameters         m_params;
+    private final Queue<ProtocolMessage>    m_inbound          = new LinkedBlockingQueue<>();
+    private final Queue<ProtocolMessage>    m_outbound         = new LinkedBlockingQueue<>();
+    private int                             m_banScore         = 0;
+    private boolean                         m_isInbound        = false;
+    private final Stopwatch                 m_watch            = new Stopwatch();
+    private boolean                         m_pongPending      = false;
+    private boolean                         m_clearedHandshake = false;
+    private int                             m_protocolVersion  = 0;
+    private long                            m_versionNonce     = 0;
+    private List<TimestampedNetworkAddress> m_addressToBeSend  = new LinkedList<>();
+    private Set<TimestampedNetworkAddress>  m_knownAddresses   = new HashSet<>();
 
     /**
      * Creates a connection with a given peer.
@@ -81,6 +85,12 @@ public class StandardPeer implements IPeer
         m_outStream = m_socket.getOutputStream();
         m_inStream  = m_socket.getInputStream();
         m_isInbound = isInbound;
+
+        // Add ourselves to the known address to avoid receiving our own address at broadcasts.
+        NetworkAddress address = new NetworkAddress();
+        address.setAddress(m_socket.getInetAddress());
+        address.setPort(m_socket.getPort());
+        m_knownAddresses.add(new TimestampedNetworkAddress(LocalDateTime.now(), address));
 
         m_watch.restart();
     }
@@ -414,5 +424,29 @@ public class StandardPeer implements IPeer
             s_logger.debug("Sending message {} to peer {}", message.getMessageType(), this);
             m_outStream.write(message.serialize());
         }
+    }
+
+    /**
+     * Queue the address to be broadcast to the peer.
+     *
+     * @param address The address to be broadcast.
+     */
+    public void queueAddressForBroadcast(TimestampedNetworkAddress address)
+    {
+        if (!m_knownAddresses.contains(address))
+        {
+            m_addressToBeSend.add(address);
+            m_knownAddresses.add(address);
+        }
+    }
+
+    /**
+     * Gets the list of addresses that are queued for broadcast.
+     *
+     * @return The list of addresses.
+     */
+    public List<TimestampedNetworkAddress> getQueuedAddresses()
+    {
+        return m_addressToBeSend;
     }
 }

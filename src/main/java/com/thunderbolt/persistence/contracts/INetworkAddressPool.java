@@ -26,10 +26,11 @@ package com.thunderbolt.persistence.contracts;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.network.messages.structures.NetworkAddress;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
 
-import java.net.InetSocketAddress;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
@@ -71,7 +72,7 @@ public interface INetworkAddressPool
      *
      * @return A list of network addresses metadata.
      */
-    List<InetSocketAddress> getRandom(int amount);
+    List<NetworkAddressMetadata> getRandom(int amount);
 
     /**
      * Gets whether this address is in the pool.
@@ -104,5 +105,20 @@ public interface INetworkAddressPool
     /**
      * Updates the ban status of each address.
      */
-    void updateBanStatus() throws StorageException;
+    void checkReleaseBan() throws StorageException;
+
+    /**
+     * Updates the last seen from this peer address.
+     *
+     * @param address The network address.
+     * @param dateTime The datetime.
+     */
+    void updateLastSeen(NetworkAddress address, LocalDateTime dateTime) throws StorageException;
+
+    /**
+     * Bans the given address for 24 hours.
+     *
+     * @param address The address to be banned.
+     */
+    void banPeer(NetworkAddress address) throws StorageException;
 }

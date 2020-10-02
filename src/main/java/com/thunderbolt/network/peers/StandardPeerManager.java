@@ -36,6 +36,7 @@ import com.thunderbolt.network.messages.ProtocolMessage;
 import com.thunderbolt.network.messages.ProtocolMessageFactory;
 import com.thunderbolt.persistence.contracts.INetworkAddressPool;
 import com.thunderbolt.persistence.storage.StorageException;
+import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +58,7 @@ public class StandardPeerManager implements IPeerManager
     private static final int PING_TIMEOUT      = 1000;
     private static final int PONG_TIMEOUT      = 60000;
     private static final int CLEAN_INTERVAL    = 10; // minutes
+    private static final int BAN_SCORE_LIMIT   = 100;
 
     private static final Logger s_logger = LoggerFactory.getLogger(StandardPeerManager.class);
 
@@ -236,6 +238,17 @@ public class StandardPeerManager implements IPeerManager
     }
 
     /**
+     * Gets a reference fo the address pool instance.
+     *
+     * @return The pool instance.
+     */
+    @Override
+    public INetworkAddressPool getAddressPool()
+    {
+        return m_addressPool;
+    }
+
+    /**
      * Runs the peer manager main thread.
      */
     private void run()
@@ -364,6 +377,21 @@ public class StandardPeerManager implements IPeerManager
                 disconnect = true;
             }
 
+            // Ban this peer for 24 hours if reaches the ban score.
+            if (peer.getBanScore() >= BAN_SCORE_LIMIT)
+            {
+                try
+                {
+                    m_addressPool.banPeer(peer.getNetworkAddress());
+                }
+                catch (StorageException e)
+                {
+                    e.printStackTrace();
+                }
+
+                disconnect = true;
+            }
+
             if (disconnect)
             {
                 peer.disconnect();
@@ -401,6 +429,20 @@ public class StandardPeerManager implements IPeerManager
 
                 s_logger.debug("{} is trying to connect...", peerSocket.getRemoteSocketAddress());
 
+                byte[] peerRawAddress = peerSocket.getInetAddress().getAddress();
+                // Check first that the peer is not banned.
+                if (m_addressPool.contains(peerRawAddress))
+                {
+                    NetworkAddressMetadata metadata = m_addressPool.getAddress(peerRawAddress);
+
+                    if (metadata.isBanned())
+                    {
+                        s_logger.debug("Peer {} is currently banned.", metadata.getNetworkAddress());
+                        s_logger.debug("The ban will be lifted in {}.", metadata.getBanDate().plusHours(24));
+                        peerSocket.close();
+                    }
+                }
+
                 add(m_params, peerSocket, true);
             }
             catch (SocketTimeoutException e)
@@ -422,11 +464,14 @@ public class StandardPeerManager implements IPeerManager
      */
     private void bootstrap() throws IOException
     {
-        List<InetSocketAddress> initialPeerList = m_addressPool.getRandom(m_maxPeers);
-        List<InetSocketAddress> peers = m_peerDiscoverer.getPeers();
+        List<NetworkAddressMetadata> metadataList    = m_addressPool.getRandom(m_maxPeers);
+        List<InetSocketAddress>      initialPeerList = new ArrayList<>();
+        List<InetSocketAddress>      peers           = m_peerDiscoverer.getPeers();
+
+        for (NetworkAddressMetadata metadata: metadataList)
+            initialPeerList.add(metadata.getInetSocketAddress());
 
         initialPeerList.addAll(0, peers);
-
 
         for (InetSocketAddress peerAddress: initialPeerList)
         {
@@ -473,7 +518,7 @@ public class StandardPeerManager implements IPeerManager
         {
             try
             {
-                m_addressPool.updateBanStatus();
+                m_addressPool.checkReleaseBan();
                 m_addressPool.cleanUp();
             }
             catch (StorageException e)

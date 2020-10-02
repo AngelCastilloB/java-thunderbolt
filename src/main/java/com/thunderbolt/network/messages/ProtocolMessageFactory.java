@@ -28,14 +28,19 @@ package com.thunderbolt.network.messages;
 
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.contracts.IPeer;
+import com.thunderbolt.network.messages.structures.NetworkAddress;
+import com.thunderbolt.network.messages.structures.TimestampedNetworkAddress;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.storage.StorageException;
+import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -141,6 +146,58 @@ public class ProtocolMessageFactory
     {
         ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
         message.setMessageType(MessageType.Pong);
+
+        return message;
+    }
+
+    /**
+     * Creates an protocol address message.
+     *
+     * @param list The list of address to send.
+     *
+     * @return The address protocol message.
+     */
+    public static ProtocolMessage createAddress(List<TimestampedNetworkAddress> list)
+    {
+        AddressPayload payload = new AddressPayload(list);
+
+        ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
+        message.setMessageType(MessageType.Address);
+        message.setPayload(payload);
+
+        return message;
+    }
+
+    /**
+     * Creates an protocol address message.
+     *
+     * @param address The address to send to the peers.
+     *
+     * @return The address protocol message.
+     */
+    public static ProtocolMessage createAddress(NetworkAddress address)
+    {
+        List<TimestampedNetworkAddress> addresses = new ArrayList<>();
+        addresses.add(new TimestampedNetworkAddress(LocalDateTime.now(), address));
+
+        AddressPayload payload = new AddressPayload(addresses);
+
+        ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
+        message.setMessageType(MessageType.Address);
+        message.setPayload(payload);
+
+        return message;
+    }
+
+    /**
+     * Creates a protocol get address message.
+     *
+     * @return The address protocol message.
+     */
+    public static ProtocolMessage createGetAddress()
+    {
+        ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
+        message.setMessageType(MessageType.GetAddress);
 
         return message;
     }

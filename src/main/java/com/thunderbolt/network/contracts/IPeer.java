@@ -29,6 +29,9 @@ package com.thunderbolt.network.contracts;
 import com.thunderbolt.common.TimeSpan;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import com.thunderbolt.network.messages.structures.NetworkAddress;
+import com.thunderbolt.network.messages.structures.TimestampedNetworkAddress;
+
+import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -182,4 +185,18 @@ public interface IPeer
      * @return The random version nonce.
      */
     long getVersionNonce();
+
+    /**
+     * Queue the address to be broadcast to the peer.
+     *
+     * @param address The address to be broadcast.
+     */
+    void queueAddressForBroadcast(TimestampedNetworkAddress address);
+
+    /**
+     * Gets the list of addresses that are queued for broadcast.
+     *
+     * @return The list of addresses.
+     */
+    List<TimestampedNetworkAddress> getQueuedAddresses();
 }

@@ -27,6 +27,7 @@ package com.thunderbolt.persistence.storage;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.Convert;
+import com.thunderbolt.network.messages.structures.NetworkAddress;
 import com.thunderbolt.persistence.contracts.INetworkAddressPool;
 import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
 import org.iq80.leveldb.DB;
@@ -80,6 +81,7 @@ public class LevelDbNetworkAddressPool implements INetworkAddressPool
 
         try
         {
+            s_logger.debug("Reading peer data from: {}", Paths.get(path.toString(), ADDRESS_DB_NAME));
             m_addressDatabase = factory.open(Paths.get(path.toString(), ADDRESS_DB_NAME).toFile(), options);
             m_addressPool = readAll();
             s_logger.debug("{} network addresses loaded.", m_addressPool.size());
@@ -105,15 +107,15 @@ public class LevelDbNetworkAddressPool implements INetworkAddressPool
         {
             ByteArrayOutputStream key = new ByteArrayOutputStream();
             key.write(ADDRESS_PREFIX);
-            key.write(addressMetadata.NetworkAddress().serialize());
+            key.write(addressMetadata.getNetworkAddress().serialize());
 
             m_addressDatabase.put(key.toByteArray(), addressMetadata.serialize());
-            m_addressPool.put(Convert.toHexString(addressMetadata.NetworkAddress().getAddress().getAddress()),
+            m_addressPool.put(Convert.toHexString(addressMetadata.getNetworkAddress().getAddress().getAddress()),
                     addressMetadata);
         }
         catch (Exception exception)
         {
-            throw new StorageException(String.format("Unable to add metadata for address '%s'", addressMetadata.NetworkAddress()), exception);
+            throw new StorageException(String.format("Unable to add metadata for address '%s'", addressMetadata.getNetworkAddress()), exception);
         }
 
         return true;
@@ -166,16 +168,16 @@ public class LevelDbNetworkAddressPool implements INetworkAddressPool
         {
             ByteArrayOutputStream key = new ByteArrayOutputStream();
             key.write(ADDRESS_PREFIX);
-            key.write(metadata.NetworkAddress().serialize());
+            key.write(metadata.getNetworkAddress().serialize());
 
             m_addressDatabase.delete(key.toByteArray());
-            m_addressPool.remove(Convert.toHexString(metadata.NetworkAddress().getAddress().getAddress()));
+            m_addressPool.remove(Convert.toHexString(metadata.getNetworkAddress().getAddress().getAddress()));
         }
         catch (Exception exception)
         {
             throw new StorageException(
                     String.format("Unable to delete address %s.",
-                            metadata.NetworkAddress().getAddress()),
+                            metadata.getNetworkAddress().getAddress()),
                     exception);
         }
 
@@ -183,20 +185,26 @@ public class LevelDbNetworkAddressPool implements INetworkAddressPool
     }
 
     /**
-     * Tried to retrieve a random selection of addresses matching the mount given, if not enough address are present
-     * returns all the addresses in the pool.
+     * Tried to retrieve a random selection of addresses matching the amount given, if not enough address are present
+     * returns all the addresses in the pool that matches the criteria.
      *
      * @param amount Number of addresses to be requested.
      *
      * @return A list of network addresses metadata.
      */
     @Override
-    public List<InetSocketAddress> getRandom(int amount)
+    public List<NetworkAddressMetadata> getRandom(int amount)
     {
-        // Don't return an address if is banned.
         Predicate<NetworkAddressMetadata> isBanned = NetworkAddressMetadata::isBanned;
+        Predicate<NetworkAddressMetadata> isActive = NetworkAddressMetadata::isActive;
+
         List<NetworkAddressMetadata> total = new LinkedList<>(m_addressPool.values());
+
+        // Don't return an address if is banned.
         total.removeIf(isBanned);
+
+        // Don't return address that we haven't heard from since three hours ago.
+        total.removeIf(Predicate.not(isActive));
 
         int toBeRemoved = total.size() - amount;
 
@@ -206,17 +214,7 @@ public class LevelDbNetworkAddressPool implements INetworkAddressPool
             total.remove(randomIndex);
         }
 
-        List<InetSocketAddress> ipAddresses = new LinkedList<>();
-        for (NetworkAddressMetadata metadata: total)
-        {
-            InetSocketAddress socketAddress = new InetSocketAddress(
-                    metadata.NetworkAddress().getAddress(),
-                    metadata.NetworkAddress().getPort());
-
-            ipAddresses.add(socketAddress);
-        }
-
-        return ipAddresses;
+        return total;
     }
 
     /**
@@ -251,10 +249,10 @@ public class LevelDbNetworkAddressPool implements INetworkAddressPool
     }
 
     /**
-     * Updates the ban status of each address.
+     * Releases the ban status of an address if 24 hours already elapsed.
      */
     @Override
-    public void updateBanStatus() throws StorageException
+    public void checkReleaseBan() throws StorageException
     {
         for (Map.Entry<String, NetworkAddressMetadata> mapValue : m_addressPool.entrySet())
         {
@@ -269,6 +267,43 @@ public class LevelDbNetworkAddressPool implements INetworkAddressPool
                 metadata.setBanScore((byte)0);
                 upsertAddress(metadata);
             }
+        }
+    }
+
+    /**
+     * Bans the given address for 24 hours.
+     *
+     * @param address The address to be banned.
+     */
+    @Override
+    public void banPeer(NetworkAddress address) throws StorageException
+    {
+        NetworkAddressMetadata originalData = getAddress(address.getAddress().getAddress());
+
+        if (originalData != null)
+        {
+            originalData.setIsBanned(true);
+            originalData.setBanDate(LocalDateTime.now());
+            upsertAddress(originalData);
+        }
+    }
+
+    /**
+     * Updates the last seen from this peer address.
+     *
+     * @param address The network address.
+     * @param dateTime The datetime.
+     */
+    @Override
+    public void updateLastSeen(NetworkAddress address, LocalDateTime dateTime) throws StorageException
+    {
+        NetworkAddressMetadata originalData = getAddress(address.getAddress().getAddress());
+
+        if (originalData != null)
+        {
+            originalData.setLastMessageDate(dateTime);
+
+            upsertAddress(originalData);
         }
     }
 
@@ -288,7 +323,9 @@ public class LevelDbNetworkAddressPool implements INetworkAddressPool
                 byte[] data = iterator.peekNext().getValue();
 
                 NetworkAddressMetadata output = new NetworkAddressMetadata(ByteBuffer.wrap(data));
-                result.put(Convert.toHexString(output.NetworkAddress().getAddress().getAddress()), output);
+                result.put(Convert.toHexString(output.getNetworkAddress().getAddress().getAddress()), output);
+
+                s_logger.debug(" - {}", output.getNetworkAddress());
             }
         }
         catch (Exception exception)
