@@ -27,14 +27,11 @@ package com.thunderbolt.persistence.contracts;
 
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.BlockMetadata;
-import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
 import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.wallet.Address;
 
-import java.net.InetAddress;
-import java.util.ArrayList;
 import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
@@ -48,7 +45,6 @@ public interface IMetadataProvider
      * Gets the block metadata entry from the provider.
      *
      * @param id The hash of the block header.
-     *
      * @return The block metadata.
      */
     BlockMetadata getBlockMetadata(Sha256Hash id) throws StorageException;
@@ -85,7 +81,6 @@ public interface IMetadataProvider
      * Gets the metadata entry from the provider.
      *
      * @param id The hash of the transaction.
-     *
      * @return The transaction metadata.
      */
     TransactionMetadata getTransactionMetadata(Sha256Hash id) throws StorageException;
@@ -110,7 +105,6 @@ public interface IMetadataProvider
      * Gets all the unspent outputs of a given public key.
      *
      * @param address The address of the wallet to get the unspent outputs for.
-     *
      * @return An array with all the unspent outputs related to a given public address.
      */
     List<UnspentTransactionOutput> getUnspentOutputsForAddress(Address address) throws StorageException;
@@ -122,20 +116,4 @@ public interface IMetadataProvider
      * @param index The index of the output inside the transaction.
      */
     boolean removeUnspentOutput(Sha256Hash id, int index) throws StorageException;
-
-    /**
-     * Persist a new network address.
-     *
-     * @param addressMetadata The metadata of the network address.
-     *
-     * @return true if the address was added; otherwise; false.
-     */
-    boolean addAddress(NetworkAddressMetadata addressMetadata) throws StorageException;
-
-    /**
-     * Gets all the address stored in disk.
-     *
-     * @return The list of all address.
-     */
-    List<NetworkAddressMetadata> getAllAddresses() throws StorageException;
 }

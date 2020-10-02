@@ -27,6 +27,7 @@ package com.thunderbolt.network.contracts;
 /* IMPORTS *******************************************************************/
 
 import java.net.InetSocketAddress;
+import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -40,5 +41,5 @@ public interface IPeerDiscoverer
      *
      * @return The list of peers.
      */
-    InetSocketAddress[] getPeers();
+    List<InetSocketAddress> getPeers();
 }

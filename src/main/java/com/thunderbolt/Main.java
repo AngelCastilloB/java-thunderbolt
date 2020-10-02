@@ -39,8 +39,10 @@ import com.thunderbolt.network.peers.StandardPeerManager;
 import com.thunderbolt.persistence.StandardPersistenceService;
 import com.thunderbolt.persistence.contracts.IContiguousStorage;
 import com.thunderbolt.persistence.contracts.IMetadataProvider;
+import com.thunderbolt.persistence.contracts.INetworkAddressPool;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.storage.*;
+import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
 import com.thunderbolt.transaction.MemoryTransactionsPoolService;
 import com.thunderbolt.transaction.StandardTransactionValidator;
 import com.thunderbolt.transaction.contracts.ITransactionValidator;
@@ -51,6 +53,8 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -66,6 +70,8 @@ public class Main
     static private final Path   BLOCKS_PATH      = Paths.get(DEFAULT_PATH.toString(), "blocks");
     static private final Path   REVERT_PATH      = Paths.get(DEFAULT_PATH.toString(), "reverts");
     static private final Path   METADATA_PATH    = Paths.get(DEFAULT_PATH.toString(), "metadata");
+    static private final Path   ADDRESS_PATH     = Paths.get(DEFAULT_PATH.toString(), "peers");
+
     static private final Path   WALLET_PATH      = Paths.get(USER_HOME_PATH.toString(), "wallet.bin");
     static private final Path   WALLET_PATH_1    = Paths.get(USER_HOME_PATH.toString(), "wallet1.bin");
     static private final Path   WALLET_PATH_2    = Paths.get(USER_HOME_PATH.toString(), "wallet2.bin");
@@ -82,12 +88,13 @@ public class Main
      */
     public static void main(String[] args) throws IOException, ProtocolException, InterruptedException, StorageException
     {
-        IPersistenceService      persistenceService    = createPersistenceService();
-        ITransactionsPoolService memPool               = new MemoryTransactionsPoolService();
-        ITransactionValidator    transactionValidator  = new StandardTransactionValidator(persistenceService, NetworkParameters.mainNet());
-        IBlockchainCommitter     committer             = new StandardBlockchainCommitter(persistenceService, memPool);
-        Blockchain               blockchain            = new Blockchain(NetworkParameters.mainNet(), transactionValidator, committer, persistenceService);
-        IPeerDiscoverer          discoverer            = new StandardPeerDiscoverer();
+        IPersistenceService      persistenceService     = createPersistenceService();
+        ITransactionsPoolService memPool                = new MemoryTransactionsPoolService();
+        ITransactionValidator    transactionValidator   = new StandardTransactionValidator(persistenceService, NetworkParameters.mainNet());
+        IBlockchainCommitter     committer              = new StandardBlockchainCommitter(persistenceService, memPool);
+        Blockchain               blockchain             = new Blockchain(NetworkParameters.mainNet(), transactionValidator, committer, persistenceService);
+        IPeerDiscoverer          discoverer             = new StandardPeerDiscoverer();
+        INetworkAddressPool      addressPool            = new LevelDbNetworkAddressPool(ADDRESS_PATH);
 
         ProtocolMessageFactory.initialize(NetworkParameters.mainNet(), persistenceService);
         StandardPeerManager peerManager = new StandardPeerManager(
@@ -95,7 +102,9 @@ public class Main
                 16,
                 1800000, // 30 minutes
                 discoverer,
-                NetworkParameters.mainNet());
+                NetworkParameters.mainNet(),
+                addressPool);
+
         Node node = new Node(NetworkParameters.mainNet(), blockchain, memPool, peerManager);
         node.run();
 

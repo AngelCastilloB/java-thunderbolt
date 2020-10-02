@@ -120,7 +120,7 @@ public class NetworkAddressMetadata implements ISerializable
      *
      * @return The network address.
      */
-    public NetworkAddress getAddress()
+    public NetworkAddress NetworkAddress()
     {
         return m_address;
     }

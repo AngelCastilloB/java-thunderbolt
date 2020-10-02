@@ -151,20 +151,4 @@ public interface IPersistenceService
      * @throws StorageException If there is an error querying the required metadata to create the revert data.
      */
     byte[] getRevertData(Block block, long height) throws StorageException;
-
-    /**
-     * Persist a new network address.
-     *
-     * @param addressMetadata The metadata of the network address.
-     *
-     * @return true if the address was added; otherwise; false.
-     */
-    boolean addAddress(NetworkAddressMetadata addressMetadata) throws StorageException;
-
-    /**
-     * Gets all the address stored in disk.
-     *
-     * @return The list of all address.
-     */
-    List<NetworkAddressMetadata> getAllAddresses() throws StorageException;
 }

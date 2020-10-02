@@ -62,16 +62,13 @@ public class LevelDbMetadataProvider implements IMetadataProvider
     // Constants
     static private final String METADATA_DB_NAME   = "blockchain";
     static private final String STATE_DB_NAME      = "state";
-    static private final String ADDRESS_DB_NAME    = "address";
     static private final byte   BLOCK_PREFIX       = 'b';
     static private final byte   HEAD_PREFIX        = 'h';
     static private final byte   TRANSACTION_PREFIX = 't';
-    static private final byte   ADDRESS_PREFIX     = 'a';
 
     // Instance Fields
     private final DB m_stateDatabase;
     private final DB m_metadataDatabase;
-    private final DB m_addressDatabase;
 
     /**
      * Initializes a new instance of the LevelDbMetadataProvider class.
@@ -88,7 +85,6 @@ public class LevelDbMetadataProvider implements IMetadataProvider
         {
             m_metadataDatabase = factory.open(Paths.get(path.toString(), METADATA_DB_NAME).toFile(), options);
             m_stateDatabase = factory.open(Paths.get(path.toString(), STATE_DB_NAME).toFile(), options);
-            m_addressDatabase = factory.open(Paths.get(path.toString(), ADDRESS_DB_NAME).toFile(), options);
         }
         catch (Exception exception)
         {
@@ -352,61 +348,5 @@ public class LevelDbMetadataProvider implements IMetadataProvider
         }
 
         return true;
-    }
-
-    /**
-     * Persist a new network address.
-     *
-     * @param addressMetadata The metadata of the network address.
-     *
-     * @return true if the address was added; otherwise; false.
-     */
-    public boolean addAddress(NetworkAddressMetadata addressMetadata) throws StorageException
-    {
-        try
-        {
-            ByteArrayOutputStream key = new ByteArrayOutputStream();
-            key.write(ADDRESS_PREFIX);
-            key.write(addressMetadata.getAddress().serialize());
-
-            m_addressDatabase.put(key.toByteArray(), addressMetadata.serialize());
-
-            //s_logger.debug(String.format("Metadata added for transaction '%s'", metadata.getHash()));
-        }
-        catch (Exception exception)
-        {
-            throw new StorageException(String.format("Unable to add metadata for address '%s'", addressMetadata.getAddress()), exception);
-        }
-
-        return true;
-    }
-
-    /**
-     * Gets all the address stored in disk.
-     *
-     * @return The list of all address.
-     */
-    public List<NetworkAddressMetadata> getAllAddresses() throws StorageException
-    {
-        ArrayList<NetworkAddressMetadata> result = new ArrayList<>();
-
-        try (DBIterator iterator = m_addressDatabase.iterator())
-        {
-            for (iterator.seekToFirst(); iterator.hasNext(); iterator.next())
-            {
-                byte[] data = iterator.peekNext().getValue();
-
-                NetworkAddressMetadata output = new NetworkAddressMetadata(ByteBuffer.wrap(data));
-                result.add(output);
-            }
-        }
-        catch (Exception exception)
-        {
-            throw new StorageException(
-                    "Unable to get metadata for network addresses",
-                    exception);
-        }
-
-        return result;
     }
 }

@@ -232,6 +232,12 @@ public class Node
                     // Check if we have it in our cache, if not, si a new address, add it to the database and the cache.
                     // if not, check if the services changed, if so, update the services.
                     // if either the address was new, or the services were updated, broadcast it to the peers.
+
+
+                    //Every 24 hours, the node advertises its own address to all connected nodes.
+
+                    // The node erases addresses that have not been used in 10 days as long as there are at least 1000
+                    // addresses in the map, and as long as the erasing process has not taken more than 20 seconds.
                     break;
                 }
                 catch (IOException exception)
@@ -240,6 +246,10 @@ public class Node
                 }
 
             case GetAddress:
+
+                // Check how many address have a timestamp in the last three hours
+                // if we have more than 1000 address, we select a random 1000 sample.
+                // send addresses
                 break;
             default:
         }

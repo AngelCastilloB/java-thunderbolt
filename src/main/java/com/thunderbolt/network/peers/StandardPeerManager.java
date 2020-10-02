@@ -26,25 +26,22 @@ package com.thunderbolt.network.peers;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.ProtocolException;
 import com.thunderbolt.network.contracts.IPeer;
 import com.thunderbolt.network.contracts.IPeerDiscoverer;
 import com.thunderbolt.network.contracts.IPeerManager;
-import com.thunderbolt.network.messages.MessageType;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import com.thunderbolt.network.messages.ProtocolMessageFactory;
-import com.thunderbolt.network.messages.VersionPayload;
+import com.thunderbolt.persistence.contracts.INetworkAddressPool;
+import com.thunderbolt.persistence.storage.StorageException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.*;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.util.Iterator;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /* IMPLEMENTATION ************************************************************/
@@ -59,19 +56,22 @@ public class StandardPeerManager implements IPeerManager
     private static final int PEER_LISTEN_DELAY = 500;
     private static final int PING_TIMEOUT      = 1000;
     private static final int PONG_TIMEOUT      = 60000;
+    private static final int CLEAN_INTERVAL    = 10; // minutes
 
     private static final Logger s_logger = LoggerFactory.getLogger(StandardPeerManager.class);
 
-    private final Queue<IPeer> m_peers           = new ConcurrentLinkedQueue<>();
-    private Thread             m_thread          = null;
-    private Thread             m_listenThread    = null;
-    private boolean            m_isRunning       = false;
-    private long               m_maxInactiveTime = 0;
-    private int                m_minInitialPeers = 0;
-    private int                m_maxPeers        = 0;
-    private IPeerDiscoverer    m_peerDiscoverer  = null;
-    private NetworkParameters  m_params          = null;
-    private ServerSocket       m_serverSocket    = null;
+    private final Queue<IPeer>  m_peers            = new ConcurrentLinkedQueue<>();
+    private Thread              m_thread           = null;
+    private Thread              m_listenThread     = null;
+    private boolean             m_isRunning        = false;
+    private long                m_maxInactiveTime  = 0;
+    private int                 m_minInitialPeers  = 0;
+    private int                 m_maxPeers         = 0;
+    private IPeerDiscoverer     m_peerDiscoverer   = null;
+    private NetworkParameters   m_params           = null;
+    private ServerSocket        m_serverSocket     = null;
+    private INetworkAddressPool m_addressPool      = null;
+    private final Stopwatch     m_peerCleanupTimer = new Stopwatch();
 
     /**
      * Initializes a new instance of the RelayService class.
@@ -81,19 +81,22 @@ public class StandardPeerManager implements IPeerManager
      * @param inactiveTime The time the peer is allowed to remain inactive before being disconnected.
      * @param discoverer The strategy for peers for bootstrap.
      * @param params The network parameters.
+     * @param addressPool A pool of known addresses of peers.
      */
     public StandardPeerManager(
             int minInitialPeers,
             int maxPeers,
             long inactiveTime,
             IPeerDiscoverer discoverer,
-            NetworkParameters params)
+            NetworkParameters params,
+            INetworkAddressPool addressPool)
     {
         m_maxInactiveTime = inactiveTime;
         m_minInitialPeers = minInitialPeers;
         m_maxPeers = maxPeers;
         m_peerDiscoverer = discoverer;
         m_params = params;
+        m_addressPool = addressPool;
     }
 
     /**
@@ -115,6 +118,8 @@ public class StandardPeerManager implements IPeerManager
     {
         if (m_isRunning)
             return true;
+
+        m_peerCleanupTimer.start();
 
         try
         {
@@ -151,6 +156,8 @@ public class StandardPeerManager implements IPeerManager
 
         m_isRunning = false;
 
+        m_peerCleanupTimer.stop();
+        m_peerCleanupTimer.reset();
         try
         {
             if (m_listenThread != null)
@@ -239,6 +246,7 @@ public class StandardPeerManager implements IPeerManager
             readMessages();
             writeMessages();
             removeInactive();
+            updatePeerAddressPool();
         }
     }
 
@@ -414,9 +422,13 @@ public class StandardPeerManager implements IPeerManager
      */
     private void bootstrap() throws IOException
     {
-        InetSocketAddress[] peers = m_peerDiscoverer.getPeers();
+        List<InetSocketAddress> initialPeerList = m_addressPool.getRandom(m_maxPeers);
+        List<InetSocketAddress> peers = m_peerDiscoverer.getPeers();
 
-        for (InetSocketAddress peerAddress: peers)
+        initialPeerList.addAll(0, peers);
+
+
+        for (InetSocketAddress peerAddress: initialPeerList)
         {
             // Skip own address.
             InetAddress localhost = InetAddress.getLocalHost();
@@ -446,6 +458,27 @@ public class StandardPeerManager implements IPeerManager
             catch (Exception e)
             {
                 s_logger.info("Could not connect to peer {}. Reason: {}", peerAddress, e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Do some house keeping in the address pool.
+     */
+    private void updatePeerAddressPool()
+    {
+        // Address cleanup.
+        if (m_peerCleanupTimer.getElapsedTime().getTotalMinutes() != 0 &&
+            m_peerCleanupTimer.getElapsedTime().getTotalMinutes() % CLEAN_INTERVAL == 0)
+        {
+            try
+            {
+                m_addressPool.updateBanStatus();
+                m_addressPool.cleanUp();
+            }
+            catch (StorageException e)
+            {
+                e.printStackTrace();
             }
         }
     }

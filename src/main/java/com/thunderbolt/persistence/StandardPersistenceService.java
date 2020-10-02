@@ -32,7 +32,6 @@ import com.thunderbolt.persistence.contracts.IMetadataProvider;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.storage.*;
 import com.thunderbolt.persistence.structures.BlockMetadata;
-import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
 import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Sha256Hash;
@@ -338,27 +337,5 @@ public class StandardPersistenceService implements IPersistenceService
         }
 
         return data.toByteArray();
-    }
-
-    /**
-     * Persist a new network address.
-     *
-     * @param addressMetadata The metadata of the network address.
-     *
-     * @return true if the address was added; otherwise; false.
-     */
-    public boolean addAddress(NetworkAddressMetadata addressMetadata) throws StorageException
-    {
-        return m_metadataProvider.addAddress(addressMetadata);
-    }
-
-    /**
-     * Gets all the address stored in disk.
-     *
-     * @return The list of all address.
-     */
-    public List<NetworkAddressMetadata> getAllAddresses() throws StorageException
-    {
-        return m_metadataProvider.getAllAddresses();
     }
 }
