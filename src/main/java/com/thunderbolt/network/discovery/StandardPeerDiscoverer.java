@@ -49,7 +49,6 @@ public class StandardPeerDiscoverer implements IPeerDiscoverer
     {
         List<InetSocketAddress> addresses = new LinkedList<>();
 
-        addresses.add(new InetSocketAddress("192.168.0.57", DEFAULT_PORT));
         addresses.add(new InetSocketAddress("192.168.0.33", DEFAULT_PORT));
 
         return addresses;

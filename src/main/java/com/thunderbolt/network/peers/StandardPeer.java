@@ -68,7 +68,7 @@ public class StandardPeer implements IPeer
     private int                             m_protocolVersion  = 0;
     private long                            m_versionNonce     = 0;
     private List<TimestampedNetworkAddress> m_addressToBeSend  = new LinkedList<>();
-    private Set<TimestampedNetworkAddress>  m_knownAddresses   = new HashSet<>();
+    private Set<NetworkAddress>             m_knownAddresses   = new HashSet<>();
 
     /**
      * Creates a connection with a given peer.
@@ -90,7 +90,7 @@ public class StandardPeer implements IPeer
         NetworkAddress address = new NetworkAddress();
         address.setAddress(m_socket.getInetAddress());
         address.setPort(m_socket.getPort());
-        m_knownAddresses.add(new TimestampedNetworkAddress(LocalDateTime.now(), address));
+        m_knownAddresses.add(address);
 
         m_watch.restart();
     }
@@ -431,12 +431,13 @@ public class StandardPeer implements IPeer
      *
      * @param address The address to be broadcast.
      */
+    @Override
     public void queueAddressForBroadcast(TimestampedNetworkAddress address)
     {
-        if (!m_knownAddresses.contains(address))
+        if (!m_knownAddresses.contains(address.getNetworkAddress()))
         {
             m_addressToBeSend.add(address);
-            m_knownAddresses.add(address);
+            m_knownAddresses.add(address.getNetworkAddress());
         }
     }
 
@@ -448,5 +449,15 @@ public class StandardPeer implements IPeer
     public List<TimestampedNetworkAddress> getQueuedAddresses()
     {
         return m_addressToBeSend;
+    }
+
+    /**
+     * Adds the given address to the list of known addresses.
+     *
+     * @param address The list of known addresses.
+     */
+    public void addToKnownAddresses(NetworkAddress address)
+    {
+        m_knownAddresses.add(address);
     }
 }

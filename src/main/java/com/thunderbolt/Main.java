@@ -98,7 +98,7 @@ public class Main
 
         ProtocolMessageFactory.initialize(NetworkParameters.mainNet(), persistenceService);
         StandardPeerManager peerManager = new StandardPeerManager(
-                0,
+                2,
                 16,
                 1800000, // 30 minutes
                 discoverer,

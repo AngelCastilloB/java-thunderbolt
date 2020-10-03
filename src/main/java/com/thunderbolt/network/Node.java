@@ -210,12 +210,16 @@ public class Node
 
                         // If we are server and have no IP public set, we were the first node to get up in the network.
                         if (m_publicAddress == null)
+                        {
                             m_publicAddress = payload.getReceiveAddress();
+                            m_publicAddress.setPort(m_params.getPort());
+                        }
                     }
                     else
                     {
                         // if we are client, we are going to take the public address from the server message.
                         m_publicAddress = payload.getReceiveAddress();
+                        m_publicAddress.setPort(m_params.getPort());
                     }
 
                     peer.sendMessage(ProtocolMessageFactory.createVerack());
@@ -265,7 +269,7 @@ public class Node
                     catch (ProtocolException e)
                     {
                         e.printStackTrace();
-                        peer.addBanScore(20);
+                        peer.addBanScore(10);
                         return;
                     }
 
@@ -273,6 +277,7 @@ public class Node
 
                     for (TimestampedNetworkAddress timeStamped: addressPayload.getAddresses())
                     {
+                        peer.addToKnownAddresses(timeStamped.getNetworkAddress());
 
                         NetworkAddress networkAddress = timeStamped.getNetworkAddress();
                         byte[]         rawAddress     = networkAddress.getAddress().getAddress();
@@ -294,6 +299,7 @@ public class Node
                         if (m_publicAddress.equals(timeStamped.getNetworkAddress()))
                             continue;
 
+                        s_logger.debug("Adding address {}", timeStamped.getNetworkAddress());
                         // Add address.
                         pool.upsertAddress(new NetworkAddressMetadata(timeStamped.getTimestamp(),
                                 timeStamped.getNetworkAddress()));
@@ -306,7 +312,7 @@ public class Node
                             s_logger.debug("Added and will be broadcast to connected to peers.");
                         }
 
-                        s_logger.debug("Total address to our pool: {}", pool.count());
+                        s_logger.debug("Total addresses in our pool: {}", pool.count());
                     }
                 }
                 catch (StorageException e)

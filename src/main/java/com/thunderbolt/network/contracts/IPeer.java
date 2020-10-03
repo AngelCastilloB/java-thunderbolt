@@ -199,4 +199,11 @@ public interface IPeer
      * @return The list of addresses.
      */
     List<TimestampedNetworkAddress> getQueuedAddresses();
+
+    /**
+     * Adds the given address to the list of known addresses.
+     *
+     * @param address The list of known addresses.
+     */
+    void addToKnownAddresses(NetworkAddress address);
 }

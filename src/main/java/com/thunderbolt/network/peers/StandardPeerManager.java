@@ -135,10 +135,6 @@ public class StandardPeerManager implements IPeerManager
             return false;
         }
 
-        // If we don't reach the minimum amount of initial peers, the bootstrap process fail.
-        if (m_peers.size() < m_minInitialPeers)
-            return false;
-
         m_thread = new Thread(this::run);
         m_thread.start();
 
@@ -468,10 +464,15 @@ public class StandardPeerManager implements IPeerManager
         List<InetSocketAddress>      initialPeerList = new ArrayList<>();
         List<InetSocketAddress>      peers           = m_peerDiscoverer.getPeers();
 
-        for (NetworkAddressMetadata metadata: metadataList)
-            initialPeerList.add(metadata.getInetSocketAddress());
-
-        initialPeerList.addAll(0, peers);
+        if (metadataList.size() >= m_minInitialPeers)
+        {
+            for (NetworkAddressMetadata metadata: metadataList)
+                initialPeerList.add(metadata.getInetSocketAddress());
+        }
+        else
+        {
+            initialPeerList.addAll(peers);
+        }
 
         for (InetSocketAddress peerAddress: initialPeerList)
         {
