@@ -412,6 +412,7 @@ public class StandardPeerManager implements IPeerManager
             // If peer reached ban score limit, we place a 24 hours ban on the peer.
             if (peer.getBanScore() >= BAN_SCORE_LIMIT)
             {
+                s_logger.info("Peer {} is banned for misbehaving.", metadata);
                 metadata.setIsBanned(true);
                 metadata.setBanDate(LocalDateTime.now());
 
@@ -467,6 +468,7 @@ public class StandardPeerManager implements IPeerManager
                         s_logger.debug("Peer {} is currently banned.", metadata.getNetworkAddress());
                         s_logger.debug("The ban will be lifted in {}.", metadata.getBanDate().plusHours(24));
                         peerSocket.close();
+                        continue;
                     }
                 }
 
