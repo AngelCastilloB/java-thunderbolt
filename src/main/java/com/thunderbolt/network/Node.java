@@ -325,7 +325,9 @@ public class Node
                 // Check how many address have a timestamp in the last three hours
                 // if we have more than 1000 address, we select a random 1000 sample.
                 // send addresses
-                List<NetworkAddressMetadata> activeAddresses = m_peerManager.getAddressPool().getRandom(MAX_GET_ADDRESS_RESPONSE);
+                List<NetworkAddressMetadata> activeAddresses =
+                        m_peerManager.getAddressPool().getRandom(MAX_GET_ADDRESS_RESPONSE, true, true);
+
                 List<TimestampedNetworkAddress> timestampedAddress = new ArrayList<>();
 
                 for (NetworkAddressMetadata networkAddressMetadata: activeAddresses)

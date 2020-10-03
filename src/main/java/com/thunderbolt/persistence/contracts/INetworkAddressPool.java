@@ -65,14 +65,16 @@ public interface INetworkAddressPool
     NetworkAddressMetadata getAddress(byte[] address);
 
     /**
-     * Tried to retrieve a random selection of addresses matching the mount given, if not enough address are present
-     * returns all the addresses in the pool.
+     * Tried to retrieve a random selection of addresses matching the amount given, if not enough address are present
+     * returns all the addresses in the pool that matches the criteria.
      *
      * @param amount Number of addresses to be requested.
+     * @param filterBan Gets whther we should filter banned addresses.
+     * @param filterActive Gets whether we should filter active address.
      *
      * @return A list of network addresses metadata.
      */
-    List<NetworkAddressMetadata> getRandom(int amount);
+    List<NetworkAddressMetadata> getRandom(int amount, boolean filterBan, boolean filterActive);
 
     /**
      * Gets whether this address is in the pool.

@@ -189,11 +189,13 @@ public class LevelDbNetworkAddressPool implements INetworkAddressPool
      * returns all the addresses in the pool that matches the criteria.
      *
      * @param amount Number of addresses to be requested.
+     * @param filterBan Gets whther we should filter banned addresses.
+     * @param filterActive Gets whether we should filter active address.
      *
      * @return A list of network addresses metadata.
      */
     @Override
-    public List<NetworkAddressMetadata> getRandom(int amount)
+    public List<NetworkAddressMetadata> getRandom(int amount, boolean filterBan, boolean filterActive)
     {
         Predicate<NetworkAddressMetadata> isBanned = NetworkAddressMetadata::isBanned;
         Predicate<NetworkAddressMetadata> isActive = NetworkAddressMetadata::isActive;
@@ -201,10 +203,12 @@ public class LevelDbNetworkAddressPool implements INetworkAddressPool
         List<NetworkAddressMetadata> total = new LinkedList<>(m_addressPool.values());
 
         // Don't return an address if is banned.
-        total.removeIf(isBanned);
+        if (filterBan)
+            total.removeIf(isBanned);
 
         // Don't return address that we haven't heard from since three hours ago.
-        total.removeIf(Predicate.not(isActive));
+        if (filterActive)
+            total.removeIf(Predicate.not(isActive));
 
         int toBeRemoved = total.size() - amount;
 

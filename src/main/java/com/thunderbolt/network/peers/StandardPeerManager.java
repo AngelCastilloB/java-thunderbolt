@@ -54,27 +54,30 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  */
 public class StandardPeerManager implements IPeerManager
 {
-    private static final int READ_TIMEOUT      = 50; // ms
-    private static final int PEER_LISTEN_DELAY = 500;
-    private static final int PING_TIMEOUT      = 1000;
-    private static final int PONG_TIMEOUT      = 60000;
-    private static final int CLEAN_INTERVAL    = 10; // minutes
-    private static final int BAN_SCORE_LIMIT   = 100;
+    private static final int READ_TIMEOUT       = 50; // ms
+    private static final int PEER_LISTEN_DELAY  = 500;
+    private static final int PING_TIMEOUT       = 1000;
+    private static final int PONG_TIMEOUT       = 60000;
+    private static final int CLEAN_INTERVAL     = 10; // minutes
+    private static final int NEW_PEERS_INTERVAL = 1;  // minutes
+    private static final int BAN_SCORE_LIMIT    = 100;
+    private static final int CONNECT_TIMEOUT    = 100; //ms
 
     private static final Logger s_logger = LoggerFactory.getLogger(StandardPeerManager.class);
 
-    private final Queue<IPeer>  m_peers            = new ConcurrentLinkedQueue<>();
-    private Thread              m_thread           = null;
-    private Thread              m_listenThread     = null;
-    private boolean             m_isRunning        = false;
-    private long                m_maxInactiveTime  = 0;
-    private int                 m_minInitialPeers  = 0;
-    private int                 m_maxPeers         = 0;
-    private IPeerDiscoverer     m_peerDiscoverer   = null;
-    private NetworkParameters   m_params           = null;
-    private ServerSocket        m_serverSocket     = null;
-    private INetworkAddressPool m_addressPool      = null;
-    private final Stopwatch     m_peerCleanupTimer = new Stopwatch();
+    private final Queue<IPeer>  m_peers           = new ConcurrentLinkedQueue<>();
+    private Thread              m_thread          = null;
+    private Thread              m_listenThread    = null;
+    private boolean             m_isRunning       = false;
+    private long                m_maxInactiveTime = 0;
+    private int                 m_minInitialPeers = 0;
+    private int                 m_maxPeers        = 0;
+    private IPeerDiscoverer     m_peerDiscoverer  = null;
+    private NetworkParameters   m_params          = null;
+    private ServerSocket        m_serverSocket    = null;
+    private INetworkAddressPool m_addressPool     = null;
+    private final Stopwatch     m_cleanCooldown   = new Stopwatch();
+    private final Stopwatch     m_connectCooldown = new Stopwatch();
 
     /**
      * Initializes a new instance of the RelayService class.
@@ -122,11 +125,13 @@ public class StandardPeerManager implements IPeerManager
         if (m_isRunning)
             return true;
 
-        m_peerCleanupTimer.start();
-
         try
         {
             bootstrap();
+
+            m_cleanCooldown.start();
+            m_connectCooldown.start();
+
             m_serverSocket = new ServerSocket(m_params.getPort());
         }
         catch (IOException exception)
@@ -155,8 +160,11 @@ public class StandardPeerManager implements IPeerManager
 
         m_isRunning = false;
 
-        m_peerCleanupTimer.stop();
-        m_peerCleanupTimer.reset();
+        m_connectCooldown.stop();
+        m_connectCooldown.reset();
+
+        m_cleanCooldown.stop();
+        m_cleanCooldown.reset();
         try
         {
             if (m_listenThread != null)
@@ -173,7 +181,7 @@ public class StandardPeerManager implements IPeerManager
 
             for (Iterator<IPeer> it = m_peers.iterator(); it.hasNext(); )
             {
-                StandardPeer peer = (StandardPeer)it;
+                IPeer peer = it.next();
                 peer.disconnect();
                 it.remove();
             }
@@ -256,6 +264,7 @@ public class StandardPeerManager implements IPeerManager
             readMessages();
             writeMessages();
             removeInactive();
+            connectNewPeers();
             updatePeerAddressPool();
         }
     }
@@ -343,7 +352,7 @@ public class StandardPeerManager implements IPeerManager
     {
         for (Iterator<IPeer> it = m_peers.iterator(); it.hasNext();)
         {
-            StandardPeer peer = (StandardPeer)(it.next());
+            IPeer peer = it.next();
 
             long elapsed = peer.getInactiveTime().getTotalMilliseconds();
             boolean disconnect = false;
@@ -480,9 +489,9 @@ public class StandardPeerManager implements IPeerManager
     /**
      * Boostrap the node by connecting to a few well known nodes.
      */
-    private void bootstrap() throws IOException
+    private void bootstrap()
     {
-        List<NetworkAddressMetadata> metadataList    = m_addressPool.getRandom(m_maxPeers);
+        List<NetworkAddressMetadata> metadataList    = m_addressPool.getRandom(m_maxPeers, true, false);
         List<InetSocketAddress>      initialPeerList = new ArrayList<>();
         List<InetSocketAddress>      peers           = m_peerDiscoverer.getPeers();
 
@@ -497,37 +506,7 @@ public class StandardPeerManager implements IPeerManager
         }
 
         for (InetSocketAddress peerAddress: initialPeerList)
-        {
-            // Skip own address.
-            InetAddress localhost = InetAddress.getLocalHost();
-            if (peerAddress.getAddress().equals(localhost))
-                continue;
-
-            s_logger.info("Trying to connect with peer {}", peerAddress.toString());
-
-            try
-            {
-                if (peerAddress.getAddress().isReachable(PING_TIMEOUT))
-                {
-                    Socket peerSocket = new Socket();
-
-                    peerSocket.connect(peerAddress);
-                    IPeer peer = add(m_params, peerSocket, false);
-
-                    peer.sendMessage(ProtocolMessageFactory.createVersion(peer));
-
-                    s_logger.debug("Sending version message to peer {}", peer);
-                }
-                else
-                {
-                    s_logger.info("Could not connect to peer {}. Reason: Not reachable", peerAddress);
-                }
-            }
-            catch (Exception e)
-            {
-                s_logger.info("Could not connect to peer {}. Reason: {}", peerAddress, e.getMessage());
-            }
-        }
+            connectToAddress(peerAddress);
     }
 
     /**
@@ -536,9 +515,10 @@ public class StandardPeerManager implements IPeerManager
     private void updatePeerAddressPool()
     {
         // Address cleanup.
-        if (m_peerCleanupTimer.getElapsedTime().getTotalMinutes() != 0 &&
-            m_peerCleanupTimer.getElapsedTime().getTotalMinutes() % CLEAN_INTERVAL == 0)
+        if (m_cleanCooldown.getElapsedTime().getTotalMinutes() >= CLEAN_INTERVAL)
         {
+            m_cleanCooldown.restart();
+
             try
             {
                 m_addressPool.checkReleaseBan();
@@ -549,5 +529,84 @@ public class StandardPeerManager implements IPeerManager
                 e.printStackTrace();
             }
         }
+    }
+
+    /**
+     * Tries to connect to the given address.
+     *
+     * @param address The address of the peer.
+     */
+    private void connectToAddress(InetSocketAddress address)
+    {
+        try
+        {
+            // Skip own address.
+            InetAddress localhost = InetAddress.getLocalHost();
+            if (address.getAddress().equals(localhost))
+                return;
+
+            s_logger.info("Trying to connect with peer {}", address.toString());
+
+            if (address.getAddress().isReachable(PING_TIMEOUT))
+            {
+                Socket peerSocket = new Socket();
+
+                peerSocket.connect(address, CONNECT_TIMEOUT);
+                IPeer peer = add(m_params, peerSocket, false);
+
+                peer.sendMessage(ProtocolMessageFactory.createVersion(peer));
+
+                s_logger.debug("Sending version message to peer {}", peer);
+            }
+            else
+            {
+                s_logger.info("Could not connect to peer {}. Reason: Not reachable", address);
+            }
+        }
+        catch (Exception e)
+        {
+            s_logger.info("Could not connect to peer {}. Reason: {}", address, e.getMessage());
+        }
+    }
+
+    /**
+     * If we are under the max limit of connected peers. Connect to new peers.
+     */
+    private void connectNewPeers()
+    {
+        if (peerCount() < m_maxPeers && m_connectCooldown.getElapsedTime().getTotalMinutes() >= NEW_PEERS_INTERVAL)
+        {
+            List<NetworkAddressMetadata> addresses = m_addressPool.getRandom(m_maxPeers * 2, true, false);
+            addresses.removeIf(this::alreadyConnected);
+
+            for (NetworkAddressMetadata address: addresses)
+            {
+                connectToAddress(address.getInetSocketAddress());
+
+                if (peerCount() >= m_maxPeers)
+                    break;
+            }
+            m_connectCooldown.restart();
+        }
+    }
+
+    /**
+     * Check the we are not already connected to the peer.
+     *
+     * @param addressMetadata The metadata of the address we want to check.
+     *
+     * @return True if we are not currently connected to this address; otherwise false.
+     */
+    private boolean alreadyConnected(NetworkAddressMetadata addressMetadata)
+    {
+        for (Iterator<IPeer> it = m_peers.iterator(); it.hasNext();)
+        {
+            IPeer peer = it.next();
+
+            if (peer.getNetworkAddress().equals(addressMetadata.getNetworkAddress()))
+                return true;
+        }
+
+        return false;
     }
 }
