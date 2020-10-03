@@ -491,22 +491,27 @@ public class StandardPeerManager implements IPeerManager
      */
     private void bootstrap()
     {
-        List<NetworkAddressMetadata> metadataList    = m_addressPool.getRandom(m_maxPeers, true, false);
-        List<InetSocketAddress>      initialPeerList = new ArrayList<>();
-        List<InetSocketAddress>      peers           = m_peerDiscoverer.getPeers();
+        List<NetworkAddressMetadata> metadataList = m_addressPool.getAddresses();
+        List<InetSocketAddress>      seedPeers    = m_peerDiscoverer.getPeers();
 
-        if (metadataList.size() >= m_minInitialPeers)
+        Random rand = new Random();
+
+        while (metadataList.size() > 0 && peerCount() < m_maxPeers)
         {
-            for (NetworkAddressMetadata metadata: metadataList)
-                initialPeerList.add(metadata.getInetSocketAddress());
-        }
-        else
-        {
-            initialPeerList.addAll(peers);
+            int index = rand.nextInt(metadataList.size());
+            NetworkAddressMetadata peerMetadata = metadataList.get(index);
+
+            if (!peerMetadata.isBanned())
+                connectToAddress(peerMetadata.getInetSocketAddress());
+
+            metadataList.remove(index);
         }
 
-        for (InetSocketAddress peerAddress: initialPeerList)
-            connectToAddress(peerAddress);
+        if (peerCount() == 0)
+        {
+            for (InetSocketAddress peerAddress: seedPeers)
+                connectToAddress(peerAddress);
+        }
     }
 
     /**
@@ -576,7 +581,7 @@ public class StandardPeerManager implements IPeerManager
     {
         if (peerCount() < m_maxPeers && m_connectCooldown.getElapsedTime().getTotalMinutes() >= NEW_PEERS_INTERVAL)
         {
-            List<NetworkAddressMetadata> addresses = m_addressPool.getRandom(m_maxPeers * 2, true, false);
+            List<NetworkAddressMetadata> addresses = m_addressPool.getRandom(m_maxPeers * 5, true, false);
             addresses.removeIf(this::alreadyConnected);
 
             for (NetworkAddressMetadata address: addresses)
