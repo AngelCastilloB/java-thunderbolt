@@ -57,7 +57,6 @@ public class StandardPeerManager implements IPeerManager
     private static final int READ_TIMEOUT       = 50; // ms
     private static final int PEER_LISTEN_DELAY  = 500;
     private static final int PING_TIMEOUT       = 1000;
-    private static final int PONG_TIMEOUT       = 60000;
     private static final int CLEAN_INTERVAL     = 10; // minutes
     private static final int NEW_PEERS_INTERVAL = 1;  // minutes
     private static final int BAN_SCORE_LIMIT    = 100;
@@ -374,7 +373,7 @@ public class StandardPeerManager implements IPeerManager
                 disconnect = true;
             }
 
-            if (peer.isPongPending() && elapsed >= PONG_TIMEOUT)
+            if (peer.hasPingTimedOut())
             {
                 s_logger.debug(
                         "Peer {} didn't return Pong message in time. Removing it from the peer pool.",

@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.security.KeyPair;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -52,6 +53,8 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 public class StandardPeer implements IPeer
 {
+    private static final int PONG_TIMEOUT = 60000;
+
     private static final Logger s_logger = LoggerFactory.getLogger(StandardPeer.class);
 
     private final Socket                    m_socket;
@@ -69,6 +72,7 @@ public class StandardPeer implements IPeer
     private long                            m_versionNonce     = 0;
     private List<TimestampedNetworkAddress> m_addressToBeSend  = new LinkedList<>();
     private Set<NetworkAddress>             m_knownAddresses   = new HashSet<>();
+    private final Map<Long, Stopwatch>      m_pongNonces       = new HashMap<>();
 
     /**
      * Creates a connection with a given peer.
@@ -253,23 +257,61 @@ public class StandardPeer implements IPeer
     }
 
     /**
-     * Gets whether a pong response from this peer is pending.
+     * Gets a time span with the time elapsed since we sent the ping.
      *
-     * @return true if pong is pending; otherwise; false.
+     * @return Time time span with the time elapsed wince we send the ping, or null if we werent expecting a pong
+     * with this nonce.
      */
-    public boolean isPongPending()
+    public synchronized TimeSpan getPongTime(long nonce)
     {
-        return m_pongPending;
+        if (m_pongNonces.containsKey(nonce))
+        {
+            Stopwatch watch = m_pongNonces.get(nonce);
+            watch.stop();
+
+            m_pongNonces.remove(nonce);
+
+            return watch.getElapsedTime();
+        }
+
+        return null;
     }
 
     /**
-     * Sets whether a pong response from this peer is pending.
+     * Adds a nonce from a ping we just sent. The arriving pong must match this nonce.
      *
-     * @param pending Set to true if pong is pending; otherwise; false.
+     * We need to add these nonce in case we send several pings and the responses come out of order, being
+     * able to determine the order of the responses will allow us to calculate the response time of this peer.
+     *
+     * @param nonce The nonce we are expecting.
      */
-    public void setPongPending(boolean pending)
+    public synchronized void addPongNonce(long nonce)
     {
-        m_pongPending = pending;
+        Stopwatch watch = new Stopwatch();
+        m_pongNonces.put(nonce, watch);
+    }
+
+    /**
+     * Gets whether any of the pings we sent, didn't received a pong response in time.
+     *
+     * @return True if any ping expired; otherwise; false.
+     */
+    public synchronized boolean hasPingTimedOut()
+    {
+        if (m_pongNonces.isEmpty())
+            return false;
+
+        Iterator<Stopwatch> it = m_pongNonces.values().iterator();
+
+        while (it.hasNext())
+        {
+            Stopwatch watch = it.next();
+
+            if (watch.getElapsedTime().getTotalMilliseconds() > PONG_TIMEOUT)
+                return true;
+        }
+
+        return false;
     }
 
     /**

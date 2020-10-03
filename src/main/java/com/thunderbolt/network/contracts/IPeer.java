@@ -139,18 +139,29 @@ public interface IPeer
     void setClearedHandshake(boolean cleared);
 
     /**
-     * Gets whether a pong response from this peer is pending.
+     * Gets a time span with the time elapsed since we sent the ping.
      *
-     * @return true if pong is pending; otherwise; false.
+     * @return Time time span with the time elapsed wince we send the ping, or null if we werent expecting a pong
+     * with this nonce.
      */
-    boolean isPongPending();
+    TimeSpan getPongTime(long nonce);
 
     /**
-     * Sets whether a pong response from this peer is pending.
+     * Adds a nonce from a ping we just sent. The arriving pong must match this nonce.
      *
-     * @param pending Set to true if pong is pending; otherwise; false.
+     * We need to add these nonce in case we send several pings and the responses come out of order, being
+     * able to determine the order of the responses will allow us to calculate the response time of this peer.
+     *
+     * @param nonce The nonce we are expecting.
      */
-    void setPongPending(boolean pending);
+    void addPongNonce(long nonce);
+
+    /**
+     * Gets whether any of the pings we sent, didn't received a pong response in time.
+     *
+     * @return True if any ping expired; otherwise; false.
+     */
+    boolean hasPingTimedOut();
 
     /**
      * Closes the connection with the peer.

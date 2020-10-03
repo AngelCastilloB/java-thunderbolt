@@ -28,11 +28,13 @@ package com.thunderbolt.network.messages;
 
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.contracts.IPeer;
+import com.thunderbolt.network.messages.payloads.AddressPayload;
+import com.thunderbolt.network.messages.payloads.PingPongPayload;
+import com.thunderbolt.network.messages.payloads.VersionPayload;
 import com.thunderbolt.network.messages.structures.NetworkAddress;
 import com.thunderbolt.network.messages.structures.TimestampedNetworkAddress;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.storage.StorageException;
-import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -129,10 +131,19 @@ public class ProtocolMessageFactory
      *
      * @return The ping message.
      */
-    public static ProtocolMessage createPing()
+    public static ProtocolMessage createPing(IPeer peer)
     {
         ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
         message.setMessageType(MessageType.Ping);
+
+        long nonce = s_secureRandom.nextLong();
+
+        peer.addPongNonce(nonce);
+
+        PingPongPayload payload = new PingPongPayload(nonce);
+        message.setPayload(payload);
+
+        s_logger.debug("Ping Nonce {}", payload.getNonce());
 
         return message;
     }
@@ -140,12 +151,17 @@ public class ProtocolMessageFactory
     /**
      * Creates a pong message.
      *
+     * @param nonce The nonce we got from the ping message.
+     *
      * @return The pong message.
      */
-    public static ProtocolMessage createPong()
+    public static ProtocolMessage createPong(long nonce)
     {
         ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
         message.setMessageType(MessageType.Pong);
+
+        PingPongPayload payload = new PingPongPayload(nonce);
+        message.setPayload(payload);
 
         return message;
     }

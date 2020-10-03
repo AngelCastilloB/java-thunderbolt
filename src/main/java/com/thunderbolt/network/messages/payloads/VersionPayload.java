@@ -22,12 +22,13 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.network.messages;
+package com.thunderbolt.network.messages.payloads;
 
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.common.contracts.ISerializable;
+import com.thunderbolt.network.messages.NodeServices;
 import com.thunderbolt.network.messages.structures.NetworkAddress;
 
 import java.io.ByteArrayOutputStream;
@@ -44,7 +45,7 @@ public class VersionPayload implements ISerializable
     private static final int NETWORK_ADDRESS_SIZE = 18;
 
     private int            m_version     = 0;
-    private NodeServices   m_services    = NodeServices.Network;
+    private NodeServices m_services    = NodeServices.Network;
     private long           m_timestamp   = 0;
     private long           m_blockHeight = 0;
     private long           m_nonce       = 0;

@@ -22,69 +22,54 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.network.messages;
+package com.thunderbolt.network.messages.payloads;
 
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.common.contracts.ISerializable;
-import com.thunderbolt.network.ProtocolException;
-import com.thunderbolt.network.messages.structures.TimestampedNetworkAddress;
-import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Payload data for the address message.
+ * Payload for ping and pong messages.
  */
-public class AddressPayload implements ISerializable
+public class PingPongPayload implements ISerializable
 {
-    // Constants
-    private static final int MAX_ADDRESS_COUNT = 1000; // TODO: Move this to network parameters?
-
-    // Instance fields
-    private final List<TimestampedNetworkAddress> m_addresses = new ArrayList<>();
+    private long m_nonce = 0;
 
     /**
-     * The payload for the address message.
+     * Initializes a new instance of the PingPongPayload class.
      *
-     * @param list the list of Addresses to send.
+     * @param nonce The nonce of this message.
      */
-    public AddressPayload(List<TimestampedNetworkAddress> list)
+    public PingPongPayload(long nonce)
     {
-        m_addresses.addAll(list);
+        setNonce(nonce);
     }
 
     /**
-     * The payload for the address message.
+     * Initializes a new instance of the PingPongPayload class.
      *
-     * @param buffer the Address payload data.
+     * @param buffer The buffer containing the serialized data.
      */
-    public AddressPayload(ByteBuffer buffer) throws ProtocolException
+    public PingPongPayload(ByteBuffer buffer)
     {
-        int entryCount = buffer.getInt();
-
-        if (entryCount >= MAX_ADDRESS_COUNT)
-            throw new ProtocolException(String.format("The number of addresses in this message (%s) are bigger than the limit %s", entryCount, MAX_ADDRESS_COUNT));
-
-        for (int i = 0; i < entryCount; ++i)
-            getAddresses().add(new TimestampedNetworkAddress(buffer));
+        setNonce(buffer.getLong());
     }
 
     /**
-     * The payload for the address message.
+     * Initializes a new instance of the PingPongPayload class.
      *
-     * @param buffer the Address payload data.
+     * @param data The array containing the serialized data.
      */
-    public AddressPayload(byte[] buffer) throws ProtocolException
+    public PingPongPayload(byte[] data)
     {
-        this(ByteBuffer.wrap(buffer));
+        this(ByteBuffer.wrap(data));
     }
 
     /**
@@ -99,10 +84,7 @@ public class AddressPayload implements ISerializable
 
         try
         {
-            data.write(NumberSerializer.serialize(getAddresses().size()));
-
-            for (TimestampedNetworkAddress address: getAddresses())
-                data.write(address.serialize());
+            data.write(NumberSerializer.serialize(getNonce()));
         }
         catch (IOException e)
         {
@@ -113,12 +95,22 @@ public class AddressPayload implements ISerializable
     }
 
     /**
-     * Gets a reference to the address collection.
+     * Gets the nonce of the payload.
      *
-     * @return The address collection.
+     * @return The nonce.
      */
-    public List<TimestampedNetworkAddress> getAddresses()
+    public long getNonce()
     {
-        return m_addresses;
+        return m_nonce;
+    }
+
+    /**
+     * Sets the nonce of the payload.
+     *
+     * @param nonce The nonce.
+     */
+    public void setNonce(long nonce)
+    {
+        m_nonce = nonce;
     }
 }

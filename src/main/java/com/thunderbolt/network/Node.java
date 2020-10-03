@@ -27,26 +27,28 @@ package com.thunderbolt.network;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.blockchain.Blockchain;
+import com.thunderbolt.common.Stopwatch;
+import com.thunderbolt.common.TimeSpan;
 import com.thunderbolt.network.contracts.IPeer;
 import com.thunderbolt.network.contracts.IPeerManager;
-import com.thunderbolt.network.messages.AddressPayload;
+import com.thunderbolt.network.messages.payloads.AddressPayload;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import com.thunderbolt.network.messages.ProtocolMessageFactory;
-import com.thunderbolt.network.messages.VersionPayload;
+import com.thunderbolt.network.messages.payloads.PingPongPayload;
+import com.thunderbolt.network.messages.payloads.VersionPayload;
 import com.thunderbolt.network.messages.structures.NetworkAddress;
 import com.thunderbolt.network.messages.structures.TimestampedNetworkAddress;
 import com.thunderbolt.persistence.contracts.INetworkAddressPool;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
-import org.bouncycastle.util.Times;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Time;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
@@ -163,7 +165,9 @@ public class Node
                     return;
                 }
 
-                peer.sendMessage(ProtocolMessageFactory.createPong());
+                PingPongPayload pingPayload = new PingPongPayload(message.getPayload());
+
+                peer.sendMessage(ProtocolMessageFactory.createPong(pingPayload.getNonce()));
 
                 break;
             case Pong:
@@ -172,15 +176,23 @@ public class Node
                     peer.addBanScore(1);
                     return;
                 }
+                PingPongPayload pongPayload = new PingPongPayload(message.getPayload());
 
-                if (!peer.isPongPending())
+                TimeSpan pongTimer = peer.getPongTime(pongPayload.getNonce());
+
+                if (pongTimer == null)
                 {
+                    s_logger.debug("We got a pong message from peer {} with an unexpected nonce {}",
+                            peer,
+                            pongPayload.getNonce());
+
                     peer.addBanScore(1);
                     return;
                 }
 
-                peer.setPongPending(false);
-
+                s_logger.debug("Got pong response for nonce {}, elapsed time: {} ms",
+                        pongPayload.getNonce(),
+                        pongTimer.getTotalMilliseconds());
                 break;
             case Version:
                 // Can only get this message once.
