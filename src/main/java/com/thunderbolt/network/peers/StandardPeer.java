@@ -502,4 +502,12 @@ public class StandardPeer implements IPeer
     {
         m_knownAddresses.add(address);
     }
+
+    /**
+     * Clear all known addresses.
+     */
+    public void clearKnownAddresses()
+    {
+        m_knownAddresses.clear();
+    }
 }

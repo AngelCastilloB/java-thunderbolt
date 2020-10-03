@@ -80,7 +80,7 @@ public class ProtocolMessageFactory
      *
      * @return A version message.
      */
-    public static ProtocolMessage createVersion(IPeer peer)
+    public static ProtocolMessage createVersionMessage(IPeer peer)
     {
         if (!s_initialized)
             throw new IllegalStateException("Persistence service was no initialized.");
@@ -118,7 +118,7 @@ public class ProtocolMessageFactory
      *
      * @return The newly created verack message.
      */
-    public static ProtocolMessage createVerack()
+    public static ProtocolMessage createVerackMessage()
     {
         ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
         message.setMessageType(MessageType.Verack);
@@ -131,7 +131,7 @@ public class ProtocolMessageFactory
      *
      * @return The ping message.
      */
-    public static ProtocolMessage createPing(IPeer peer)
+    public static ProtocolMessage createPingMessage(IPeer peer)
     {
         ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
         message.setMessageType(MessageType.Ping);
@@ -155,7 +155,7 @@ public class ProtocolMessageFactory
      *
      * @return The pong message.
      */
-    public static ProtocolMessage createPong(long nonce)
+    public static ProtocolMessage createPongMessage(long nonce)
     {
         ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
         message.setMessageType(MessageType.Pong);
@@ -173,7 +173,7 @@ public class ProtocolMessageFactory
      *
      * @return The address protocol message.
      */
-    public static ProtocolMessage createAddress(List<TimestampedNetworkAddress> list)
+    public static ProtocolMessage createAddressMessage(List<TimestampedNetworkAddress> list)
     {
         AddressPayload payload = new AddressPayload(list);
 
@@ -191,7 +191,7 @@ public class ProtocolMessageFactory
      *
      * @return The address protocol message.
      */
-    public static ProtocolMessage createAddress(NetworkAddress address)
+    public static ProtocolMessage createAddressMessage(NetworkAddress address)
     {
         List<TimestampedNetworkAddress> addresses = new ArrayList<>();
         addresses.add(new TimestampedNetworkAddress(LocalDateTime.now(), address));
@@ -210,7 +210,7 @@ public class ProtocolMessageFactory
      *
      * @return The address protocol message.
      */
-    public static ProtocolMessage createGetAddress()
+    public static ProtocolMessage createGetAddressMessage()
     {
         ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
         message.setMessageType(MessageType.GetAddress);

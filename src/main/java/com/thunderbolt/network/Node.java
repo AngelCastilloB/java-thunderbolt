@@ -45,7 +45,6 @@ import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Time;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -59,19 +58,21 @@ import java.util.List;
 public class Node
 {
     // Constants
-    private static final int MAIN_LOOP_DELAY          = 100; // ms
-    private static final int MAX_GET_ADDRESS_RESPONSE = 1000;
-    private static final int RELAY_ADDRESS_LIMIT      = 2;
+    private static final int MAIN_LOOP_DELAY           = 100; // ms
+    private static final int MAX_GET_ADDRESS_RESPONSE  = 1000;
+    private static final int RELAY_ADDRESS_LIMIT       = 2;
+    private static final int RELAY_PUBLIC_ADDRESS_TIME = 24; //hours
 
     private static final Logger s_logger = LoggerFactory.getLogger(Node.class);
 
     // Instance fields
-    private final NetworkParameters               m_params;
-    private final Blockchain                      m_blockchain;
-    private boolean                               m_isRunning;
-    private final ITransactionsPoolService        m_memPool;
-    private final IPeerManager                    m_peerManager;
-    private NetworkAddress                        m_publicAddress = null;
+    private final NetworkParameters        m_params;
+    private final Blockchain               m_blockchain;
+    private boolean                        m_isRunning;
+    private final ITransactionsPoolService m_memPool;
+    private final IPeerManager             m_peerManager;
+    private NetworkAddress                 m_publicAddress = null;
+    private final Stopwatch                m_addressBroadcastCd = new Stopwatch();
 
     /**
      * Initializes a new instance of the Node class.
@@ -118,7 +119,7 @@ public class Node
         }
 
         m_isRunning = true;
-
+        m_addressBroadcastCd.start();
         while (m_isRunning)
         {
             Iterator<IPeer> it = m_peerManager.getPeers();
@@ -167,7 +168,7 @@ public class Node
 
                 PingPongPayload pingPayload = new PingPongPayload(message.getPayload());
 
-                peer.sendMessage(ProtocolMessageFactory.createPong(pingPayload.getNonce()));
+                peer.sendMessage(ProtocolMessageFactory.createPongMessage(pingPayload.getNonce()));
 
                 break;
             case Pong:
@@ -218,7 +219,7 @@ public class Node
 
                     if (weAreServer)
                     {
-                        peer.sendMessage(ProtocolMessageFactory.createVersion(peer));
+                        peer.sendMessage(ProtocolMessageFactory.createVersionMessage(peer));
 
                         // If we are server and have no IP public set, we were the first node to get up in the network.
                         if (m_publicAddress == null)
@@ -234,7 +235,7 @@ public class Node
                         m_publicAddress.setPort(m_params.getPort());
                     }
 
-                    peer.sendMessage(ProtocolMessageFactory.createVerack());
+                    peer.sendMessage(ProtocolMessageFactory.createVerackMessage());
                 }
                 else
                 {
@@ -260,8 +261,8 @@ public class Node
                 
                 if (!weAreServer)
                 {
-                    peer.sendMessage(ProtocolMessageFactory.createAddress(m_publicAddress));
-                    peer.sendMessage(ProtocolMessageFactory.createGetAddress());
+                    peer.sendMessage(ProtocolMessageFactory.createAddressMessage(m_publicAddress));
+                    peer.sendMessage(ProtocolMessageFactory.createGetAddressMessage());
                 }
                 break;
             case Address:
@@ -354,7 +355,7 @@ public class Node
                     break;
                 }
 
-                ProtocolMessage addressMessage = ProtocolMessageFactory.createAddress(timestampedAddress);
+                ProtocolMessage addressMessage = ProtocolMessageFactory.createAddressMessage(timestampedAddress);
 
                 peer.sendMessage(addressMessage);
                 break;
@@ -400,10 +401,27 @@ public class Node
 
             if (peer.getQueuedAddresses().size() > 0)
             {
-                ProtocolMessage addressMessage = ProtocolMessageFactory.createAddress(peer.getQueuedAddresses());
+                ProtocolMessage addressMessage = ProtocolMessageFactory.createAddressMessage(peer.getQueuedAddresses());
                 peer.sendMessage(addressMessage);
                 peer.getQueuedAddresses().clear();
             }
+        }
+
+;
+        // If 24 hours pass, we are going to broadcast our public address to all connected peers and
+        // ask then to relay to other peers. We are also going to clear all their known addresses.
+        if (m_addressBroadcastCd.getElapsedTime().getTotalHours() > RELAY_PUBLIC_ADDRESS_TIME)
+        {
+            it = m_peerManager.getPeers();
+            while (it.hasNext())
+            {
+                IPeer peer = it.next();
+
+                peer.sendMessage(ProtocolMessageFactory.createAddressMessage(m_publicAddress));
+                peer.clearKnownAddresses();
+            }
+
+            m_addressBroadcastCd.restart();
         }
     }
 }

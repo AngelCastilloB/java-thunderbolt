@@ -217,4 +217,9 @@ public interface IPeer
      * @param address The list of known addresses.
      */
     void addToKnownAddresses(NetworkAddress address);
+
+    /**
+     * Clear all known addresses.
+     */
+    void clearKnownAddresses();
 }
