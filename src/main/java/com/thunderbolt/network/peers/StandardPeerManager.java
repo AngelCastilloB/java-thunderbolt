@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.*;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -373,25 +374,46 @@ public class StandardPeerManager implements IPeerManager
                 disconnect = true;
             }
 
-            // Ban this peer for 24 hours if reaches the ban score.
+            if (disconnect || peer.getBanScore() >= BAN_SCORE_LIMIT)
+            {
+                peer.disconnect();
+                it.remove();
+
+                // If we disconnect the peer, we also update its ban status and ban score on the db.
+                updatePeerBanStatus(peer);
+            }
+        }
+    }
+
+    /**
+     * Updates peer ban status.
+     *
+     * @param peer The peer to be updated.
+     */
+    private void updatePeerBanStatus(IPeer peer)
+    {
+        byte[] rawAddress = peer.getNetworkAddress().getAddress().getAddress();
+        if (m_addressPool.contains(rawAddress))
+        {
+            NetworkAddressMetadata metadata =
+                    m_addressPool.getAddress(peer.getNetworkAddress().getAddress().getAddress());
+
+            metadata.setBanScore(peer.getBanScore());
+
+            // If peer reached ban score limit, we place a 24 hours ban on the peer.
             if (peer.getBanScore() >= BAN_SCORE_LIMIT)
             {
+                metadata.setIsBanned(true);
+                metadata.setBanDate(LocalDateTime.now());
+
                 try
                 {
-                    m_addressPool.banPeer(peer.getNetworkAddress());
+                    m_addressPool.upsertAddress(metadata);
                 }
                 catch (StorageException e)
                 {
                     e.printStackTrace();
                 }
-
-                disconnect = true;
-            }
-
-            if (disconnect)
-            {
-                peer.disconnect();
-                it.remove();
             }
         }
     }

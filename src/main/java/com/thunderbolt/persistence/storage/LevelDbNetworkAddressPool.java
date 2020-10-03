@@ -258,33 +258,19 @@ public class LevelDbNetworkAddressPool implements INetworkAddressPool
         {
             NetworkAddressMetadata metadata = mapValue.getValue();
 
-            long period =
-                    LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) - metadata.getBanDate().toEpochSecond(ZoneOffset.UTC);
-
-            if (period >= BAN_TIME)
+            if (metadata.isBanned())
             {
-                metadata.setIsBanned(false);
-                metadata.setBanScore((byte)0);
-                upsertAddress(metadata);
+                long period =
+                        LocalDateTime.now()
+                                .toEpochSecond(ZoneOffset.UTC) - metadata.getBanDate().toEpochSecond(ZoneOffset.UTC);
+
+                if (period >= BAN_TIME)
+                {
+                    metadata.setIsBanned(false);
+                    metadata.setBanScore((byte)0);
+                    upsertAddress(metadata);
+                }
             }
-        }
-    }
-
-    /**
-     * Bans the given address for 24 hours.
-     *
-     * @param address The address to be banned.
-     */
-    @Override
-    public void banPeer(NetworkAddress address) throws StorageException
-    {
-        NetworkAddressMetadata originalData = getAddress(address.getAddress().getAddress());
-
-        if (originalData != null)
-        {
-            originalData.setIsBanned(true);
-            originalData.setBanDate(LocalDateTime.now());
-            upsertAddress(originalData);
         }
     }
 

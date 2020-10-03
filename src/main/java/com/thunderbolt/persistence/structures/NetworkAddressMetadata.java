@@ -169,7 +169,7 @@ public class NetworkAddressMetadata implements ISerializable
      *
      * @param banScore the ban score for this address.
      */
-    public void setBanScore(byte banScore)
+    public void setBanScore(int banScore)
     {
         m_banScore = banScore;
     }

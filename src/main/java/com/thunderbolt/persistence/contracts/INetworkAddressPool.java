@@ -114,11 +114,4 @@ public interface INetworkAddressPool
      * @param dateTime The datetime.
      */
     void updateLastSeen(NetworkAddress address, LocalDateTime dateTime) throws StorageException;
-
-    /**
-     * Bans the given address for 24 hours.
-     *
-     * @param address The address to be banned.
-     */
-    void banPeer(NetworkAddress address) throws StorageException;
 }
