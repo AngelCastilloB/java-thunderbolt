@@ -27,6 +27,7 @@ package com.thunderbolt.network.messages;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.blockchain.Block;
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.messages.payloads.*;
 import com.thunderbolt.network.messages.structures.InventoryItem;
@@ -235,6 +236,7 @@ public class ProtocolMessageFactory
         payload.setBlockLocatorHashes(hashes);
         payload.setVersion(m_params.getProtocol());
         payload.setHashToStop(stopHash);
+        message.setPayload(payload);
 
         return message;
     }
@@ -255,6 +257,7 @@ public class ProtocolMessageFactory
         InventoryPayload payload = new InventoryPayload();
 
         payload.setItems(items);
+        message.setPayload(payload);
 
         return message;
     }
@@ -274,6 +277,7 @@ public class ProtocolMessageFactory
         InventoryPayload payload = new InventoryPayload();
 
         payload.setItems(items);
+        message.setPayload(payload);
 
         return message;
     }
@@ -295,6 +299,7 @@ public class ProtocolMessageFactory
         payload.setNonce(nonce);
 
         payload.setItems(getInventoryItems(s_persistenceService.getChainHead(), locator));
+        message.setPayload(payload);
 
         return message;
     }
@@ -311,6 +316,9 @@ public class ProtocolMessageFactory
         ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
         message.setMessageType(MessageType.Block);
         message.setPayload(block);
+
+        s_logger.debug("{}", message.serialize().length);
+        s_logger.debug(Convert.toHexString(message.serialize()));
 
         return message;
     }
