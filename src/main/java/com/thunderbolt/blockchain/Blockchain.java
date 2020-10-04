@@ -89,7 +89,7 @@ public class Blockchain
      *
      * @return The block at the head of the blockchain.
      */
-    public synchronized BlockMetadata getChainHead() throws StorageException
+    public synchronized BlockMetadata getChainHead()
     {
         return m_persistence.getChainHead();
     }

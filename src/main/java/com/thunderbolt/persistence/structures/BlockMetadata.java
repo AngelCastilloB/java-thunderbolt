@@ -81,6 +81,16 @@ public class BlockMetadata implements ISerializable
     }
 
     /**
+     * Creates a new instance of the BlockMetadata class.
+     *
+     * @param buffer A byte buffer containing a raw block metadata entry.
+     */
+    public BlockMetadata(byte[] buffer)
+    {
+        this(ByteBuffer.wrap(buffer));
+    }
+
+    /**
      * Gets the hash of the block (this is the key this metadata in the database).
      *
      * @return The hash of the block.

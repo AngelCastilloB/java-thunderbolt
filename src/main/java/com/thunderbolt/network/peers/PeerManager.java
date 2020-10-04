@@ -145,10 +145,16 @@ public class PeerManager
         m_thread = new Thread(this::run);
         m_thread.start();
 
+        return true;
+    }
+
+    /**
+     * Start allowing inbound connections.
+     */
+    public void allowInboundConnections()
+    {
         m_listenThread = new Thread(this::listen);
         m_listenThread.start();
-
-        return true;
     }
 
     /**

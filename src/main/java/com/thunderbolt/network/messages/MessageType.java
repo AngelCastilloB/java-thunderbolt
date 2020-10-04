@@ -67,7 +67,13 @@ public enum MessageType
      * finding potential nodes in the network. The response to receiving this message is to transmit one or more Address
      * messages with one or more peers from a database of known active peers.
      */
-    GetAddress((short)0x05);
+    GetAddress((short)0x05),
+
+    /**
+     * Return an inv packet containing the list of blocks starting right after the last known hash in the block
+     * locator object, up to hash_stop or 500 blocks, whichever comes first.
+     */
+    GetBlocks((short)0x06);
 
     // Instance fields.
     private short m_value;

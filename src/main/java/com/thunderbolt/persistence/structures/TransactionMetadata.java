@@ -67,6 +67,16 @@ public class TransactionMetadata implements ISerializable
     }
 
     /**
+     * Creates a new instance of the BlockMetadata class.
+     *
+     * @param buffer A byte buffer containing a raw block metadata entry.
+     */
+    public TransactionMetadata(byte[] buffer)
+    {
+        this(ByteBuffer.wrap(buffer));
+    }
+
+    /**
      * Serializes an object in ray byte format.
      *
      * @return The serialized object.

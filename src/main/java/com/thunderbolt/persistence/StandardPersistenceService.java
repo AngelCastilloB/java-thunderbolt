@@ -156,7 +156,7 @@ public class StandardPersistenceService implements IPersistenceService
      *
      * @return The block metadata.
      */
-    public BlockMetadata getBlockMetadata(Sha256Hash sha256Hash) throws StorageException
+    public BlockMetadata getBlockMetadata(Sha256Hash sha256Hash)
     {
         return m_metadataProvider.getBlockMetadata(sha256Hash);
     }

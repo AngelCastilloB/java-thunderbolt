@@ -25,10 +25,10 @@ package com.thunderbolt.persistence.storage;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.persistence.contracts.IMetadataProvider;
 import com.thunderbolt.persistence.structures.BlockMetadata;
-import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
 import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Sha256Hash;
@@ -43,9 +43,7 @@ import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static org.iq80.leveldb.impl.Iq80DBFactory.factory;
 
@@ -65,10 +63,16 @@ public class LevelDbMetadataProvider implements IMetadataProvider
     static private final byte   BLOCK_PREFIX       = 'b';
     static private final byte   HEAD_PREFIX        = 'h';
     static private final byte   TRANSACTION_PREFIX = 't';
+    private static final int    HASH_SIZE          = 32;
+    private static final int    PREFIX_SIZE        = 1;
 
     // Instance Fields
-    private final DB m_stateDatabase;
-    private final DB m_metadataDatabase;
+    private final DB                                    m_stateDatabase;
+    private final DB                                    m_metadataDatabase;
+    private final Map<String, BlockMetadata>            m_blocksCache      = new HashMap<>();
+    private final Map<String, TransactionMetadata>      m_transactionCache = new HashMap<>();
+    private final Map<String, UnspentTransactionOutput> m_utxoCache        = new HashMap<>();
+    private BlockMetadata                               m_headCache        = null;
 
     /**
      * Initializes a new instance of the LevelDbMetadataProvider class.
@@ -85,6 +89,8 @@ public class LevelDbMetadataProvider implements IMetadataProvider
         {
             m_metadataDatabase = factory.open(Paths.get(path.toString(), METADATA_DB_NAME).toFile(), options);
             m_stateDatabase = factory.open(Paths.get(path.toString(), STATE_DB_NAME).toFile(), options);
+
+            readAllMetadata();
         }
         catch (Exception exception)
         {
@@ -100,25 +106,9 @@ public class LevelDbMetadataProvider implements IMetadataProvider
      * @return The block metadata.
      */
     @Override
-    public BlockMetadata getBlockMetadata(Sha256Hash id) throws StorageException
+    public BlockMetadata getBlockMetadata(Sha256Hash id)
     {
-        BlockMetadata metadata;
-
-        try
-        {
-            ByteArrayOutputStream key = new ByteArrayOutputStream();
-            key.write(BLOCK_PREFIX);
-            key.write(id.serialize());
-
-            byte[] rawHash = m_metadataDatabase.get(key.toByteArray());
-            metadata = new BlockMetadata(ByteBuffer.wrap(rawHash));
-        }
-        catch (Exception exception)
-        {
-            throw new StorageException(String.format("Unable to get block metadata for block '%s'", id), exception);
-        }
-
-        return metadata;
+        return m_blocksCache.get(id.toString());
     }
 
     /**
@@ -131,13 +121,14 @@ public class LevelDbMetadataProvider implements IMetadataProvider
     {
         try
         {
+            byte[] hash = metadata.getHash().serialize();
+
             ByteArrayOutputStream key = new ByteArrayOutputStream();
             key.write(BLOCK_PREFIX);
-            key.write(metadata.getHash().serialize());
+            key.write(hash);
 
             m_metadataDatabase.put(key.toByteArray(), metadata.serialize());
-
-            //s_logger.debug(String.format("Metadata added for block '%s'", metadata.getHash()));
+            m_blocksCache.put(Convert.toHexString(hash), metadata);
         }
         catch (Exception exception)
         {
@@ -156,7 +147,7 @@ public class LevelDbMetadataProvider implements IMetadataProvider
     public boolean setChainHead(BlockMetadata metadata)
     {
         m_metadataDatabase.put(new byte[] {HEAD_PREFIX}, metadata.serialize());
-
+        m_headCache = metadata;
         return true;
     }
 
@@ -168,17 +159,7 @@ public class LevelDbMetadataProvider implements IMetadataProvider
     @Override
     public BlockMetadata getChainHead()
     {
-        BlockMetadata metadata;
-
-        byte[] head = m_metadataDatabase.get(new byte[] {HEAD_PREFIX});
-
-        // If we cant find the chain head, the blockchain is not yet initialized.
-        if (head == null)
-            return null;
-
-        metadata = new BlockMetadata(ByteBuffer.wrap(head));
-
-        return metadata;
+        return m_headCache;
     }
 
     /**
@@ -191,13 +172,13 @@ public class LevelDbMetadataProvider implements IMetadataProvider
     {
         try
         {
+            byte[] hash = metadata.getHash().serialize();
             ByteArrayOutputStream key = new ByteArrayOutputStream();
             key.write(TRANSACTION_PREFIX);
-            key.write(metadata.getHash().serialize());
+            key.write(hash);
 
             m_metadataDatabase.put(key.toByteArray(), metadata.serialize());
-
-            //s_logger.debug(String.format("Metadata added for transaction '%s'", metadata.getHash()));
+            m_transactionCache.put(Convert.toHexString(hash), metadata);
         }
         catch (Exception exception)
         {
@@ -213,25 +194,9 @@ public class LevelDbMetadataProvider implements IMetadataProvider
      * @return The transaction metadata.
      */
     @Override
-    public TransactionMetadata getTransactionMetadata(Sha256Hash id) throws StorageException
+    public TransactionMetadata getTransactionMetadata(Sha256Hash id)
     {
-        TransactionMetadata metadata;
-
-        try
-        {
-            ByteArrayOutputStream key = new ByteArrayOutputStream();
-            key.write(TRANSACTION_PREFIX);
-            key.write(id.serialize());
-
-            byte[] rawData = m_metadataDatabase.get(key.toByteArray());
-            metadata = new TransactionMetadata(ByteBuffer.wrap(rawData));
-        }
-        catch (Exception exception)
-        {
-            throw new StorageException(String.format("Unable to get transaction '%s'", id), exception);
-        }
-
-        return metadata;
+        return m_transactionCache.get(id.toString());
     }
 
     /**
@@ -250,6 +215,7 @@ public class LevelDbMetadataProvider implements IMetadataProvider
             key.write(NumberSerializer.serialize(output.getIndex()));
 
             m_stateDatabase.put(key.toByteArray(), output.serialize());
+            m_utxoCache.put(Convert.toHexString(key.toByteArray()), output);
 
             s_logger.debug(String.format("Unspent output %s added for transaction '%s'", output.getIndex(), output.getTransactionHash()));
         }
@@ -278,9 +244,7 @@ public class LevelDbMetadataProvider implements IMetadataProvider
             key.write(id.serialize());
             key.write(NumberSerializer.serialize(index));
 
-            byte[] data = m_stateDatabase.get(key.toByteArray());
-
-            output = new UnspentTransactionOutput(ByteBuffer.wrap(data));
+            output = m_utxoCache.get(Convert.toHexString(key.toByteArray()));
         }
         catch (Exception exception)
         {
@@ -297,27 +261,16 @@ public class LevelDbMetadataProvider implements IMetadataProvider
      *
      * @return An array with all the unspent outputs related to a given public address.
      */
-    public ArrayList<UnspentTransactionOutput> getUnspentOutputsForAddress(Address address) throws StorageException
+    public List<UnspentTransactionOutput> getUnspentOutputsForAddress(Address address)
     {
         ArrayList<UnspentTransactionOutput> result = new ArrayList<>();
 
-        try (DBIterator iterator = m_stateDatabase.iterator())
-        {
-            for (iterator.seekToFirst(); iterator.hasNext(); iterator.next())
-            {
-                byte[] data = iterator.peekNext().getValue();
+        Collection<UnspentTransactionOutput> outputs = m_utxoCache.values();
 
-                UnspentTransactionOutput output = new UnspentTransactionOutput(ByteBuffer.wrap(data));
-
-                if (Arrays.equals(output.getOutput().getLockingParameters(), address.getPublicHash()))
-                    result.add(output);
-            }
-        }
-         catch (Exception exception)
+        for (UnspentTransactionOutput output : outputs)
         {
-            throw new StorageException(
-                    String.format("Unable to get unspent outputs for address'%s'", address.toString()),
-                    exception);
+            if (Arrays.equals(output.getOutput().getLockingParameters(), address.getPublicHash()))
+                result.add(output);
         }
 
         return result;
@@ -339,6 +292,7 @@ public class LevelDbMetadataProvider implements IMetadataProvider
             key.write(NumberSerializer.serialize(index));
 
             m_stateDatabase.delete(key.toByteArray());
+            m_utxoCache.remove(Convert.toHexString(key.toByteArray()));
 
             s_logger.debug(String.format("Unspent output %s delete for transaction '%s'", index, id));
         }
@@ -348,5 +302,72 @@ public class LevelDbMetadataProvider implements IMetadataProvider
         }
 
         return true;
+    }
+
+    /**
+     * Reads all the metadata on the disk and adds them to a set of maps.
+     */
+    private void readAllMetadata()
+    {
+        // Read metadata.
+        try (DBIterator iterator = m_metadataDatabase.iterator())
+        {
+            for (iterator.seekToFirst(); iterator.hasNext(); iterator.next())
+            {
+                byte type = iterator.peekNext().getKey()[0];
+                byte[] data = iterator.peekNext().getValue();
+
+                switch (type)
+                {
+                    case 'b':
+                        BlockMetadata blockMetadata = new BlockMetadata(data);
+
+                        byte[] blockMetadataKey = new byte[HASH_SIZE];
+                        System.arraycopy(iterator.peekNext().getKey(), PREFIX_SIZE, blockMetadataKey, 0, HASH_SIZE);
+
+                        m_blocksCache.put(Convert.toHexString(blockMetadataKey), blockMetadata);
+                        break;
+                    case 't':
+                        TransactionMetadata xtMetadata = new TransactionMetadata(data);
+
+                        byte[] xtMetadataKey = new byte[HASH_SIZE];
+                        System.arraycopy(iterator.peekNext().getKey(), PREFIX_SIZE, xtMetadataKey, 0, HASH_SIZE);
+
+                        m_transactionCache.put(Convert.toHexString(xtMetadataKey), xtMetadata);
+                        break;
+                    default:
+                }
+            }
+        } catch (Exception exception)
+        {
+            s_logger.error("Unable to get metadata.", exception);
+        }
+
+        // Read state.
+        try (DBIterator iterator = m_stateDatabase.iterator())
+        {
+            for (iterator.seekToFirst(); iterator.hasNext(); iterator.next())
+            {
+                byte[] key  = iterator.peekNext().getKey();
+                byte[] data = iterator.peekNext().getValue();
+
+                UnspentTransactionOutput output = new UnspentTransactionOutput(data);
+
+                m_utxoCache.put(Convert.toHexString(key), output);
+            }
+        }
+        catch (Exception exception)
+        {
+            s_logger.error("Unable to get UXTOs.", exception);
+        }
+
+        // Get chain head.
+        byte[] head = m_metadataDatabase.get(new byte[] { HEAD_PREFIX });
+
+        if (head != null)
+            m_headCache = new BlockMetadata(head);
+
+        s_logger.debug("{} blocks loaded, {} transaction loaded, {} Unspent Outputs loaded.",
+                m_blocksCache.size(), m_transactionCache.size(), m_utxoCache.size());
     }
 }

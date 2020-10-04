@@ -28,13 +28,15 @@ package com.thunderbolt.network.messages;
 
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.messages.payloads.AddressPayload;
+import com.thunderbolt.network.messages.payloads.GetBlocksPayload;
 import com.thunderbolt.network.messages.payloads.PingPongPayload;
 import com.thunderbolt.network.messages.payloads.VersionPayload;
 import com.thunderbolt.network.messages.structures.NetworkAddress;
 import com.thunderbolt.network.messages.structures.TimestampedNetworkAddress;
 import com.thunderbolt.network.peers.Peer;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
-import com.thunderbolt.persistence.storage.StorageException;
+import com.thunderbolt.persistence.structures.BlockMetadata;
+import com.thunderbolt.security.Sha256Hash;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,30 +87,21 @@ public class ProtocolMessageFactory
         if (!s_initialized)
             throw new IllegalStateException("Persistence service was no initialized.");
 
-        ProtocolMessage message = null;
+        ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
+        message.setMessageType(MessageType.Version);
 
-        try
-        {
-            message = new ProtocolMessage(m_params.getPacketMagic());
-            message.setMessageType(MessageType.Version);
+        long nonce = s_secureRandom.nextLong();
+        peer.setVersionNonce(nonce);
 
-            long nonce = s_secureRandom.nextLong();
-            peer.setVersionNonce(nonce);
+        VersionPayload payload = new VersionPayload(
+                m_params.getProtocol(),
+                NodeServices.Network,
+                LocalDateTime.now().toEpochSecond(ZoneOffset.UTC),
+                s_persistenceService.getChainHead().getHeight(),
+                nonce,
+                peer.getNetworkAddress());
 
-            VersionPayload payload = new VersionPayload(
-                    m_params.getProtocol(),
-                    NodeServices.Network,
-                    LocalDateTime.now().toEpochSecond(ZoneOffset.UTC),
-                    s_persistenceService.getChainHead().getHeight(),
-                    nonce,
-                    peer.getNetworkAddress());
-
-            message.setPayload(payload);
-        }
-        catch (StorageException e)
-        {
-            s_logger.error("There was an error constructing the message.", e);
-        }
+        message.setPayload(payload);
 
         return message;
     }
@@ -216,5 +209,75 @@ public class ProtocolMessageFactory
         message.setMessageType(MessageType.GetAddress);
 
         return message;
+    }
+
+    /**
+     * Creates the GetBlock message.
+     *
+     * @param headblock The head block up to where we want to sync.
+     *
+     * @return The get blocks message.
+     */
+    public static ProtocolMessage createGetBlocksMessage(BlockMetadata headblock, Sha256Hash stopHash)
+    {
+        List<Sha256Hash> hashes = getBlockLocator(headblock);
+
+        ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
+        message.setMessageType(MessageType.GetAddress);
+
+        GetBlocksPayload payload = new GetBlocksPayload();
+
+        payload.setBlockLocatorHashes(hashes);
+        payload.setVersion(m_params.getProtocol());
+        payload.setHashToStop(stopHash);
+
+        return message;
+    }
+
+    /**
+     * Gets a block locator object for the given head and genesis.
+     *
+     * @param head The block head.
+     *
+     * @return The list of hashes for the block locator object.
+     */
+    private static List<Sha256Hash> getBlockLocator(BlockMetadata head)
+    {
+        List<Sha256Hash> headers = new ArrayList<>();
+
+        // Modify the step in the iteration.
+        long step = 1;
+
+        headers.add(head.getHash());
+
+        // If we only have the genesis block. Send only that one.
+        if (head.getHash().equals(m_params.getGenesisBlock().getHeaderHash()))
+            return headers;
+
+        BlockMetadata nextBlock = head;
+
+        boolean arriveAtGenesis = false;
+        while (!arriveAtGenesis)
+        {
+            // Push top 10 indexes first, then back off exponentially.
+            if (headers.size() >= 10)
+                step *= 2;
+
+            for (int i = 0; i < step; ++i)
+            {
+                nextBlock = s_persistenceService.getBlockMetadata(nextBlock.getHeader().getParentBlockHash());
+
+                if (nextBlock.getHash().equals(m_params.getGenesisBlock().getHeaderHash()))
+                {
+                    arriveAtGenesis = true;
+                    break;
+                }
+            }
+
+            s_logger.debug("Added block at: {}", nextBlock.getHeight());
+            headers.add(nextBlock.getHash());
+        }
+
+        return headers;
     }
 }

@@ -70,7 +70,7 @@ public interface IPersistenceService
      *
      * @return The block metadata.
      */
-    BlockMetadata getBlockMetadata(Sha256Hash sha256Hash) throws StorageException;
+    BlockMetadata getBlockMetadata(Sha256Hash sha256Hash);
 
     /**
      * Gets the spent outputs for the block with the given hash.
@@ -86,7 +86,7 @@ public interface IPersistenceService
      *
      * @return The block at the head of the blockchain.
      */
-    BlockMetadata getChainHead() throws StorageException;
+    BlockMetadata getChainHead();
 
     /**
      * Sets the current chain head.

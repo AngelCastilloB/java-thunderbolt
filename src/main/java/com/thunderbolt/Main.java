@@ -94,6 +94,7 @@ public class Main
         INetworkAddressPool      addressPool            = new LevelDbNetworkAddressPool(ADDRESS_PATH);
 
         ProtocolMessageFactory.initialize(NetworkParameters.mainNet(), persistenceService);
+
         PeerManager peerManager = new PeerManager(
                 1,
                 4,

@@ -47,7 +47,7 @@ public interface IMetadataProvider
      * @param id The hash of the block header.
      * @return The block metadata.
      */
-    BlockMetadata getBlockMetadata(Sha256Hash id) throws StorageException;
+    BlockMetadata getBlockMetadata(Sha256Hash id);
 
     /**
      * Adds a block metadata entry to the provider.

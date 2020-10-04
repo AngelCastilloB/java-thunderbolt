@@ -73,6 +73,16 @@ public class UnspentTransactionOutput implements ISerializable
     }
 
     /**
+     * Creates a new instance of the UnspentTransactionOutput class.
+     *
+     * @param buffer A byte buffer containing a raw list of transaction outputs.
+     */
+    public UnspentTransactionOutput(byte[] buffer)
+    {
+        this(ByteBuffer.wrap(buffer));
+    }
+
+    /**
      * Gets the unique hash for this unspent transaction output.
      *
      * @return The hash.

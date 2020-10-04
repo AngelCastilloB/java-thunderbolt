@@ -40,7 +40,9 @@ import com.thunderbolt.network.peers.Peer;
 import com.thunderbolt.network.peers.PeerManager;
 import com.thunderbolt.persistence.contracts.INetworkAddressPool;
 import com.thunderbolt.persistence.storage.StorageException;
+import com.thunderbolt.persistence.structures.BlockMetadata;
 import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
+import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,8 +73,10 @@ public class Node
     private boolean                        m_isRunning;
     private final ITransactionsPoolService m_memPool;
     private final PeerManager              m_peerManager;
-    private NetworkAddress                 m_publicAddress = null;
+    private NetworkAddress                 m_publicAddress      = null;
     private final Stopwatch                m_addressBroadcastCd = new Stopwatch();
+    private boolean                        m_isSyncing          = false;
+    private Peer                           m_syncingPeer        = null;
 
     /**
      * Initializes a new instance of the Node class.
@@ -118,6 +122,7 @@ public class Node
             return;
         }
 
+        m_isSyncing = true;
         m_isRunning = true;
         m_addressBroadcastCd.start();
         while (m_isRunning)
@@ -143,7 +148,7 @@ public class Node
                 }
             }
 
-            broadcast();
+            sendMessages();
         }
     }
 
@@ -216,6 +221,7 @@ public class Node
                 if (payload.getVersion() == m_params.getProtocol())
                 {
                     peer.setProtocolVersion(payload.getVersion());
+                    peer.setKnownBlockHeight(payload.getBlockHeight());
 
                     if (weAreServer)
                     {
@@ -261,7 +267,9 @@ public class Node
                 
                 if (!weAreServer)
                 {
-                    peer.sendMessage(ProtocolMessageFactory.createAddressMessage(m_publicAddress));
+                    if (!m_isSyncing)
+                        peer.sendMessage(ProtocolMessageFactory.createAddressMessage(m_publicAddress));
+
                     peer.sendMessage(ProtocolMessageFactory.createGetAddressMessage());
                 }
                 break;
@@ -335,6 +343,12 @@ public class Node
                 break;
             case GetAddress:
 
+                if (!peer.hasClearedHandshake())
+                {
+                    peer.addBanScore(1);
+                    return;
+                }
+
                 // Check how many address have a timestamp in the last three hours
                 // if we have more than 1000 address, we select a random 1000 sample.
                 // send addresses
@@ -390,38 +404,99 @@ public class Node
     }
 
     /**
-     * Broadcast messages to the peers.
+     * Chose the best syncing peer.
+     *
+     * @return The syncing peer.
      */
-    void broadcast()
+    private Peer choseSyncingPeer()
     {
         Iterator<Peer> it = m_peerManager.getPeers();
+
+        Peer currentBest = null;
         while (it.hasNext())
         {
             Peer peer = it.next();
 
+            if (!peer.isConnected())
+                continue;
+
+            if (currentBest == null && peer.getKnownBlockHeight() > m_blockchain.getChainHead().getHeight())
+            {
+                currentBest = peer;
+                continue;
+            }
+
+            if (currentBest != null && currentBest.getKnownBlockHeight() < peer.getKnownBlockHeight())
+                currentBest = peer;
+        }
+
+        return currentBest;
+    }
+
+    /**
+     * Synchronize our change with the best known peer.
+     */
+    private void syncChain()
+    {
+        if (m_isSyncing)
+        {
+            if (m_syncingPeer == null || !m_syncingPeer.isConnected())
+                m_syncingPeer = choseSyncingPeer();
+
+            if (m_syncingPeer == null)
+            {
+                s_logger.debug("No suitable peer for syncing was found...");
+                m_isSyncing = false;
+            }
+            else
+            {
+                if (m_blockchain.getChainHead().getHeight() == m_syncingPeer.getKnownBlockHeight())
+                {
+                    s_logger.debug("Syncing process has ended.");
+                    m_isSyncing = false;
+                }
+                else
+                {
+                    m_syncingPeer.sendMessage(ProtocolMessageFactory
+                            .createGetBlocksMessage(m_blockchain.getChainHead(), new Sha256Hash()));
+                }
+            }
+        }
+    }
+
+    /**
+     * Broadcast messages to the peers.
+     */
+    private void sendMessages()
+    {
+        syncChain();
+
+        boolean restartBroadcastTimer = false;
+        Iterator<Peer> it = m_peerManager.getPeers();
+
+        while (it.hasNext())
+        {
+            Peer peer = it.next();
+
+            // Send queue addresses.
             if (peer.getQueuedAddresses().size() > 0)
             {
                 ProtocolMessage addressMessage = ProtocolMessageFactory.createAddressMessage(peer.getQueuedAddresses());
                 peer.sendMessage(addressMessage);
                 peer.getQueuedAddresses().clear();
             }
-        }
 
-;
-        // If 24 hours pass, we are going to broadcast our public address to all connected peers and
-        // ask then to relay to other peers. We are also going to clear all their known addresses.
-        if (m_addressBroadcastCd.getElapsedTime().getTotalHours() > RELAY_PUBLIC_ADDRESS_TIME)
-        {
-            it = m_peerManager.getPeers();
-            while (it.hasNext())
+            // If 24 hours pass, we are going to broadcast our public address to all connected peers and
+            // ask then to relay to other peers. We are also going to clear all their known addresses.
+            if (m_addressBroadcastCd.getElapsedTime().getTotalHours() > RELAY_PUBLIC_ADDRESS_TIME && !m_isSyncing)
             {
-                Peer peer = it.next();
-
+                restartBroadcastTimer = true;
                 peer.sendMessage(ProtocolMessageFactory.createAddressMessage(m_publicAddress));
                 peer.clearKnownAddresses();
             }
-
-            m_addressBroadcastCd.restart();
         }
+
+        if (restartBroadcastTimer)
+            m_addressBroadcastCd.restart();
     }
 }

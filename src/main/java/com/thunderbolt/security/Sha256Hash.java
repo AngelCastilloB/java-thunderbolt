@@ -110,7 +110,7 @@ public class Sha256Hash implements ISerializable
     @Override
     public boolean equals(Object other)
     {
-        return ((other instanceof Sha256Hash) && Arrays.equals(m_data, ((Sha256Hash) other).m_data));
+        return ((other instanceof Sha256Hash) && Arrays.equals(m_data, ((Sha256Hash)other).m_data));
     }
 
     /**

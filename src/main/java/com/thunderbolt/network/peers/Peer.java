@@ -54,23 +54,24 @@ public class Peer
 
     private static final Logger s_logger = LoggerFactory.getLogger(Peer.class);
 
-    private final Socket                    m_socket;
-    private final OutputStream              m_outStream;
-    private final InputStream               m_inStream;
-    private final NetworkParameters         m_params;
-    private final Queue<ProtocolMessage>    m_inbound          = new LinkedBlockingQueue<>();
-    private final Queue<ProtocolMessage>    m_outbound         = new LinkedBlockingQueue<>();
-    private int                             m_banScore         = 0;
-    private boolean                         m_isInbound        = false;
-    private final Stopwatch                 m_watch            = new Stopwatch();
-    private final Stopwatch                 m_outgoingWatch    = new Stopwatch();
-    private boolean                         m_pongPending      = false;
-    private boolean                         m_clearedHandshake = false;
-    private int                             m_protocolVersion  = 0;
-    private long                            m_versionNonce     = 0;
-    private List<TimestampedNetworkAddress> m_addressToBeSend  = new LinkedList<>();
-    private Set<NetworkAddress>             m_knownAddresses   = new HashSet<>();
-    private final Map<Long, Stopwatch>      m_pongNonces       = new HashMap<>();
+    private final Socket                          m_socket;
+    private final OutputStream                    m_outStream;
+    private final InputStream                     m_inStream;
+    private final NetworkParameters               m_params;
+    private final boolean                         m_isInbound;
+    private final Queue<ProtocolMessage>          m_inbound          = new LinkedBlockingQueue<>();
+    private final Queue<ProtocolMessage>          m_outbound         = new LinkedBlockingQueue<>();
+    private int                                   m_banScore         = 0;
+    private final Stopwatch                       m_watch            = new Stopwatch();
+    private final Stopwatch                       m_outgoingWatch    = new Stopwatch();
+    private boolean                               m_clearedHandshake = false;
+    private int                                   m_protocolVersion  = 0;
+    private long                                  m_versionNonce     = 0;
+    private final List<TimestampedNetworkAddress> m_addressToBeSend  = new LinkedList<>();
+    private final Set<NetworkAddress>             m_knownAddresses   = new HashSet<>();
+    private final Map<Long, Stopwatch>            m_pongNonces       = new HashMap<>();
+    private boolean                               m_isSyncing        = false;
+    private long                                  m_knownBlockHeight = 0;
 
     /**
      * Creates a connection with a given peer.
@@ -307,12 +308,8 @@ public class Peer
         if (m_pongNonces.isEmpty())
             return false;
 
-        Iterator<Stopwatch> it = m_pongNonces.values().iterator();
-
-        while (it.hasNext())
+        for (Stopwatch watch : m_pongNonces.values())
         {
-            Stopwatch watch = it.next();
-
             if (watch.getElapsedTime().getTotalMilliseconds() > PONG_TIMEOUT)
                 return true;
         }
@@ -521,5 +518,45 @@ public class Peer
         address.setAddress(m_socket.getInetAddress());
         address.setPort(m_socket.getPort());
         m_knownAddresses.add(address);
+    }
+
+    /**
+     * Gets whether we are syncing with this peer or not.
+     *
+     * @return true if we are syncing with this peer; otherwise; false.
+     */
+    public boolean isSyncing()
+    {
+        return m_isSyncing;
+    }
+
+    /**
+     * Sets this peer as a syncing peer.
+     *
+     * @param isSyncing true if we are syncing with this peer; otherwise; false.
+     */
+    public void setIsSyncing(boolean isSyncing)
+    {
+        m_isSyncing = isSyncing;
+    }
+
+    /**
+     * Gets the known block height for this peer.
+     *
+     * @return The block height.
+     */
+    public long getKnownBlockHeight()
+    {
+        return m_knownBlockHeight;
+    }
+
+    /**
+     * Sets the best known block height for this peer.
+     *
+     * @param knownBlockHeight Sets the block height for this peer.
+     */
+    public void setKnownBlockHeight(long knownBlockHeight)
+    {
+        m_knownBlockHeight = knownBlockHeight;
     }
 }
