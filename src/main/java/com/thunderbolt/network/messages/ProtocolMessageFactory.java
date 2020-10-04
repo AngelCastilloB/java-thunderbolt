@@ -227,14 +227,16 @@ public class ProtocolMessageFactory
         List<Sha256Hash> hashes = getBlockLocator(headblock);
 
         ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
-        message.setMessageType(MessageType.GetAddress);
+        message.setMessageType(MessageType.GetBlocks);
 
         GetBlocksPayload payload = new GetBlocksPayload();
-        payload.setNonce(nonce);
 
+        payload.setNonce(nonce);
         payload.setBlockLocatorHashes(hashes);
         payload.setVersion(m_params.getProtocol());
         payload.setHashToStop(stopHash);
+
+        message.setPayload(payload);
 
         return message;
     }
@@ -255,6 +257,7 @@ public class ProtocolMessageFactory
         InventoryPayload payload = new InventoryPayload();
 
         payload.setItems(items);
+        message.setPayload(payload);
 
         return message;
     }
@@ -274,6 +277,7 @@ public class ProtocolMessageFactory
         InventoryPayload payload = new InventoryPayload();
 
         payload.setItems(items);
+        message.setPayload(payload);
 
         return message;
     }
@@ -295,6 +299,7 @@ public class ProtocolMessageFactory
         payload.setNonce(nonce);
 
         payload.setItems(getInventoryItems(s_persistenceService.getChainHead(), locator));
+        message.setPayload(payload);
 
         return message;
     }

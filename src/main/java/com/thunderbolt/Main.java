@@ -115,11 +115,11 @@ public class Main
             return;
         }
 
-       /* boolean synced = downloader.synchronize();
+        boolean synced = downloader.synchronize();
 
-        if (synced)
+        if (!synced)
             s_logger.warn("There was a problem during the synchronization phase.");
-*/
+
         Node node = new Node(NetworkParameters.mainNet(), blockchain, memPool, peerManager, persistenceService);
         node.run();
 

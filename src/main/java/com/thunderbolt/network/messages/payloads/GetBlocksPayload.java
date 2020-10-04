@@ -44,7 +44,7 @@ import java.util.List;
  */
 public class GetBlocksPayload implements ISerializable
 {
-    private long             m_version            = 0;
+    private int              m_version            = 0;
     private long             m_nonce              = 0;
     private List<Sha256Hash> m_blockLocatorHashes = new ArrayList<>();
     private Sha256Hash       m_hashToStop         = null;
@@ -63,7 +63,7 @@ public class GetBlocksPayload implements ISerializable
      */
     public GetBlocksPayload(ByteBuffer buffer)
     {
-        setVersion(buffer.getInt() & 0xFFFFFFFFL);
+        setVersion(buffer.getInt());
         setNonce(buffer.getLong());
         long entryCount = buffer.getInt() & 0xFFFFFFFFL;
 
@@ -117,7 +117,7 @@ public class GetBlocksPayload implements ISerializable
      *
      * @return The protocol version.
      */
-    public long getVersion()
+    public int getVersion()
     {
         return m_version;
     }
@@ -127,7 +127,7 @@ public class GetBlocksPayload implements ISerializable
      *
      * @param version the protocol version.
      */
-    public void setVersion(long version)
+    public void setVersion(int version)
     {
         m_version = version;
     }

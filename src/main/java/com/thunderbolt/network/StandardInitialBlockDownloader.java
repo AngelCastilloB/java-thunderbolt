@@ -72,10 +72,11 @@ public class StandardInitialBlockDownloader implements IInitialBlockDownloader
     private NetworkAddress             m_publicAddress    = null;
     private final NetworkParameters    m_params;
     private int                        m_syncAttempts     = SYNC_ATTEMPTS;
-    private boolean                    m_waitingInbound   = false;
+    private boolean                    m_waitingInbound   = true;
     private Map<String, InventoryItem> m_inboundBlocks    = new HashMap<>();
     private List<Block>                m_downloadedBlocks = new LinkedList<>();
     private long                       m_currentNonce     = new Random().nextLong();
+    private boolean                    m_lastBatch        = false;
 
     /**
      * Initialize a new instance of the StandardInitialBlockDownloader class.
@@ -125,9 +126,6 @@ public class StandardInitialBlockDownloader implements IInitialBlockDownloader
 
                 m_syncingPeer.setIsSyncing(true);
                 s_logger.debug("Peer {} selected.", m_syncingPeer);
-                m_syncingPeer.sendMessage(ProtocolMessageFactory
-                        .createGetBlocksMessage(m_blockchain.getChainHead(), new Sha256Hash(), m_currentNonce));
-                m_waitingInbound = true;
             }
 
             while (it.hasNext())
@@ -149,13 +147,6 @@ public class StandardInitialBlockDownloader implements IInitialBlockDownloader
             {
                 e.printStackTrace();
             }
-        }
-
-        if (!m_waitingInbound)
-        {
-            m_syncingPeer.sendMessage(ProtocolMessageFactory
-                    .createGetBlocksMessage(m_blockchain.getChainHead(), new Sha256Hash(), m_currentNonce));
-            m_waitingInbound = true;
         }
 
         return true;
@@ -297,6 +288,13 @@ public class StandardInitialBlockDownloader implements IInitialBlockDownloader
 
                 if (!weAreServer)
                     peer.sendMessage(ProtocolMessageFactory.createGetAddressMessage());
+
+                if (peer.isSyncing())
+                {
+                    peer.sendMessage(ProtocolMessageFactory
+                            .createGetBlocksMessage(m_blockchain.getChainHead(), new Sha256Hash(), m_currentNonce));
+                    m_waitingInbound = true;
+                }
                 break;
             case Address:
                 try
@@ -387,14 +385,18 @@ public class StandardInitialBlockDownloader implements IInitialBlockDownloader
 
                     peer.sendMessage(ProtocolMessageFactory.createGetDataMessage(itemsToRequest));
                 }
+                break;
             case Block:
                 if (!peer.hasClearedHandshake())
                 {
                     peer.addBanScore(1);
                     return;
                 }
+                s_logger.debug(Convert.toHexString(message.serialize()));
+                s_logger.debug("{}", message.serialize().length);
                 Block block = new Block(message.getPayload());
 
+                s_logger.debug(block.toString());
                 if (block.isValid())
                 {
                     m_downloadedBlocks.add(block);
@@ -429,6 +431,18 @@ public class StandardInitialBlockDownloader implements IInitialBlockDownloader
                             peer.disconnect();
                         }
                     }
+
+                    if (m_downloadedBlocks.size() == 500)
+                    {
+
+                        peer.sendMessage(ProtocolMessageFactory
+                                .createGetBlocksMessage(m_blockchain.getChainHead(), new Sha256Hash(), m_currentNonce));
+                        m_waitingInbound = true;
+                    }
+                    else
+                    {
+                        m_isSyncing = false;
+                    }
                 }
                 break;
             default:
@@ -458,14 +472,14 @@ public class StandardInitialBlockDownloader implements IInitialBlockDownloader
             }
 
 
-            if (currentBest == null && peer.getKnownBlockHeight() > m_blockchain.getChainHead().getHeight())
+            if (currentBest == null || peer.getKnownBlockHeight() > m_blockchain.getChainHead().getHeight())
             {
                 currentBest = peer;
                 s_logger.debug("Best peer {}", peer);
                 continue;
             }
 
-            if (currentBest != null && currentBest.getKnownBlockHeight() < peer.getKnownBlockHeight())
+            if (currentBest.getKnownBlockHeight() < peer.getKnownBlockHeight())
             {
                 s_logger.debug("Best peer {} - {}", currentBest, peer);
 
