@@ -28,11 +28,16 @@ package com.thunderbolt.network;
 
 import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.blockchain.Blockchain;
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.common.TimeSpan;
-import com.thunderbolt.network.messages.payloads.*;
+import com.thunderbolt.network.contracts.IInitialBlockDownloader;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import com.thunderbolt.network.messages.ProtocolMessageFactory;
+import com.thunderbolt.network.messages.payloads.AddressPayload;
+import com.thunderbolt.network.messages.payloads.InventoryPayload;
+import com.thunderbolt.network.messages.payloads.PingPongPayload;
+import com.thunderbolt.network.messages.payloads.VersionPayload;
 import com.thunderbolt.network.messages.structures.InventoryItem;
 import com.thunderbolt.network.messages.structures.InventoryItemType;
 import com.thunderbolt.network.messages.structures.NetworkAddress;
@@ -40,91 +45,91 @@ import com.thunderbolt.network.messages.structures.TimestampedNetworkAddress;
 import com.thunderbolt.network.peers.Peer;
 import com.thunderbolt.network.peers.PeerManager;
 import com.thunderbolt.persistence.contracts.INetworkAddressPool;
-import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
-import com.thunderbolt.transaction.Transaction;
-import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
+import com.thunderbolt.security.Sha256Hash;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Network node. Handles all the messages exchanges between this instance and the peers.
+ * Synchronize the blockchain, downloading all the blocks from one peer at a time.
  */
-public class Node
+public class StandardInitialBlockDownloader implements IInitialBlockDownloader
 {
-    // Constants
-    private static final int MAIN_LOOP_DELAY           = 100; // ms
-    private static final int MAX_GET_ADDRESS_RESPONSE  = 1000;
-    private static final int RELAY_ADDRESS_LIMIT       = 2;
-    private static final int RELAY_PUBLIC_ADDRESS_TIME = 24; //hours
+    private static final int MAIN_LOOP_DELAY = 100; // ms
+    private static final int SYNC_ATTEMPTS   = 5; // ms
 
-    private static final Logger s_logger = LoggerFactory.getLogger(Node.class);
+    private static final Logger s_logger = LoggerFactory.getLogger(StandardInitialBlockDownloader.class);
 
-    // Instance fields
-    private final NetworkParameters        m_params;
-    private final Blockchain               m_blockchain;
-    private boolean                        m_isRunning;
-    private final ITransactionsPoolService m_memPool;
-    private final IPersistenceService      m_persistenceService;
-    private final PeerManager              m_peerManager;
-    private NetworkAddress                 m_publicAddress      = null;
-    private final Stopwatch                m_addressBroadcastCd = new Stopwatch();
+    private final PeerManager          m_peerManager;
+    private final Blockchain           m_blockchain;
+    private boolean                    m_isSyncing        = true;
+    private Peer                       m_syncingPeer      = null;
+    private NetworkAddress             m_publicAddress    = null;
+    private final NetworkParameters    m_params;
+    private int                        m_syncAttempts     = SYNC_ATTEMPTS;
+    private boolean                    m_waitingInbound   = false;
+    private Map<String, InventoryItem> m_inboundBlocks    = new HashMap<>();
+    private List<Block>                m_downloadedBlocks = new LinkedList<>();
+    private long                       m_currentNonce     = new Random().nextLong();
 
     /**
-     * Initializes a new instance of the Node class.
+     * Initialize a new instance of the StandardInitialBlockDownloader class.
      *
-     * @param params The network parameters.
-     * @param blockchain The blockchain instance.
-     * @param transactionsPoolService The transaction pool service.
-     * @param peerManager The peer manager.
+     * @param manager The peer manager.
+     *
+     * @param blockchain The blockchain.
      */
-    public Node(NetworkParameters params,
-                Blockchain blockchain,
-                ITransactionsPoolService transactionsPoolService,
-                PeerManager peerManager,
-                IPersistenceService persistenceService)
+    public StandardInitialBlockDownloader(PeerManager manager, Blockchain blockchain, NetworkParameters params)
     {
-        m_persistenceService = persistenceService;
-        m_params = params;
+        m_peerManager = manager;
         m_blockchain = blockchain;
-        m_memPool = transactionsPoolService;
-        m_peerManager = peerManager;
+        m_params = params;
     }
 
     /**
-     * Shuts down the node
+     * Advances the synchronization process our local chain with the peers.
+     *
+     * @return true if the synchronization process ended successfully; otherwise; false.
      */
-    public void shutdown()
+    @Override
+    public boolean synchronize()
     {
-        if (!m_isRunning)
-            return;
-
-        m_isRunning = false;
-
-        s_logger.debug("Please wait while the node shuts down");
-        m_peerManager.stop();
-    }
-
-    /**
-     * Tries to connect to seed peers.
-     */
-    public void run()
-    {
-        m_isRunning = true;
-        m_peerManager.allowInboundConnections();
-        m_addressBroadcastCd.start();
-
-        while (m_isRunning)
+        try
         {
+            Thread.sleep(1000);
+        } catch (InterruptedException e)
+        {
+            e.printStackTrace();
+        }
+        m_isSyncing = true;
+        while (m_isSyncing)
+        {
+            if (m_syncAttempts == 0)
+                return false;
+
             Iterator<Peer> it = m_peerManager.getPeers();
+
+            if (m_syncingPeer == null || !m_syncingPeer.isConnected())
+            {
+                s_logger.debug("Sync attempt number: {}", SYNC_ATTEMPTS - m_syncAttempts);
+                s_logger.debug("Selecting a new syncing peer.");
+                m_syncingPeer = choseSyncingPeer();
+
+                if (m_syncingPeer == null)
+                    continue;
+
+                m_syncingPeer.setIsSyncing(true);
+                s_logger.debug("Peer {} selected.", m_syncingPeer);
+                m_syncingPeer.sendMessage(ProtocolMessageFactory
+                        .createGetBlocksMessage(m_blockchain.getChainHead(), new Sha256Hash(), m_currentNonce));
+                m_waitingInbound = true;
+            }
+
             while (it.hasNext())
             {
                 Peer peer = it.next();
@@ -134,19 +139,48 @@ public class Node
                     ProtocolMessage message = peer.getMessage();
                     process(message, peer);
                 }
-
-                try
-                {
-                    Thread.sleep(MAIN_LOOP_DELAY);
-                }
-                catch (InterruptedException e)
-                {
-                    e.printStackTrace();
-                }
             }
 
-            sendMessages();
+            try
+            {
+                Thread.sleep(MAIN_LOOP_DELAY);
+            }
+            catch (InterruptedException e)
+            {
+                e.printStackTrace();
+            }
         }
+
+        if (!m_waitingInbound)
+        {
+            m_syncingPeer.sendMessage(ProtocolMessageFactory
+                    .createGetBlocksMessage(m_blockchain.getChainHead(), new Sha256Hash(), m_currentNonce));
+            m_waitingInbound = true;
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether the syncing process ir over or not.
+     *
+     * @return Whether is currently syncing or not.
+     */
+    @Override
+    public boolean isSyncing()
+    {
+        return m_isSyncing;
+    }
+
+    /**
+     * Gets the estimated process of the syncing process.
+     *
+     * @return The progress, a number between 0 and 100.
+     */
+    @Override
+    public int getProgress()
+    {
+        return 0;
     }
 
     /**
@@ -169,7 +203,6 @@ public class Node
                 }
 
                 PingPongPayload pingPayload = new PingPongPayload(message.getPayload());
-
                 peer.sendMessage(ProtocolMessageFactory.createPongMessage(pingPayload.getNonce()));
 
                 break;
@@ -261,12 +294,9 @@ public class Node
                 }
 
                 peer.setClearedHandshake(true);
-                
+
                 if (!weAreServer)
-                {
-                    peer.sendMessage(ProtocolMessageFactory.createAddressMessage(m_publicAddress));
                     peer.sendMessage(ProtocolMessageFactory.createGetAddressMessage());
-                }
                 break;
             case Address:
                 try
@@ -320,14 +350,6 @@ public class Node
                         pool.upsertAddress(new NetworkAddressMetadata(timeStamped.getTimestamp(),
                                 timeStamped.getNetworkAddress()));
 
-                        // If either the address was new, or the services were updated, broadcast it to the peers.
-                        // However we only relay address messages that send RELAY_ADDRESS_LIMIT addresses.
-                        if (addressPayload.getAddresses().size() <= RELAY_ADDRESS_LIMIT)
-                        {
-                            queueAddresses(timeStamped);
-                            s_logger.debug("Added and will be broadcast to connected to peers.");
-                        }
-
                         s_logger.debug("Total addresses in our pool: {}", pool.count());
                     }
                 }
@@ -336,166 +358,121 @@ public class Node
                     e.printStackTrace();
                 }
                 break;
-            case GetAddress:
-
+            case Inventory:
                 if (!peer.hasClearedHandshake())
                 {
                     peer.addBanScore(1);
                     return;
                 }
 
-                // Check how many address have a timestamp in the last three hours
-                // if we have more than 1000 address, we select a random 1000 sample.
-                // send addresses
-                List<NetworkAddressMetadata> activeAddresses =
-                        m_peerManager.getAddressPool().getRandom(MAX_GET_ADDRESS_RESPONSE, true, true);
-
-                List<TimestampedNetworkAddress> timestampedAddress = new ArrayList<>();
-
-                for (NetworkAddressMetadata networkAddressMetadata: activeAddresses)
+                if (peer.isSyncing())
                 {
-                    if (!networkAddressMetadata.getNetworkAddress().equals(peer.getNetworkAddress()))
-                        timestampedAddress.add(networkAddressMetadata.getTimeStampedAddress());
-                }
+                    InventoryPayload invPayload = new InventoryPayload(message.getPayload());
 
-                if (timestampedAddress.size() == 0)
-                {
-                    s_logger.warn("We don't have any active peers to send.");
-                    break;
-                }
+                    if (invPayload.getNonce() != m_currentNonce)
+                        break;
 
-                ProtocolMessage addressMessage = ProtocolMessageFactory.createAddressMessage(timestampedAddress);
-
-                peer.sendMessage(addressMessage);
-                break;
-
-            case GetBlocks:
-                if (!peer.hasClearedHandshake())
-                {
-                    peer.addBanScore(1);
-                    return;
-                }
-
-                // Reply the peer with the inventory of the blocks he is missing.
-                GetBlocksPayload getBlocksPayload = new GetBlocksPayload(message.getPayload());
-                peer.sendMessage(ProtocolMessageFactory
-                        .createGetBlockReply(getBlocksPayload.getBlockLocatorHashes(), getBlocksPayload.getNonce()));
-
-                break;
-            case GetData:
-                if (!peer.hasClearedHandshake())
-                {
-                    peer.addBanScore(1);
-                    return;
-                }
-
-                InventoryPayload getDataPayload = new InventoryPayload(message.getPayload());
-
-                List<InventoryItem> itemsNotFound = new ArrayList<>();
-                for (InventoryItem item: getDataPayload.getItems())
-                {
-                    try
+                    List<InventoryItem> itemsToRequest = new ArrayList<>();
+                    for (InventoryItem item: invPayload.getItems())
                     {
-                        if (item.getType() == InventoryItemType.Block)
+                        if (item.getType() != InventoryItemType.Block)
                         {
-                            Block foundBlock = m_persistenceService.getBlock(item.getHash());
+                            s_logger.warn("Unexpected inventory item during initial download.");
+                            continue;
+                        }
 
-                            if (foundBlock == null)
+                        m_inboundBlocks.put(item.getHash().toString(), item);
+                        itemsToRequest.add(item);
+                    }
+
+                    peer.sendMessage(ProtocolMessageFactory.createGetDataMessage(itemsToRequest));
+                }
+            case Block:
+                if (!peer.hasClearedHandshake())
+                {
+                    peer.addBanScore(1);
+                    return;
+                }
+                Block block = new Block(message.getPayload());
+
+                if (block.isValid())
+                {
+                    m_downloadedBlocks.add(block);
+                    m_inboundBlocks.remove(block.getHeaderHash().toString());
+                }
+                else
+                {
+                    s_logger.debug("Peer {} send an invalid block.", peer);
+                    peer.addBanScore(100);
+                }
+
+                m_waitingInbound = m_inboundBlocks.size() > 0;
+
+                // If we already have all the block, add them to the chain.
+                if (!m_waitingInbound)
+                {
+                    for (Block blockToAdd: m_downloadedBlocks)
+                    {
+                        try
+                        {
+                            boolean blockAdded = m_blockchain.add(blockToAdd);
+
+                            if (!blockAdded)
                             {
-                                itemsNotFound.add(item);
-                            }
-                            else
-                            {
-                                peer.sendMessage(ProtocolMessageFactory.createBlockMessage(foundBlock));
+                                s_logger.debug("There was an error adding the block to our chain. Disconnecting from this peer.");
+                                peer.disconnect();
                             }
                         }
-                        else if (item.getType() == InventoryItemType.Transaction)
+                        catch (StorageException e)
                         {
-                            Transaction foundTransaction = m_persistenceService.getTransaction(item.getHash());
-
-                            if (foundTransaction == null)
-                            {
-                                itemsNotFound.add(item);
-                            }
-                            else
-                            {
-                                peer.sendMessage(ProtocolMessageFactory.createTransactionMessage(foundTransaction));
-                            }
-
+                            s_logger.error("There was an error adding the block to our chain. Disconnecting from this peer.", e);
+                            peer.disconnect();
                         }
                     }
-                    catch (StorageException e)
-                    {
-                        s_logger.error("There was an error while retrieving the item: ", e);
-                        itemsNotFound.add(item);
-                    }
                 }
-
-                if (itemsNotFound.size() > 0)
-                    peer.sendMessage(ProtocolMessageFactory.createNoFoundMessage(itemsNotFound));
-
                 break;
             default:
         }
-
-        try
-        {
-            m_peerManager.getAddressPool().updateLastSeen(peer.getNetworkAddress(), LocalDateTime.now());
-        }
-        catch (StorageException e)
-        {
-            e.printStackTrace();
-            s_logger.warn("Could not update address last seen date.");
-        }
     }
 
+
     /**
-     * Queues the address to be send to the peers.
+     * Chose the best syncing peer.
      *
-     * @param address The address to be send.
+     * @return The syncing peer.
      */
-    void queueAddresses(TimestampedNetworkAddress address)
+    private Peer choseSyncingPeer()
     {
         Iterator<Peer> it = m_peerManager.getPeers();
+
+        s_logger.debug("Peer count {}", m_peerManager.peerCount());
+        Peer currentBest = null;
         while (it.hasNext())
         {
             Peer peer = it.next();
 
-            peer.queueAddressForBroadcast(address);
-        }
-    }
-
-    /**
-     * Broadcast messages to the peers.
-     */
-    private void sendMessages()
-    {
-        boolean restartBroadcastTimer = false;
-        Iterator<Peer> it = m_peerManager.getPeers();
-
-        while (it.hasNext())
-        {
-            Peer peer = it.next();
-
-            // Send queue addresses.
-            if (peer.getQueuedAddresses().size() > 0)
+            if (!peer.isConnected())
             {
-                ProtocolMessage addressMessage = ProtocolMessageFactory.createAddressMessage(peer.getQueuedAddresses());
-                peer.sendMessage(addressMessage);
-                peer.getQueuedAddresses().clear();
+                s_logger.debug("Peer {} is not connected", peer);
+                continue;
             }
 
-            // If 24 hours pass, we are going to broadcast our public address to all connected peers and
-            // ask then to relay to other peers. We are also going to clear all their known addresses.
-            if (m_addressBroadcastCd.getElapsedTime().getTotalHours() > RELAY_PUBLIC_ADDRESS_TIME)
+
+            if (currentBest == null && peer.getKnownBlockHeight() > m_blockchain.getChainHead().getHeight())
             {
-                restartBroadcastTimer = true;
-                peer.sendMessage(ProtocolMessageFactory.createAddressMessage(m_publicAddress));
-                peer.clearKnownAddresses();
+                currentBest = peer;
+                s_logger.debug("Best peer {}", peer);
+                continue;
+            }
+
+            if (currentBest != null && currentBest.getKnownBlockHeight() < peer.getKnownBlockHeight())
+            {
+                s_logger.debug("Best peer {} - {}", currentBest, peer);
+
+                currentBest = peer;
             }
         }
 
-        if (restartBroadcastTimer)
-            m_addressBroadcastCd.restart();
+        return currentBest;
     }
 }

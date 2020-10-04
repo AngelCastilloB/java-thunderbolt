@@ -195,7 +195,7 @@ public class StandardPersistenceService implements IPersistenceService
      *
      * @return The block at the head of the blockchain.
      */
-    public BlockMetadata getChainHead() throws StorageException
+    public BlockMetadata getChainHead()
     {
         return m_metadataProvider.getChainHead();
     }

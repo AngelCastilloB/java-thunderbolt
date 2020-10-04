@@ -417,10 +417,8 @@ public class Blockchain
      * @param lower The lower bound block.
      *
      * @return The list of blocks between the given two blocks.
-     *
-     * @throws StorageException If there is an error retrieving the blocks.
      */
-    private List<BlockMetadata> getChainSegment(BlockMetadata upper, BlockMetadata lower) throws StorageException
+    private List<BlockMetadata> getChainSegment(BlockMetadata upper, BlockMetadata lower)
     {
         LinkedList<BlockMetadata> results = new LinkedList<>();
         BlockMetadata             cursor  = upper;

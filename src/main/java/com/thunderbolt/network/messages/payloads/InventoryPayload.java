@@ -22,43 +22,60 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.network.messages.structures;
+package com.thunderbolt.network.messages.payloads;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.common.contracts.ISerializable;
-import com.thunderbolt.security.Sha256Hash;
+import com.thunderbolt.network.messages.structures.InventoryItem;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Inventory items are used for notifying other nodes about objects they have or data which is being requested.
+ * Allows a node to advertise its knowledge of one or more objects. It can be received unsolicited, or in reply to
+ * getblocks.
  */
-public class InventoryItem implements ISerializable
+public class InventoryPayload implements ISerializable
 {
-    private InventoryItemType m_type = InventoryItemType.Error;
-    private Sha256Hash        m_hash = new Sha256Hash();
+    private long                m_nonce = 0;
+    private List<InventoryItem> m_items = new ArrayList<>();
 
     /**
-     * Creates a new instance of the InventoryItem class.
+     * Initializes a new instance of the inventory payload class.
      */
-    public InventoryItem()
+    public InventoryPayload()
     {
     }
 
     /**
-     * Creates a new instance of the InventoryItem class.
+     * Initializes a new instance of the inventory payload class.
      *
-     * @param buffer A buffer containing the InventoryItem object.
+     * @param buffer The buffer containing the serialized data of the payload.
      */
-    public InventoryItem(ByteBuffer buffer)
+    public InventoryPayload(ByteBuffer buffer)
     {
-        setType(InventoryItemType.from(buffer.get()));
-        buffer.get(getHash().getData());
+        m_nonce = buffer.getLong();
+        long count = buffer.getInt() & 0xFFFFFFFFL;
+
+        for (int i = 0; i < count; ++i)
+            getItems().add(new InventoryItem(buffer));
+    }
+
+    /**
+     * Initializes a new instance of the inventory payload class.
+     *
+     * @param buffer The buffer containing the serialized data of the payload.
+     */
+    public InventoryPayload(byte[] buffer)
+    {
+        this(ByteBuffer.wrap(buffer));
     }
 
     /**
@@ -73,8 +90,11 @@ public class InventoryItem implements ISerializable
 
         try
         {
-            data.write(getType().getValue());
-            data.write(getHash().getData());
+            data.write(NumberSerializer.serialize(m_nonce));
+            data.write(NumberSerializer.serialize(getItems().size()));
+
+            for (InventoryItem item: getItems())
+                data.write(item.serialize());
         }
         catch (IOException e)
         {
@@ -85,42 +105,42 @@ public class InventoryItem implements ISerializable
     }
 
     /**
-     * Gets the type of this inventory item.
+     * Gets the inventory items from list message.
      *
-     * @return The inventory type.
+     * @return The items.
      */
-    public InventoryItemType getType()
+    public List<InventoryItem> getItems()
     {
-        return m_type;
+        return m_items;
     }
 
     /**
-     * Sets the type of this inventory item.
+     * Sets the inventory items.
      *
-     * @param type The inventory type.
+     * @param items The items.
      */
-    public void setType(InventoryItemType type)
+    public void setItems(List<InventoryItem> items)
     {
-        m_type = type;
+        m_items = items;
     }
 
     /**
-     * Gets the SHA-256 has of the item.
+     * Gets the nonce of this message.
      *
-     * @return The hash of the item.
+     * @return The nonce.
      */
-    public Sha256Hash getHash()
+    public long getNonce()
     {
-        return m_hash;
+        return m_nonce;
     }
 
     /**
-     * Sets the hash of the item.
+     * Sets the nonce of this message.
      *
-     * @param hash The hash of the item.
+     * @param nonce The nonce.
      */
-    public void setHash(Sha256Hash hash)
+    public void setNonce(long nonce)
     {
-        m_hash = hash;
+        m_nonce = nonce;
     }
 }

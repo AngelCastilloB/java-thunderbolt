@@ -32,6 +32,8 @@ import com.thunderbolt.blockchain.contracts.IBlockchainCommitter;
 import com.thunderbolt.network.Node;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.ProtocolException;
+import com.thunderbolt.network.StandardInitialBlockDownloader;
+import com.thunderbolt.network.contracts.IInitialBlockDownloader;
 import com.thunderbolt.network.contracts.IPeerDiscoverer;
 import com.thunderbolt.network.discovery.StandardPeerDiscoverer;
 import com.thunderbolt.network.messages.ProtocolMessageFactory;
@@ -104,7 +106,21 @@ public class Main
                 NetworkParameters.mainNet(),
                 addressPool);
 
-        Node node = new Node(NetworkParameters.mainNet(), blockchain, memPool, peerManager);
+        IInitialBlockDownloader downloader =
+                new StandardInitialBlockDownloader(peerManager, blockchain, NetworkParameters.mainNet());
+
+        if (!peerManager.start())
+        {
+            s_logger.debug("The peer manager could not be started. The node will shutdown");
+            return;
+        }
+
+       /* boolean synced = downloader.synchronize();
+
+        if (synced)
+            s_logger.warn("There was a problem during the synchronization phase.");
+*/
+        Node node = new Node(NetworkParameters.mainNet(), blockchain, memPool, peerManager, persistenceService);
         node.run();
 
         // Add connection to peers.

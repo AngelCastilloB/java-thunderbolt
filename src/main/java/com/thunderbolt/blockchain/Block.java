@@ -97,6 +97,16 @@ public class Block implements ISerializable
     }
 
     /**
+     * Creates a new instance of the Transaction class.
+     *
+     * @param buffer A buffer containing the transaction object Transaction object.
+     */
+    public Block(byte[] buffer)
+    {
+        this(ByteBuffer.wrap(buffer));
+    }
+
+    /**
      * Gets the block header.
      *
      * @return The block header.

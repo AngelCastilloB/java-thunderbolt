@@ -68,7 +68,7 @@ public interface IMetadataProvider
      *
      * @return The block metadata.
      */
-    BlockMetadata getChainHead() throws StorageException;
+    BlockMetadata getChainHead();
 
     /**
      * Adds a transaction metadata entry to the provider.

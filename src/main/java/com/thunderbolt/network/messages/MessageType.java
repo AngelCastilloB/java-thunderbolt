@@ -73,10 +73,43 @@ public enum MessageType
      * Return an inv packet containing the list of blocks starting right after the last known hash in the block
      * locator object, up to hash_stop or 500 blocks, whichever comes first.
      */
-    GetBlocks((short)0x06);
+    GetBlocks((short)0x06),
+
+    /**
+     * Allows a node to advertise its knowledge of one or more objects. It can be received unsolicited, or in reply
+     * to getblocks.
+     *
+     * Payload (maximum 50,000 entries, which is just over 1.8 megabytes):
+     */
+    Inventory((short)0x07),
+
+    /**
+     * getdata is used in response to inv, to retrieve the content of a specific object, and is usually sent after
+     * receiving an inv packet, after filtering known elements. It can be used to retrieve transactions, but only
+     * if they are in the memory pool or relay set - arbitrary access to transactions in the chain is not allowed
+     * to avoid having clients start to depend on nodes having full transaction indexes (which modern nodes do not).
+     */
+    GetData((short)0x08),
+
+    /**
+     * The block message is sent in response to a getdata message which requests transaction information
+     * from a block hash.
+     */
+    Block((short)0x09),
+
+    /**
+     * tx describes a bitcoin transaction, in reply to getdata.
+     */
+    Transaction((short)0x0A),
+
+    /**
+     * is a response to a getdata, sent if any requested data items could not be relayed, for example,
+     * because the requested transaction was not in the memory pool or relay set..
+     */
+    NotFound((short)0x0B);
 
     // Instance fields.
-    private short m_value;
+    private final short m_value;
 
     /**
      * Initializes a new instance of the MessageType class.
