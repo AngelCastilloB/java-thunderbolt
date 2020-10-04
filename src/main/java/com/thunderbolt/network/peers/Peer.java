@@ -30,7 +30,6 @@ import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.common.TimeSpan;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.ProtocolException;
-import com.thunderbolt.network.contracts.IPeer;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import com.thunderbolt.network.messages.structures.NetworkAddress;
 import com.thunderbolt.network.messages.structures.TimestampedNetworkAddress;
@@ -49,11 +48,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 /**
  * A network connection between our node and a peer.
  */
-public class StandardPeer implements IPeer
+public class Peer
 {
     private static final int PONG_TIMEOUT = 60000;
 
-    private static final Logger s_logger = LoggerFactory.getLogger(StandardPeer.class);
+    private static final Logger s_logger = LoggerFactory.getLogger(Peer.class);
 
     private final Socket                    m_socket;
     private final OutputStream              m_outStream;
@@ -81,7 +80,7 @@ public class StandardPeer implements IPeer
      * @param isInbound   Whether this connection came from a peer connecting to us, or from a peer we connected to
      *                    during bootstrap.
      */
-    public StandardPeer(NetworkParameters params, Socket peerSocket, boolean isInbound) throws IOException
+    public Peer(NetworkParameters params, Socket peerSocket, boolean isInbound) throws IOException
     {
         m_params = params;
         m_socket = peerSocket;
@@ -481,7 +480,6 @@ public class StandardPeer implements IPeer
      *
      * @param address The address to be broadcast.
      */
-    @Override
     public void queueAddressForBroadcast(TimestampedNetworkAddress address)
     {
         if (!m_knownAddresses.contains(address.getNetworkAddress()))

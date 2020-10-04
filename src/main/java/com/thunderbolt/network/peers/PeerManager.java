@@ -29,9 +29,7 @@ package com.thunderbolt.network.peers;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.ProtocolException;
-import com.thunderbolt.network.contracts.IPeer;
 import com.thunderbolt.network.contracts.IPeerDiscoverer;
-import com.thunderbolt.network.contracts.IPeerManager;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import com.thunderbolt.network.messages.ProtocolMessageFactory;
 import com.thunderbolt.persistence.contracts.INetworkAddressPool;
@@ -52,7 +50,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * The peer manager handles the communication between the peers and the node. Relays messages between two ends of the
  * connection. All the incoming messages are store in the incoming buffer of the connection objects.
  */
-public class StandardPeerManager implements IPeerManager
+public class PeerManager
 {
     private static final int READ_TIMEOUT       = 50; // ms
     private static final int PEER_LISTEN_DELAY  = 500;
@@ -62,9 +60,9 @@ public class StandardPeerManager implements IPeerManager
     private static final int BAN_SCORE_LIMIT    = 100;
     private static final int CONNECT_TIMEOUT    = 100; //ms
 
-    private static final Logger s_logger = LoggerFactory.getLogger(StandardPeerManager.class);
+    private static final Logger s_logger = LoggerFactory.getLogger(PeerManager.class);
 
-    private final Queue<IPeer>  m_peers           = new ConcurrentLinkedQueue<>();
+    private final Queue<Peer>  m_peers           = new ConcurrentLinkedQueue<>();
     private Thread              m_thread          = null;
     private Thread              m_listenThread    = null;
     private boolean             m_isRunning       = false;
@@ -90,7 +88,7 @@ public class StandardPeerManager implements IPeerManager
      * @param params The network parameters.
      * @param addressPool A pool of known addresses of peers.
      */
-    public StandardPeerManager(
+    public PeerManager(
             int minInitialPeers,
             int maxPeers,
             long inactiveTime,
@@ -113,7 +111,7 @@ public class StandardPeerManager implements IPeerManager
      *
      * @return An iterator to the first connection of the relay service.
      */
-    public Iterator<IPeer> getPeers()
+    public Iterator<Peer> getPeers()
     {
         return m_peers.iterator();
     }
@@ -182,9 +180,9 @@ public class StandardPeerManager implements IPeerManager
                 m_thread = null;
             }
 
-            for (Iterator<IPeer> it = m_peers.iterator(); it.hasNext(); )
+            for (Iterator<Peer> it = m_peers.iterator(); it.hasNext(); )
             {
-                IPeer peer = it.next();
+                Peer peer = it.next();
                 peer.disconnect();
                 it.remove();
             }
@@ -213,14 +211,13 @@ public class StandardPeerManager implements IPeerManager
      * @param isInbound   Whether this connection came from a peer connecting to us, or from a peer we connected to
      *                    during bootstrap.
      */
-    @Override
-    public synchronized IPeer add(NetworkParameters params, Socket peerSocket, boolean isInbound)
+    public synchronized Peer add(NetworkParameters params, Socket peerSocket, boolean isInbound)
     {
-        StandardPeer peer = null;
+        Peer peer = null;
 
         try
         {
-            peer = new StandardPeer(params, peerSocket, isInbound);
+            peer = new Peer(params, peerSocket, isInbound);
         }
         catch (IOException e)
         {
@@ -239,8 +236,7 @@ public class StandardPeerManager implements IPeerManager
      *
      * @param peer The peer connected to this node.
      */
-    @Override
-    public void remove(IPeer peer)
+    public void remove(Peer peer)
     {
         m_peers.remove(peer);
     }
@@ -250,7 +246,6 @@ public class StandardPeerManager implements IPeerManager
      *
      * @return The pool instance.
      */
-    @Override
     public INetworkAddressPool getAddressPool()
     {
         return m_addressPool;
@@ -278,9 +273,9 @@ public class StandardPeerManager implements IPeerManager
      */
     private void readMessages()
     {
-        for (Iterator<IPeer> it = m_peers.iterator(); it.hasNext(); )
+        for (Iterator<Peer> it = m_peers.iterator(); it.hasNext(); )
         {
-            StandardPeer peer = (StandardPeer)(it.next());
+            Peer peer = (Peer)(it.next());
 
             if (!peer.isConnected())
             {
@@ -313,9 +308,9 @@ public class StandardPeerManager implements IPeerManager
      */
     private void writeMessages()
     {
-        for (Iterator<IPeer> it = m_peers.iterator(); it.hasNext();)
+        for (Iterator<Peer> it = m_peers.iterator(); it.hasNext();)
         {
-            StandardPeer peer = (StandardPeer)(it.next());
+            Peer peer = (Peer)(it.next());
 
             if (!peer.isConnected())
             {
@@ -354,9 +349,9 @@ public class StandardPeerManager implements IPeerManager
      */
     private void removeInactive()
     {
-        for (Iterator<IPeer> it = m_peers.iterator(); it.hasNext();)
+        for (Iterator<Peer> it = m_peers.iterator(); it.hasNext();)
         {
-            IPeer peer = it.next();
+            Peer peer = it.next();
 
             long elapsed = peer.getInactiveTime().getTotalMilliseconds();
             boolean disconnect = false;
@@ -403,7 +398,7 @@ public class StandardPeerManager implements IPeerManager
      *
      * @param peer The peer to be updated.
      */
-    private void updatePeerBanStatus(IPeer peer)
+    private void updatePeerBanStatus(Peer peer)
     {
         byte[] rawAddress = peer.getNetworkAddress().getAddress().getAddress();
         if (m_addressPool.contains(rawAddress))
@@ -437,7 +432,7 @@ public class StandardPeerManager implements IPeerManager
      */
     void sendHeartbeatTime()
     {
-        for (IPeer peer : m_peers)
+        for (Peer peer : m_peers)
         {
             if (peer.getLastOutgoingTime().getTotalMilliseconds() > m_heartbeatTime)
                 peer.sendMessage(ProtocolMessageFactory.createPingMessage(peer));
@@ -575,7 +570,7 @@ public class StandardPeerManager implements IPeerManager
                 Socket peerSocket = new Socket();
 
                 peerSocket.connect(address, CONNECT_TIMEOUT);
-                IPeer peer = add(m_params, peerSocket, false);
+                Peer peer = add(m_params, peerSocket, false);
 
                 peer.sendMessage(ProtocolMessageFactory.createVersionMessage(peer));
 
@@ -622,9 +617,9 @@ public class StandardPeerManager implements IPeerManager
      */
     private boolean alreadyConnected(NetworkAddressMetadata addressMetadata)
     {
-        for (Iterator<IPeer> it = m_peers.iterator(); it.hasNext();)
+        for (Iterator<Peer> it = m_peers.iterator(); it.hasNext();)
         {
-            IPeer peer = it.next();
+            Peer peer = it.next();
 
             if (peer.getNetworkAddress().equals(addressMetadata.getNetworkAddress()))
                 return true;

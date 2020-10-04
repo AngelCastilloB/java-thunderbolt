@@ -29,8 +29,6 @@ package com.thunderbolt.network;
 import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.common.TimeSpan;
-import com.thunderbolt.network.contracts.IPeer;
-import com.thunderbolt.network.contracts.IPeerManager;
 import com.thunderbolt.network.messages.payloads.AddressPayload;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import com.thunderbolt.network.messages.ProtocolMessageFactory;
@@ -38,6 +36,8 @@ import com.thunderbolt.network.messages.payloads.PingPongPayload;
 import com.thunderbolt.network.messages.payloads.VersionPayload;
 import com.thunderbolt.network.messages.structures.NetworkAddress;
 import com.thunderbolt.network.messages.structures.TimestampedNetworkAddress;
+import com.thunderbolt.network.peers.Peer;
+import com.thunderbolt.network.peers.PeerManager;
 import com.thunderbolt.persistence.contracts.INetworkAddressPool;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
@@ -70,7 +70,7 @@ public class Node
     private final Blockchain               m_blockchain;
     private boolean                        m_isRunning;
     private final ITransactionsPoolService m_memPool;
-    private final IPeerManager             m_peerManager;
+    private final PeerManager              m_peerManager;
     private NetworkAddress                 m_publicAddress = null;
     private final Stopwatch                m_addressBroadcastCd = new Stopwatch();
 
@@ -85,7 +85,7 @@ public class Node
     public Node(NetworkParameters params,
                 Blockchain blockchain,
                 ITransactionsPoolService transactionsPoolService,
-                IPeerManager peerManager)
+                PeerManager peerManager)
     {
         m_params = params;
         m_blockchain = blockchain;
@@ -122,10 +122,10 @@ public class Node
         m_addressBroadcastCd.start();
         while (m_isRunning)
         {
-            Iterator<IPeer> it = m_peerManager.getPeers();
+            Iterator<Peer> it = m_peerManager.getPeers();
             while (it.hasNext())
             {
-                IPeer peer = it.next();
+                Peer peer = it.next();
 
                 while (peer.hasMessage())
                 {
@@ -153,7 +153,7 @@ public class Node
      * @param message The message to be processed.
      * @param peer The peer.
      */
-    public void process(ProtocolMessage message, IPeer peer)
+    public void process(ProtocolMessage message, Peer peer)
     {
         boolean weAreServer = peer.isClient();
 
@@ -380,10 +380,10 @@ public class Node
      */
     void queueAddresses(TimestampedNetworkAddress address)
     {
-        Iterator<IPeer> it = m_peerManager.getPeers();
+        Iterator<Peer> it = m_peerManager.getPeers();
         while (it.hasNext())
         {
-            IPeer peer = it.next();
+            Peer peer = it.next();
 
             peer.queueAddressForBroadcast(address);
         }
@@ -394,10 +394,10 @@ public class Node
      */
     void broadcast()
     {
-        Iterator<IPeer> it = m_peerManager.getPeers();
+        Iterator<Peer> it = m_peerManager.getPeers();
         while (it.hasNext())
         {
-            IPeer peer = it.next();
+            Peer peer = it.next();
 
             if (peer.getQueuedAddresses().size() > 0)
             {
@@ -415,7 +415,7 @@ public class Node
             it = m_peerManager.getPeers();
             while (it.hasNext())
             {
-                IPeer peer = it.next();
+                Peer peer = it.next();
 
                 peer.sendMessage(ProtocolMessageFactory.createAddressMessage(m_publicAddress));
                 peer.clearKnownAddresses();

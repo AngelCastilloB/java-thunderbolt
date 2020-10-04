@@ -27,12 +27,12 @@ package com.thunderbolt.network.messages;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.network.NetworkParameters;
-import com.thunderbolt.network.contracts.IPeer;
 import com.thunderbolt.network.messages.payloads.AddressPayload;
 import com.thunderbolt.network.messages.payloads.PingPongPayload;
 import com.thunderbolt.network.messages.payloads.VersionPayload;
 import com.thunderbolt.network.messages.structures.NetworkAddress;
 import com.thunderbolt.network.messages.structures.TimestampedNetworkAddress;
+import com.thunderbolt.network.peers.Peer;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.storage.StorageException;
 import org.slf4j.Logger;
@@ -80,7 +80,7 @@ public class ProtocolMessageFactory
      *
      * @return A version message.
      */
-    public static ProtocolMessage createVersionMessage(IPeer peer)
+    public static ProtocolMessage createVersionMessage(Peer peer)
     {
         if (!s_initialized)
             throw new IllegalStateException("Persistence service was no initialized.");
@@ -131,7 +131,7 @@ public class ProtocolMessageFactory
      *
      * @return The ping message.
      */
-    public static ProtocolMessage createPingMessage(IPeer peer)
+    public static ProtocolMessage createPingMessage(Peer peer)
     {
         ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
         message.setMessageType(MessageType.Ping);

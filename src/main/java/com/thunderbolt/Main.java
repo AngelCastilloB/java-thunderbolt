@@ -35,14 +35,13 @@ import com.thunderbolt.network.ProtocolException;
 import com.thunderbolt.network.contracts.IPeerDiscoverer;
 import com.thunderbolt.network.discovery.StandardPeerDiscoverer;
 import com.thunderbolt.network.messages.ProtocolMessageFactory;
-import com.thunderbolt.network.peers.StandardPeerManager;
+import com.thunderbolt.network.peers.PeerManager;
 import com.thunderbolt.persistence.StandardPersistenceService;
 import com.thunderbolt.persistence.contracts.IContiguousStorage;
 import com.thunderbolt.persistence.contracts.IMetadataProvider;
 import com.thunderbolt.persistence.contracts.INetworkAddressPool;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.storage.*;
-import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
 import com.thunderbolt.transaction.MemoryTransactionsPoolService;
 import com.thunderbolt.transaction.StandardTransactionValidator;
 import com.thunderbolt.transaction.contracts.ITransactionValidator;
@@ -53,8 +52,6 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -97,7 +94,7 @@ public class Main
         INetworkAddressPool      addressPool            = new LevelDbNetworkAddressPool(ADDRESS_PATH);
 
         ProtocolMessageFactory.initialize(NetworkParameters.mainNet(), persistenceService);
-        StandardPeerManager peerManager = new StandardPeerManager(
+        PeerManager peerManager = new PeerManager(
                 1,
                 4,
                 3600000,// 1 hour
