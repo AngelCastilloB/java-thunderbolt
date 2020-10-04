@@ -270,7 +270,6 @@ public class Block implements ISerializable
 
             for (Transaction transaction : m_transactions)
                 data.write(transaction.serialize());
-
         }
         catch (IOException e)
         {
