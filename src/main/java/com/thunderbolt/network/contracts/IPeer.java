@@ -125,6 +125,13 @@ public interface IPeer
     TimeSpan getInactiveTime();
 
     /**
+     * Gets the time elapsed since we sent a message to this peer.
+     *
+     * @return The time elapsed since we sent a message to this peer.
+     */
+    TimeSpan getLastOutgoingTime();
+
+    /**
      * Gets whether this peer has successfully cleared the handshake phase.
      *
      * @return true if it has handshake, otherwise; false.

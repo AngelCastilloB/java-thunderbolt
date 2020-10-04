@@ -100,7 +100,8 @@ public class Main
         StandardPeerManager peerManager = new StandardPeerManager(
                 1,
                 4,
-                1800000, // 30 minutes
+                3600000,// 1 hour
+                1200000, // 20 minutes
                 discoverer,
                 NetworkParameters.mainNet(),
                 addressPool);

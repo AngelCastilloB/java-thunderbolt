@@ -69,6 +69,7 @@ public class StandardPeerManager implements IPeerManager
     private Thread              m_listenThread    = null;
     private boolean             m_isRunning       = false;
     private long                m_maxInactiveTime = 0;
+    private long                m_heartbeatTime   = 0;
     private int                 m_minInitialPeers = 0;
     private int                 m_maxPeers        = 0;
     private IPeerDiscoverer     m_peerDiscoverer  = null;
@@ -84,6 +85,7 @@ public class StandardPeerManager implements IPeerManager
      * @param minInitialPeers The minimum amount of peers we must connect during bootstrap.
      * @param maxPeers The maximum amount of peers we are allow to be connected at the same time.
      * @param inactiveTime The time the peer is allowed to remain inactive before being disconnected.
+     * @param heartbeatTime The time in ms of every heartbeat signal. This signal si send so peers wont disconnect us.
      * @param discoverer The strategy for peers for bootstrap.
      * @param params The network parameters.
      * @param addressPool A pool of known addresses of peers.
@@ -92,6 +94,7 @@ public class StandardPeerManager implements IPeerManager
             int minInitialPeers,
             int maxPeers,
             long inactiveTime,
+            long heartbeatTime,
             IPeerDiscoverer discoverer,
             NetworkParameters params,
             INetworkAddressPool addressPool)
@@ -102,6 +105,7 @@ public class StandardPeerManager implements IPeerManager
         m_peerDiscoverer = discoverer;
         m_params = params;
         m_addressPool = addressPool;
+        m_heartbeatTime = heartbeatTime;
     }
 
     /**
@@ -265,6 +269,7 @@ public class StandardPeerManager implements IPeerManager
             removeInactive();
             connectNewPeers();
             updatePeerAddressPool();
+            sendHeartbeatTime();
         }
     }
 
@@ -424,6 +429,18 @@ public class StandardPeerManager implements IPeerManager
                     e.printStackTrace();
                 }
             }
+        }
+    }
+
+    /**
+     * Sends a heartbeat message to the peer, if enough time has elapsed.
+     */
+    void sendHeartbeatTime()
+    {
+        for (IPeer peer : m_peers)
+        {
+            if (peer.getLastOutgoingTime().getTotalMilliseconds() > m_heartbeatTime)
+                peer.sendMessage(ProtocolMessageFactory.createPingMessage(peer));
         }
     }
 

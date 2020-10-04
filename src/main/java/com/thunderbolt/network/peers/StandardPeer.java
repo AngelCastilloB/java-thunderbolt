@@ -41,8 +41,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.security.KeyPair;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -66,6 +64,7 @@ public class StandardPeer implements IPeer
     private int                             m_banScore         = 0;
     private boolean                         m_isInbound        = false;
     private final Stopwatch                 m_watch            = new Stopwatch();
+    private final Stopwatch                 m_outgoingWatch    = new Stopwatch();
     private boolean                         m_pongPending      = false;
     private boolean                         m_clearedHandshake = false;
     private int                             m_protocolVersion  = 0;
@@ -91,12 +90,10 @@ public class StandardPeer implements IPeer
         m_isInbound = isInbound;
 
         // Add ourselves to the known address to avoid receiving our own address at broadcasts.
-        NetworkAddress address = new NetworkAddress();
-        address.setAddress(m_socket.getInetAddress());
-        address.setPort(m_socket.getPort());
-        m_knownAddresses.add(address);
+        clearKnownAddresses();
 
         m_watch.restart();
+        m_outgoingWatch.restart();
     }
 
     /**
@@ -231,6 +228,16 @@ public class StandardPeer implements IPeer
     public TimeSpan getInactiveTime()
     {
         return m_watch.getElapsedTime();
+    }
+
+    /**
+     * Gets the time elapsed since we sent a message to this peer.
+     *
+     * @return The time elapsed since we sent a message to this peer.
+     */
+    public TimeSpan getLastOutgoingTime()
+    {
+        return m_outgoingWatch.getElapsedTime();
     }
 
     /**
@@ -463,6 +470,7 @@ public class StandardPeer implements IPeer
 
         synchronized (m_outStream)
         {
+            m_outgoingWatch.restart();
             s_logger.debug("Sending message {} to peer {}", message.getMessageType(), this);
             m_outStream.write(message.serialize());
         }
@@ -509,5 +517,11 @@ public class StandardPeer implements IPeer
     public void clearKnownAddresses()
     {
         m_knownAddresses.clear();
+
+        // Add ourselves to the known address to avoid receiving our own address at broadcasts.
+        NetworkAddress address = new NetworkAddress();
+        address.setAddress(m_socket.getInetAddress());
+        address.setPort(m_socket.getPort());
+        m_knownAddresses.add(address);
     }
 }
