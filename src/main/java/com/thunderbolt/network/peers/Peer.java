@@ -50,7 +50,8 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 public class Peer
 {
-    private static final int PONG_TIMEOUT = 60000;
+    private static final int PONG_TIMEOUT    = 60000;
+    private static final int BAN_SCORE_LIMIT = 100;
 
     private static final Logger s_logger = LoggerFactory.getLogger(Peer.class);
 
@@ -168,6 +169,16 @@ public class Peer
     public void setBanScore(int score)
     {
         m_banScore = score;
+    }
+
+    /**
+     * Gets whether the peer is banned or not.
+     *
+     * @return True if the peer is banned; otherwise; false.
+     */
+    public boolean isBanned()
+    {
+        return m_banScore >= BAN_SCORE_LIMIT;
     }
 
     /**

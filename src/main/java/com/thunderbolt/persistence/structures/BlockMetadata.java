@@ -54,6 +54,7 @@ public class BlockMetadata implements ISerializable
     private long        m_blockOffset;
     private int         m_revertSegment;
     private long        m_revertOffset;
+    private Sha256Hash  m_hash;
 
     /**
      * Creates a new instance of the BlockMetadata class.
@@ -78,6 +79,9 @@ public class BlockMetadata implements ISerializable
         m_blockOffset      = buffer.getLong();
         m_revertSegment    = buffer.getInt();
         m_revertOffset     = buffer.getLong();
+
+        // We precalculate this once, so we don't calculate the hash everytime we read it.
+        m_hash = m_header.getHash();
     }
 
     /**
@@ -97,7 +101,7 @@ public class BlockMetadata implements ISerializable
      */
     public Sha256Hash getHash()
     {
-        return m_header.getHash();
+        return m_hash;
     }
 
     /**
@@ -118,6 +122,9 @@ public class BlockMetadata implements ISerializable
     public void setHeader(BlockHeader header)
     {
         m_header = header;
+
+        // We precalculate this once, so we don't calculate the hash everytime we read it.
+        m_hash = m_header.getHash();
     }
 
     /**
@@ -325,7 +332,7 @@ public class BlockMetadata implements ISerializable
 
         BlockMetadata otherMetadata = (BlockMetadata)other;
 
-        return otherMetadata.m_header.equals(this.m_header);
+        return otherMetadata.m_hash.equals(this.m_hash);
     }
 
     /**

@@ -27,6 +27,7 @@ package com.thunderbolt.network;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.blockchain.Block;
+import com.thunderbolt.blockchain.BlockHeader;
 import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.common.TimeSpan;
@@ -43,15 +44,14 @@ import com.thunderbolt.persistence.contracts.INetworkAddressPool;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
+import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.Transaction;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -77,6 +77,12 @@ public class Node
     private final PeerManager              m_peerManager;
     private NetworkAddress                 m_publicAddress      = null;
     private final Stopwatch                m_addressBroadcastCd = new Stopwatch();
+
+    // Use during initial block download.
+    private boolean                        m_isInitialDownload   = false;
+    private Peer                           m_initialSyncingPeer  = null;
+    private List<BlockHeader>              m_blockIndex          = new LinkedList<>();
+    private Stopwatch                      m_elapsedSinceRequest = new Stopwatch();
 
     /**
      * Initializes a new instance of the Node class.
@@ -108,6 +114,7 @@ public class Node
             return;
 
         m_isRunning = false;
+        m_isInitialDownload = false;
 
         s_logger.debug("Please wait while the node shuts down");
         m_peerManager.stop();
@@ -119,6 +126,7 @@ public class Node
     public void run()
     {
         m_isRunning = true;
+        m_isInitialDownload = true;
         m_peerManager.allowInboundConnections();
         m_addressBroadcastCd.start();
 
@@ -264,7 +272,10 @@ public class Node
                 
                 if (!weAreServer)
                 {
-                    peer.sendMessage(ProtocolMessageFactory.createAddressMessage(m_publicAddress));
+                    // We don't want to advertise ourselves until we sync with the network.
+                    if (!m_isInitialDownload)
+                        peer.sendMessage(ProtocolMessageFactory.createAddressMessage(m_publicAddress));
+
                     peer.sendMessage(ProtocolMessageFactory.createGetAddressMessage());
                 }
                 break;
@@ -368,7 +379,85 @@ public class Node
 
                 peer.sendMessage(addressMessage);
                 break;
+            case Headers:
 
+                if (!peer.hasClearedHandshake())
+                {
+                    peer.addBanScore(1);
+                    return;
+                }
+
+                if (m_isInitialDownload && !peer.isSyncing())
+                    return;
+
+                HeadersPayload headersPayload = null;
+                try
+                {
+                    headersPayload = new HeadersPayload(message.getPayload());
+                }
+                catch (ProtocolException e)
+                {
+                    e.printStackTrace();
+                    peer.addBanScore(10);
+
+                    // If we are syncing headers with this peer and he breaks protocol, disconnect immediately.
+                    if (m_isInitialDownload && peer.isSyncing())
+                        peer.disconnect();
+
+                    return;
+                }
+
+                if (headersPayload.getHeaders().size() == 2000)
+                {
+                    // Check is all headers are in order and connect.
+                    for (BlockHeader header: headersPayload.getHeaders())
+                    {
+                        // If the header does not connect with its parent we ban the peer.
+                        if (!header.getParentBlockHash().equals(m_blockIndex.get(m_blockIndex.size() - 1).getHash()))
+                        {
+                            if (peer.isSyncing())
+                            {
+                                s_logger.debug("Invalid header sent. Stopping sync with this peer.");
+                                peer.setBanScore(100);
+                                peer.disconnect();
+
+                                m_initialSyncingPeer = null;
+                                return;
+                            }
+                            else
+                            {
+                                // Request headers from this peer.
+                            }
+                        }
+
+                        m_blockIndex.add(header);
+                    }
+
+
+                    peer.sendMessage(ProtocolMessageFactory.createGetHeadersMessage(
+                            m_blockIndex.get(m_blockIndex.size() - 1),
+                            new Sha256Hash()));
+                    m_elapsedSinceRequest.restart();
+                }
+                else
+                {
+                    if (m_isInitialDownload && peer.isSyncing())
+                    {
+                        peer.setIsSyncing(false);
+                        s_logger.debug(
+                                "Finish downloading headers from peer {}, total headers downloaded {}, last header {}",
+                                peer,
+                                m_blockIndex.size(),
+                                m_blockIndex.get(m_blockIndex.size() - 1).getHash().toString());
+
+                        m_isInitialDownload = false;
+                        m_elapsedSinceRequest.stop();
+
+                        for (BlockHeader header : m_blockIndex)
+                            s_logger.debug(header.toString());
+                    }
+                }
+                break;
             case GetBlocks:
                 if (!peer.hasClearedHandshake())
                 {
@@ -473,9 +562,39 @@ public class Node
         boolean restartBroadcastTimer = false;
         Iterator<Peer> it = m_peerManager.getPeers();
 
+        if (m_initialSyncingPeer != null &&
+                (!m_initialSyncingPeer.isConnected() || m_elapsedSinceRequest.getElapsedTime().getTotalMinutes() > 1))
+        {
+            m_initialSyncingPeer = null;
+            m_elapsedSinceRequest.stop();
+        }
+
         while (it.hasNext())
         {
             Peer peer = it.next();
+
+            // We check here in case the peer manager is in the process of removing this peer.
+            if (!peer.isConnected() || peer.isBanned())
+                continue;
+
+            // If we are during initial download and we haven't sync our headers to the tip, we are going
+            // to chose the first outbound connection to a peer that has already cleared the handshake.
+            if (m_isInitialDownload && m_initialSyncingPeer == null && !peer.isClient() && peer.hasClearedHandshake())
+            {
+                // If we are during initial download and are not syncing, start syncing with the first peer
+                // we find.
+                m_initialSyncingPeer = peer;
+                peer.setIsSyncing(true);
+                peer.sendMessage(ProtocolMessageFactory.createGetHeadersMessage(
+                        m_blockchain.getChainHead().getHeader(),
+                        new Sha256Hash()));
+
+                m_elapsedSinceRequest.restart();
+
+                // If we fail to sync headers with the previous node, we need to start from scratch.
+                m_blockIndex.clear();
+                m_blockIndex.add(m_blockchain.getChainHead().getHeader());
+            }
 
             // Send queue addresses.
             if (peer.getQueuedAddresses().size() > 0)
@@ -487,7 +606,8 @@ public class Node
 
             // If 24 hours pass, we are going to broadcast our public address to all connected peers and
             // ask then to relay to other peers. We are also going to clear all their known addresses.
-            if (m_addressBroadcastCd.getElapsedTime().getTotalHours() > RELAY_PUBLIC_ADDRESS_TIME)
+            if (m_addressBroadcastCd.getElapsedTime().getTotalHours() > RELAY_PUBLIC_ADDRESS_TIME
+                    && !m_isInitialDownload) // We don't advertise our address during initial download.
             {
                 restartBroadcastTimer = true;
                 peer.sendMessage(ProtocolMessageFactory.createAddressMessage(m_publicAddress));

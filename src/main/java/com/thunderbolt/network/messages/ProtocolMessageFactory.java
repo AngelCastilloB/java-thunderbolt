@@ -27,6 +27,7 @@ package com.thunderbolt.network.messages;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.blockchain.Block;
+import com.thunderbolt.blockchain.BlockHeader;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.messages.payloads.*;
@@ -225,7 +226,7 @@ public class ProtocolMessageFactory
      */
     public static ProtocolMessage createGetBlocksMessage(BlockMetadata headblock, Sha256Hash stopHash, long nonce)
     {
-        List<Sha256Hash> hashes = getBlockLocator(headblock);
+        List<Sha256Hash> hashes = getBlockLocator(headblock.getHeader());
 
         ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
         message.setMessageType(MessageType.GetBlocks);
@@ -243,6 +244,32 @@ public class ProtocolMessageFactory
         return message;
     }
 
+    /**
+     * Creates the GetHeaders message.
+     *
+     * @param headblock The head block up to where we want to sync.
+     * @param stopHash The hash where to stop, or zero for all the way to the genesis.
+     *
+     * @return The get headers message.
+     */
+    public static ProtocolMessage createGetHeadersMessage(BlockHeader headblock, Sha256Hash stopHash)
+    {
+        List<Sha256Hash> hashes = getBlockLocator(headblock);
+
+        ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
+        message.setMessageType(MessageType.GetHeaders);
+
+        GetHeadersPayload payload = new GetHeadersPayload();
+
+        payload.setBlockLocatorHashes(hashes);
+        payload.setVersion(m_params.getProtocol());
+        payload.setHashToStop(stopHash);
+        message.setPayload(payload);
+
+        message.setPayload(payload);
+
+        return message;
+    }
 
     /**
      * Creates a get data message.
@@ -401,7 +428,7 @@ public class ProtocolMessageFactory
      *
      * @return The list of hashes for the block locator object.
      */
-    private static List<Sha256Hash> getBlockLocator(BlockMetadata head)
+    private static List<Sha256Hash> getBlockLocator(BlockHeader head)
     {
         List<Sha256Hash> headers = new ArrayList<>();
 
@@ -414,7 +441,7 @@ public class ProtocolMessageFactory
         if (head.getHash().equals(m_params.getGenesisBlock().getHeaderHash()))
             return headers;
 
-        BlockMetadata nextBlock = head;
+        BlockHeader nextBlock = head;
 
         boolean arriveAtGenesis = false;
         while (!arriveAtGenesis)
@@ -423,9 +450,11 @@ public class ProtocolMessageFactory
             if (headers.size() >= 10)
                 step *= 2;
 
+            BlockMetadata metadata = null;
             for (int i = 0; i < step; ++i)
             {
-                nextBlock = s_persistenceService.getBlockMetadata(nextBlock.getHeader().getParentBlockHash());
+                metadata = s_persistenceService.getBlockMetadata(nextBlock.getParentBlockHash());
+                nextBlock = metadata.getHeader();
 
                 if (nextBlock.getHash().equals(m_params.getGenesisBlock().getHeaderHash()))
                 {
@@ -434,7 +463,7 @@ public class ProtocolMessageFactory
                 }
             }
 
-            s_logger.debug("Added block at: {}", nextBlock.getHeight());
+            s_logger.debug("Added block at: {}", metadata.getHeight());
             headers.add(nextBlock.getHash());
         }
 

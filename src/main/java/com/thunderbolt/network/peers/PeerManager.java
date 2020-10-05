@@ -57,7 +57,6 @@ public class PeerManager
     private static final int PING_TIMEOUT       = 1000;
     private static final int CLEAN_INTERVAL     = 10; // minutes
     private static final int NEW_PEERS_INTERVAL = 1;  // minutes
-    private static final int BAN_SCORE_LIMIT    = 100;
     private static final int CONNECT_TIMEOUT    = 100; //ms
 
     private static final Logger s_logger = LoggerFactory.getLogger(PeerManager.class);
@@ -388,7 +387,7 @@ public class PeerManager
                 disconnect = true;
             }
 
-            if (disconnect || peer.getBanScore() >= BAN_SCORE_LIMIT)
+            if (disconnect || peer.isBanned())
             {
                 peer.disconnect();
                 it.remove();
@@ -415,7 +414,7 @@ public class PeerManager
             metadata.setBanScore(peer.getBanScore());
 
             // If peer reached ban score limit, we place a 24 hours ban on the peer.
-            if (peer.getBanScore() >= BAN_SCORE_LIMIT)
+            if (peer.isBanned())
             {
                 s_logger.info("Peer {} is banned for misbehaving.", metadata);
                 metadata.setIsBanned(true);

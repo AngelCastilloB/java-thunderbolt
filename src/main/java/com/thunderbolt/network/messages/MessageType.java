@@ -23,9 +23,6 @@
  */
 
 package com.thunderbolt.network.messages;
-/* IMPORTS *******************************************************************/
-
-import com.thunderbolt.transaction.OutputLockType;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -76,12 +73,18 @@ public enum MessageType
     GetBlocks((short)0x06),
 
     /**
+     * Return a headers packet containing the headers of blocks starting right after the last known hash in the block
+     * locator object, up to hash_stop or 2000 blocks, whichever comes first.
+     */
+    GetHeaders((short)0x07),
+
+    /**
      * Allows a node to advertise its knowledge of one or more objects. It can be received unsolicited, or in reply
      * to getblocks.
      *
      * Payload (maximum 50,000 entries, which is just over 1.8 megabytes):
      */
-    Inventory((short)0x07),
+    Inventory((short)0x08),
 
     /**
      * getdata is used in response to inv, to retrieve the content of a specific object, and is usually sent after
@@ -89,24 +92,29 @@ public enum MessageType
      * if they are in the memory pool or relay set - arbitrary access to transactions in the chain is not allowed
      * to avoid having clients start to depend on nodes having full transaction indexes (which modern nodes do not).
      */
-    GetData((short)0x08),
+    GetData((short)0x09),
 
     /**
      * The block message is sent in response to a getdata message which requests transaction information
      * from a block hash.
      */
-    Block((short)0x09),
+    Block((short)0x0A),
+
+    /**
+     * The headers packet returns block headers in response to a getheaders packet.
+     */
+    Headers((short)0x0B),
 
     /**
      * tx describes a bitcoin transaction, in reply to getdata.
      */
-    Transaction((short)0x0A),
+    Transaction((short)0x0C),
 
     /**
      * is a response to a getdata, sent if any requested data items could not be relayed, for example,
-     * because the requested transaction was not in the memory pool or relay set..
+     * because the requested transaction was not in the memory pool or relay set.
      */
-    NotFound((short)0x0B);
+    NotFound((short)0x0D);
 
     // Instance fields.
     private final short m_value;
@@ -134,12 +142,12 @@ public enum MessageType
     /**
      * Gets an enum value from a byte.
      *
-     * @param value The byte to be casted.
+     * @param value The short to be casted.
      *
      * @return The enum value.
      */
     static public MessageType from(short value)
     {
-        return MessageType.values()[value & 0xFFFF];
+        return MessageType.values()[value];
     }
 }

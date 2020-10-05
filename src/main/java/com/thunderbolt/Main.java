@@ -106,19 +106,11 @@ public class Main
                 NetworkParameters.mainNet(),
                 addressPool);
 
-        IInitialBlockDownloader downloader =
-                new StandardInitialBlockDownloader(peerManager, blockchain, NetworkParameters.mainNet());
-
         if (!peerManager.start())
         {
             s_logger.debug("The peer manager could not be started. The node will shutdown");
             return;
         }
-
-        boolean synced = downloader.synchronize();
-
-        if (!synced)
-            s_logger.warn("There was a problem during the synchronization phase.");
 
         Node node = new Node(NetworkParameters.mainNet(), blockchain, memPool, peerManager, persistenceService);
         node.run();
