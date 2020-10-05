@@ -33,6 +33,7 @@ import com.thunderbolt.network.ProtocolException;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import com.thunderbolt.network.messages.structures.NetworkAddress;
 import com.thunderbolt.network.messages.structures.TimestampedNetworkAddress;
+import com.thunderbolt.security.Sha256Hash;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,6 +74,7 @@ public class Peer
     private final Map<Long, Stopwatch>            m_pongNonces       = new HashMap<>();
     private boolean                               m_isSyncing        = false;
     private long                                  m_knownBlockHeight = 0;
+    private Sha256Hash                            m_bestKnownBlock   = new Sha256Hash();
 
     /**
      * Creates a connection with a given peer.
@@ -529,6 +531,26 @@ public class Peer
         address.setAddress(m_socket.getInetAddress());
         address.setPort(m_socket.getPort());
         m_knownAddresses.add(address);
+    }
+
+    /**
+     * Sets the best known block of this peer.
+     *
+     * @param bestKnownBlock The best known block.
+     */
+    public void setBestKnownBlock(Sha256Hash bestKnownBlock)
+    {
+        m_bestKnownBlock = bestKnownBlock;
+    }
+
+    /**
+     * Gets the best known block of this peer.
+     *
+     * @return The best known block.
+     */
+    public Sha256Hash getBestKnownBlock()
+    {
+        return m_bestKnownBlock;
     }
 
     /**

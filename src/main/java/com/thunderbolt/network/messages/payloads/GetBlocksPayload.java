@@ -45,7 +45,6 @@ import java.util.List;
 public class GetBlocksPayload implements ISerializable
 {
     private int              m_version            = 0;
-    private long             m_nonce              = 0;
     private List<Sha256Hash> m_blockLocatorHashes = new ArrayList<>();
     private Sha256Hash       m_hashToStop         = null;
 
@@ -64,7 +63,6 @@ public class GetBlocksPayload implements ISerializable
     public GetBlocksPayload(ByteBuffer buffer)
     {
         setVersion(buffer.getInt());
-        setNonce(buffer.getLong());
         long entryCount = buffer.getInt() & 0xFFFFFFFFL;
 
         for (int i = 0; i < entryCount; ++i)
@@ -96,7 +94,6 @@ public class GetBlocksPayload implements ISerializable
         try
         {
             data.write(NumberSerializer.serialize(getVersion()));
-            data.write(NumberSerializer.serialize(getNonce()));
             data.write(NumberSerializer.serialize(getBlockLocatorHashes().size()));
 
             for (Sha256Hash hash: getBlockLocatorHashes())
@@ -170,25 +167,5 @@ public class GetBlocksPayload implements ISerializable
     public void setHashToStop(Sha256Hash hashToStop)
     {
         m_hashToStop = hashToStop;
-    }
-
-    /**
-     * Gets the nonce value of this message.
-     *
-     * @return The nonce value.
-     */
-    public long getNonce()
-    {
-        return m_nonce;
-    }
-
-    /**
-     * Sets the nonce value of this message.
-     *
-     * @param nonce The nonce value.
-     */
-    public void setNonce(long nonce)
-    {
-        m_nonce = nonce;
     }
 }

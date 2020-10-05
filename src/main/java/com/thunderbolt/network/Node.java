@@ -65,6 +65,7 @@ public class Node
     private static final int MAX_GET_ADDRESS_RESPONSE  = 1000;
     private static final int RELAY_ADDRESS_LIMIT       = 2;
     private static final int RELAY_PUBLIC_ADDRESS_TIME = 24; //hours
+    private static final int BLOCK_DOWNLOAD_WINDOW     = 1024;
 
     private static final Logger s_logger = LoggerFactory.getLogger(Node.class);
 
@@ -79,10 +80,9 @@ public class Node
     private final Stopwatch                m_addressBroadcastCd = new Stopwatch();
 
     // Use during initial block download.
-    private boolean                        m_isInitialDownload   = false;
-    private Peer                           m_initialSyncingPeer  = null;
-    private List<BlockHeader>              m_blockIndex          = new LinkedList<>();
-    private Stopwatch                      m_elapsedSinceRequest = new Stopwatch();
+    private boolean   m_isInitialDownload   = false;
+    private Peer      m_initialSyncingPeer  = null;
+    private Stopwatch m_elapsedSinceRequest = new Stopwatch();
 
     /**
      * Initializes a new instance of the Node class.
@@ -379,85 +379,6 @@ public class Node
 
                 peer.sendMessage(addressMessage);
                 break;
-            case Headers:
-
-                if (!peer.hasClearedHandshake())
-                {
-                    peer.addBanScore(1);
-                    return;
-                }
-
-                if (m_isInitialDownload && !peer.isSyncing())
-                    return;
-
-                HeadersPayload headersPayload = null;
-                try
-                {
-                    headersPayload = new HeadersPayload(message.getPayload());
-                }
-                catch (ProtocolException e)
-                {
-                    e.printStackTrace();
-                    peer.addBanScore(10);
-
-                    // If we are syncing headers with this peer and he breaks protocol, disconnect immediately.
-                    if (m_isInitialDownload && peer.isSyncing())
-                        peer.disconnect();
-
-                    return;
-                }
-
-                if (headersPayload.getHeaders().size() == 2000)
-                {
-                    // Check is all headers are in order and connect.
-                    for (BlockHeader header: headersPayload.getHeaders())
-                    {
-                        // If the header does not connect with its parent we ban the peer.
-                        if (!header.getParentBlockHash().equals(m_blockIndex.get(m_blockIndex.size() - 1).getHash()))
-                        {
-                            if (peer.isSyncing())
-                            {
-                                s_logger.debug("Invalid header sent. Stopping sync with this peer.");
-                                peer.setBanScore(100);
-                                peer.disconnect();
-
-                                m_initialSyncingPeer = null;
-                                return;
-                            }
-                            else
-                            {
-                                // Request headers from this peer.
-                            }
-                        }
-
-                        m_blockIndex.add(header);
-                    }
-
-
-                    peer.sendMessage(ProtocolMessageFactory.createGetHeadersMessage(
-                            m_blockIndex.get(m_blockIndex.size() - 1),
-                            new Sha256Hash()));
-                    m_elapsedSinceRequest.restart();
-                }
-                else
-                {
-                    if (m_isInitialDownload && peer.isSyncing())
-                    {
-                        peer.setIsSyncing(false);
-                        s_logger.debug(
-                                "Finish downloading headers from peer {}, total headers downloaded {}, last header {}",
-                                peer,
-                                m_blockIndex.size(),
-                                m_blockIndex.get(m_blockIndex.size() - 1).getHash().toString());
-
-                        m_isInitialDownload = false;
-                        m_elapsedSinceRequest.stop();
-
-                        for (BlockHeader header : m_blockIndex)
-                            s_logger.debug(header.toString());
-                    }
-                }
-                break;
             case GetBlocks:
                 if (!peer.hasClearedHandshake())
                 {
@@ -465,10 +386,56 @@ public class Node
                     return;
                 }
 
-                // Reply the peer with the inventory of the blocks he is missing.
-                GetBlocksPayload getBlocksPayload = new GetBlocksPayload(message.getPayload());
-                peer.sendMessage(ProtocolMessageFactory
-                        .createGetBlockReply(getBlocksPayload.getBlockLocatorHashes(), getBlocksPayload.getNonce()));
+                if (m_isInitialDownload)
+                    return;
+
+                try
+                {
+                    // Reply the peer with the blocks he is missing.
+                    GetBlocksPayload getBlocksPayload = new GetBlocksPayload(message.getPayload());
+
+                    peer.sendMessage(ProtocolMessageFactory
+                            .createBulkBlocksMessage(getBlocksPayload.getBlockLocatorHashes()));
+                }
+                catch (StorageException e)
+                {
+                    s_logger.error("There was an error while retrieving the item: ", e);
+                }
+
+                break;
+            case BulkBlocks:
+                if (!peer.hasClearedHandshake())
+                {
+                    peer.addBanScore(1);
+                    return;
+                }
+
+                if (m_isInitialDownload && !peer.isSyncing())
+                {
+                    peer.addBanScore(10);
+                    return;
+                }
+
+                try
+                {
+                    // Reply the peer with the blocks he is missing.
+                    BulkBlocksPayload bulkBlocksPayload = new BulkBlocksPayload(message.getPayload());
+
+                    for (Block block: bulkBlocksPayload.getBlocks())
+                    {
+                        boolean wasBlockAdded = m_blockchain.add(block);
+
+                        if (!wasBlockAdded)
+                        {
+                            s_logger.debug("Invalid block send by peer {}, stopping sync.", peer);
+                            peer.disconnect();
+                        }
+                    }
+                }
+                catch (StorageException | ProtocolException e)
+                {
+                    s_logger.error("There was an error while retrieving the item: ", e);
+                }
 
                 break;
             case GetData:
@@ -477,6 +444,9 @@ public class Node
                     peer.addBanScore(1);
                     return;
                 }
+
+                if (m_isInitialDownload)
+                    return;
 
                 InventoryPayload getDataPayload = new InventoryPayload(message.getPayload());
 
@@ -563,8 +533,10 @@ public class Node
         Iterator<Peer> it = m_peerManager.getPeers();
 
         if (m_initialSyncingPeer != null &&
-                (!m_initialSyncingPeer.isConnected() || m_elapsedSinceRequest.getElapsedTime().getTotalMinutes() > 1))
+                (!m_initialSyncingPeer.isConnected() || m_elapsedSinceRequest.getElapsedTime().getTotalMinutes() > 2))
         {
+            // Disconnect peer if stalling for more than two minutes.
+            m_initialSyncingPeer.disconnect();
             m_initialSyncingPeer = null;
             m_elapsedSinceRequest.stop();
         }
@@ -585,15 +557,11 @@ public class Node
                 // we find.
                 m_initialSyncingPeer = peer;
                 peer.setIsSyncing(true);
-                peer.sendMessage(ProtocolMessageFactory.createGetHeadersMessage(
-                        m_blockchain.getChainHead().getHeader(),
+                peer.sendMessage(ProtocolMessageFactory.createGetBlocksMessage(
+                        m_blockchain.getChainHead(),
                         new Sha256Hash()));
 
                 m_elapsedSinceRequest.restart();
-
-                // If we fail to sync headers with the previous node, we need to start from scratch.
-                m_blockIndex.clear();
-                m_blockIndex.add(m_blockchain.getChainHead().getHeader());
             }
 
             // Send queue addresses.

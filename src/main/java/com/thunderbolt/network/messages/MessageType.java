@@ -67,7 +67,7 @@ public enum MessageType
     GetAddress((short)0x05),
 
     /**
-     * Return an inv packet containing the list of blocks starting right after the last known hash in the block
+     * Return a packet containing the list of blocks starting right after the last known hash in the block
      * locator object, up to hash_stop or 500 blocks, whichever comes first.
      */
     GetBlocks((short)0x06),
@@ -95,26 +95,32 @@ public enum MessageType
     GetData((short)0x09),
 
     /**
-     * The block message is sent in response to a getdata message which requests transaction information
-     * from a block hash.
+     * The block message is sent in response to a get blocks message which requests blocks from a given point
+     * in the chain. All the blocks in this message are guaranteed to connect from the first to the last block.
      */
-    Block((short)0x0A),
+    BulkBlocks((short)0x0A),
+
+    /**
+     * The block message is sent in response to a get blocks message which requests blocks from a given point
+     * in the chain. All the blocks in this message are guaranteed to connect from the first to the last block.
+     */
+    Block((short)0x0B),
 
     /**
      * The headers packet returns block headers in response to a getheaders packet.
      */
-    Headers((short)0x0B),
+    Headers((short)0x0C),
 
     /**
      * tx describes a bitcoin transaction, in reply to getdata.
      */
-    Transaction((short)0x0C),
+    Transaction((short)0x0D),
 
     /**
      * is a response to a getdata, sent if any requested data items could not be relayed, for example,
      * because the requested transaction was not in the memory pool or relay set.
      */
-    NotFound((short)0x0D);
+    NotFound((short)0x0E);
 
     // Instance fields.
     private final short m_value;

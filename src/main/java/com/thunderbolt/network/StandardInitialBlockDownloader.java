@@ -299,11 +299,6 @@ public class StandardInitialBlockDownloader implements IInitialBlockDownloader
                 if (!weAreServer)
                     peer.sendMessage(ProtocolMessageFactory.createGetAddressMessage());
 
-                if (peer.isSyncing())
-                {
-                    peer.sendMessage(ProtocolMessageFactory
-                            .createGetBlocksMessage(m_blockchain.getChainHead(), new Sha256Hash(), m_currentNonce));
-                }
                 break;
             case Address:
                 try
@@ -399,8 +394,8 @@ public class StandardInitialBlockDownloader implements IInitialBlockDownloader
                     if (invPayload.getItems().size() == 500 &&
                             m_blockchain.getChainHead().getHeight() != peer.getKnownBlockHeight())
                     {
-                        peer.sendMessage(ProtocolMessageFactory
-                                .createGetBlocksMessage(m_blockchain.getChainHead(), new Sha256Hash(), m_currentNonce));
+                       // peer.sendMessage(ProtocolMessageFactory
+                       //         .createGetBlocksMessage(m_blockchain.getChainHead(), new Sha256Hash(), m_currentNonce));
                     }
                     else
                     {
