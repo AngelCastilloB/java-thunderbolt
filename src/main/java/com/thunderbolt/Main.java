@@ -32,8 +32,6 @@ import com.thunderbolt.blockchain.contracts.IBlockchainCommitter;
 import com.thunderbolt.network.Node;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.ProtocolException;
-import com.thunderbolt.network.StandardInitialBlockDownloader;
-import com.thunderbolt.network.contracts.IInitialBlockDownloader;
 import com.thunderbolt.network.contracts.IPeerDiscoverer;
 import com.thunderbolt.network.discovery.StandardPeerDiscoverer;
 import com.thunderbolt.network.messages.ProtocolMessageFactory;

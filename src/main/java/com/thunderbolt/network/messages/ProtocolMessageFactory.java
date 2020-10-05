@@ -507,7 +507,6 @@ public class ProtocolMessageFactory
                 }
             }
 
-            s_logger.debug("Added block at: {}", metadata.getHeight());
             headers.add(nextBlock.getHash());
         }
 
