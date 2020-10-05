@@ -386,9 +386,6 @@ public class Node
                     return;
                 }
 
-                if (m_isInitialDownload)
-                    return;
-
                 try
                 {
                     // Reply the peer with the blocks he is missing.
@@ -430,6 +427,21 @@ public class Node
                             s_logger.debug("Invalid block send by peer {}, stopping sync.", peer);
                             peer.disconnect();
                         }
+                    }
+
+                    if (bulkBlocksPayload.getBlocks().size() == 500)
+                    {
+                        peer.sendMessage(ProtocolMessageFactory.createGetBlocksMessage(
+                                m_blockchain.getChainHead(),
+                                new Sha256Hash()));
+                    }
+                    else
+                    {
+                        m_isInitialDownload = false;
+                        m_initialSyncingPeer = null;
+                        peer.setIsSyncing(false);
+
+                        s_logger.debug("Initial block download is over. Current tip {}", m_blockchain.getChainHead());
                     }
                 }
                 catch (StorageException | ProtocolException e)

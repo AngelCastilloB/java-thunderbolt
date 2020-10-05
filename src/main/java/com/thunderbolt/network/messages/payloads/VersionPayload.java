@@ -42,8 +42,6 @@ import java.nio.ByteBuffer;
  */
 public class VersionPayload implements ISerializable
 {
-    private static final int NETWORK_ADDRESS_SIZE = 18;
-
     private int            m_version     = 0;
     private NodeServices   m_services    = NodeServices.Network;
     private long           m_timestamp   = 0;
