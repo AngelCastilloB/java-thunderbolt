@@ -72,11 +72,9 @@ public class StandardInitialBlockDownloader implements IInitialBlockDownloader
     private NetworkAddress             m_publicAddress    = null;
     private final NetworkParameters    m_params;
     private int                        m_syncAttempts     = SYNC_ATTEMPTS;
-    private boolean                    m_waitingInbound   = true;
     private Map<String, InventoryItem> m_inboundBlocks    = new HashMap<>();
     private List<Block>                m_downloadedBlocks = new LinkedList<>();
     private long                       m_currentNonce     = new Random().nextLong();
-    private boolean                    m_lastBatch        = false;
 
     /**
      * Initialize a new instance of the StandardInitialBlockDownloader class.
@@ -117,12 +115,24 @@ public class StandardInitialBlockDownloader implements IInitialBlockDownloader
 
             if (m_syncingPeer == null || !m_syncingPeer.isConnected())
             {
+                --m_syncAttempts;
                 s_logger.debug("Sync attempt number: {}", SYNC_ATTEMPTS - m_syncAttempts);
                 s_logger.debug("Selecting a new syncing peer.");
                 m_syncingPeer = choseSyncingPeer();
 
                 if (m_syncingPeer == null)
+                {
+                    try
+                    {
+                        Thread.sleep(5000);
+                    }
+                    catch (InterruptedException e)
+                    {
+                        e.printStackTrace();
+                    }
                     continue;
+                }
+
 
                 m_syncingPeer.setIsSyncing(true);
                 s_logger.debug("Peer {} selected.", m_syncingPeer);
@@ -293,7 +303,6 @@ public class StandardInitialBlockDownloader implements IInitialBlockDownloader
                 {
                     peer.sendMessage(ProtocolMessageFactory
                             .createGetBlocksMessage(m_blockchain.getChainHead(), new Sha256Hash(), m_currentNonce));
-                    m_waitingInbound = true;
                 }
                 break;
             case Address:
@@ -384,6 +393,19 @@ public class StandardInitialBlockDownloader implements IInitialBlockDownloader
                     }
 
                     peer.sendMessage(ProtocolMessageFactory.createGetDataMessage(itemsToRequest));
+
+                    // If we keep getting 500 items inventory, and we haven't reach the known height, it means the peer have more blocks for us.
+                    // TODO: Maybe use not found.
+                    if (invPayload.getItems().size() == 500 &&
+                            m_blockchain.getChainHead().getHeight() != peer.getKnownBlockHeight())
+                    {
+                        peer.sendMessage(ProtocolMessageFactory
+                                .createGetBlocksMessage(m_blockchain.getChainHead(), new Sha256Hash(), m_currentNonce));
+                    }
+                    else
+                    {
+                        m_isSyncing = false;
+                    }
                 }
                 break;
             case Block:
@@ -408,40 +430,23 @@ public class StandardInitialBlockDownloader implements IInitialBlockDownloader
                     peer.addBanScore(100);
                 }
 
-                m_waitingInbound = m_inboundBlocks.size() > 0;
-
-                // If we already have all the block, add them to the chain.
-                if (!m_waitingInbound)
+                for (Block blockToAdd: m_downloadedBlocks)
                 {
-                    for (Block blockToAdd: m_downloadedBlocks)
+                    try
                     {
-                        try
-                        {
-                            boolean blockAdded = m_blockchain.add(blockToAdd);
+                        // check if can connect.
+                        boolean blockAdded = m_blockchain.add(blockToAdd);
 
-                            if (!blockAdded)
-                            {
-                                s_logger.debug("There was an error adding the block to our chain. Disconnecting from this peer.");
-                                peer.disconnect();
-                            }
-                        }
-                        catch (StorageException e)
+                        if (!blockAdded)
                         {
-                            s_logger.error("There was an error adding the block to our chain. Disconnecting from this peer.", e);
+                            s_logger.debug("There was an error adding the block to our chain. Disconnecting from this peer.");
                             peer.disconnect();
                         }
                     }
-
-                    if (m_downloadedBlocks.size() == 500)
+                    catch (StorageException e)
                     {
-
-                        peer.sendMessage(ProtocolMessageFactory
-                                .createGetBlocksMessage(m_blockchain.getChainHead(), new Sha256Hash(), m_currentNonce));
-                        m_waitingInbound = true;
-                    }
-                    else
-                    {
-                        m_isSyncing = false;
+                        s_logger.error("There was an error adding the block to our chain. Disconnecting from this peer.", e);
+                        peer.disconnect();
                     }
                 }
                 break;
