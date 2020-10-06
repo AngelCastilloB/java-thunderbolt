@@ -112,6 +112,19 @@ public class LevelDbMetadataProvider implements IMetadataProvider
     }
 
     /**
+     * Gets whether we already persisted a block with this header.
+     *
+     * @param sha256Hash The hash of the header of the block.
+     *
+     * @return true if we have the block; otherwise; false.
+     */
+    @Override
+    public boolean hasBlockMetadata(Sha256Hash sha256Hash)
+    {
+        return m_blocksCache.containsKey(sha256Hash.toString());
+    }
+
+    /**
      * Adds a block metadata entry to the provider.
      *
      * @param metadata The metadata to be added.

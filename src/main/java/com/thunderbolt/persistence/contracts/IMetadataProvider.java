@@ -50,6 +50,15 @@ public interface IMetadataProvider
     BlockMetadata getBlockMetadata(Sha256Hash id);
 
     /**
+     * Gets whether we already persisted a block with this header.
+     *
+     * @param sha256Hash The hash of the header of the block.
+     *
+     * @return true if we have the block; otherwise; false.
+     */
+    boolean hasBlockMetadata(Sha256Hash sha256Hash);
+
+    /**
      * Adds a block metadata entry to the provider.
      *
      * @param metadata The metadata to be added.

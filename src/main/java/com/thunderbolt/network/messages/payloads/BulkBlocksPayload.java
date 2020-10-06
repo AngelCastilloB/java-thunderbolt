@@ -69,7 +69,7 @@ public class BulkBlocksPayload implements ISerializable
     {
         int entryCount = buffer.getInt();
 
-        if (entryCount >= MAX_BLOCKS_COUNT)
+        if (entryCount > MAX_BLOCKS_COUNT)
             throw new ProtocolException(String.format("The number of blocks in this message (%s) is bigger than the limit %s",
                     entryCount, MAX_BLOCKS_COUNT));
 

@@ -144,7 +144,7 @@ public class StandardBlockchainCommitter implements IBlockchainCommitter
 
         // Update the wallets.
         for (IOutputsUpdateListener listener : m_listeners)
-            listener.outputsUpdated(newOutputs, removedOutputs);
+            listener.onOutputsUpdate(newOutputs, removedOutputs);
 
         return true;
     }
@@ -206,7 +206,7 @@ public class StandardBlockchainCommitter implements IBlockchainCommitter
 
         // Update the wallets.
         for (IOutputsUpdateListener listener : m_listeners)
-            listener.outputsUpdated(spentOutputs, removedOutputs);
+            listener.onOutputsUpdate(spentOutputs, removedOutputs);
 
         return true;
     }

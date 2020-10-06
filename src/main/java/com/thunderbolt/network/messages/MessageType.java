@@ -73,54 +73,43 @@ public enum MessageType
     GetBlocks((short)0x06),
 
     /**
-     * Return a headers packet containing the headers of blocks starting right after the last known hash in the block
-     * locator object, up to hash_stop or 2000 blocks, whichever comes first.
+     * The block message is sent in response to a get blocks message which requests blocks from a given point
+     * in the chain. All the blocks in this message are guaranteed to connect from the first to the last block.
      */
-    GetHeaders((short)0x07),
+    Blocks((short)0x07),
 
     /**
-     * Allows a node to advertise its knowledge of one or more objects. It can be received unsolicited, or in reply
-     * to getblocks.
+     * The header packet advertises a block. This message is used to advertise new blocks to the network.
+     */
+    Header((short)0x08),
+
+    /**
+     * The getUnconfirmedTransactions message sends a request to a node asking for information about transactions it has
+     * verified but which have not yet confirmed.
+     *
+     * The response to receiving this message is an KnownTransactions message containing the transaction hashes for all
+     * the transactions in the node's mempool.
+     */
+    getUnconfirmedTransactions((short)0x09),
+
+    /**
+     * Allows a node to advertise its knowledge of one or more transaction. It can be received unsolicited, or as
+     * a response to the get mempool command.
      *
      * Payload (maximum 50,000 entries, which is just over 1.8 megabytes):
      */
-    Inventory((short)0x08),
+    KnownTransactions((short)0x0A),
 
     /**
-     * getdata is used in response to inv, to retrieve the content of a specific object, and is usually sent after
-     * receiving an inv packet, after filtering known elements. It can be used to retrieve transactions, but only
-     * if they are in the memory pool or relay set - arbitrary access to transactions in the chain is not allowed
-     * to avoid having clients start to depend on nodes having full transaction indexes (which modern nodes do not).
+     * GetTransactions is used in response to KnownTransactions, to retrieve the content of a specific transactions,
+     * and is usually sent after receiving an GetTransactions packet, after filtering known elements.
      */
-    GetData((short)0x09),
+    GetTransactions((short)0x0B),
 
     /**
-     * The block message is sent in response to a get blocks message which requests blocks from a given point
-     * in the chain. All the blocks in this message are guaranteed to connect from the first to the last block.
+     * Describes a transaction, in reply to GetTransactions.
      */
-    BulkBlocks((short)0x0A),
-
-    /**
-     * The block message is sent in response to a get blocks message which requests blocks from a given point
-     * in the chain. All the blocks in this message are guaranteed to connect from the first to the last block.
-     */
-    Block((short)0x0B),
-
-    /**
-     * The headers packet returns block headers in response to a getheaders packet.
-     */
-    Headers((short)0x0C),
-
-    /**
-     * tx describes a bitcoin transaction, in reply to getdata.
-     */
-    Transaction((short)0x0D),
-
-    /**
-     * is a response to a getdata, sent if any requested data items could not be relayed, for example,
-     * because the requested transaction was not in the memory pool or relay set.
-     */
-    NotFound((short)0x0E);
+    Transaction((short)0x0C);
 
     // Instance fields.
     private final short m_value;

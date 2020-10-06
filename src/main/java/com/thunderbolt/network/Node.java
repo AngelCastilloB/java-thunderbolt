@@ -31,15 +31,17 @@ import com.thunderbolt.blockchain.BlockHeader;
 import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.common.TimeSpan;
+import com.thunderbolt.mining.MiningException;
+import com.thunderbolt.mining.StandardMiner;
+import com.thunderbolt.mining.contracts.IMiner;
 import com.thunderbolt.network.messages.payloads.*;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import com.thunderbolt.network.messages.ProtocolMessageFactory;
-import com.thunderbolt.network.messages.structures.InventoryItem;
-import com.thunderbolt.network.messages.structures.InventoryItemType;
 import com.thunderbolt.network.messages.structures.NetworkAddress;
 import com.thunderbolt.network.messages.structures.TimestampedNetworkAddress;
 import com.thunderbolt.network.peers.Peer;
 import com.thunderbolt.network.peers.PeerManager;
+import com.thunderbolt.persistence.contracts.IChainHeadUpdateListener;
 import com.thunderbolt.persistence.contracts.INetworkAddressPool;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.storage.StorageException;
@@ -58,26 +60,29 @@ import java.util.*;
 /**
  * Network node. Handles all the messages exchanges between this instance and the peers.
  */
-public class Node
+public class Node implements IChainHeadUpdateListener
 {
     // Constants
     private static final int MAIN_LOOP_DELAY           = 100; // ms
     private static final int MAX_GET_ADDRESS_RESPONSE  = 1000;
     private static final int RELAY_ADDRESS_LIMIT       = 2;
     private static final int RELAY_PUBLIC_ADDRESS_TIME = 24; //hours
-    private static final int BLOCK_DOWNLOAD_WINDOW     = 1024;
+    private static final int MAX_BLOCK_COUNT_IN_BULK   = 500;
 
     private static final Logger s_logger = LoggerFactory.getLogger(Node.class);
 
     // Instance fields
     private final NetworkParameters        m_params;
     private final Blockchain               m_blockchain;
-    private boolean                        m_isRunning;
+    private volatile boolean               m_isRunning;
     private final ITransactionsPoolService m_memPool;
     private final IPersistenceService      m_persistenceService;
     private final PeerManager              m_peerManager;
     private NetworkAddress                 m_publicAddress      = null;
     private final Stopwatch                m_addressBroadcastCd = new Stopwatch();
+
+
+    private StandardMiner m_miner = null; //TODO: remove
 
     // Use during initial block download.
     private boolean   m_isInitialDownload   = false;
@@ -96,13 +101,15 @@ public class Node
                 Blockchain blockchain,
                 ITransactionsPoolService transactionsPoolService,
                 PeerManager peerManager,
-                IPersistenceService persistenceService)
+                IPersistenceService persistenceService,
+                StandardMiner miner)
     {
         m_persistenceService = persistenceService;
         m_params = params;
         m_blockchain = blockchain;
         m_memPool = transactionsPoolService;
         m_peerManager = peerManager;
+        m_miner = miner;
     }
 
     /**
@@ -153,7 +160,24 @@ public class Node
                 }
             }
 
-            sendMessages();
+            sendMessages();/*
+            Block newBlock = null;
+            try
+            {
+                newBlock = m_miner.mine(
+                        m_persistenceService.getChainHead().getHash(), m_persistenceService.getChainHead().getHeight());
+
+                m_blockchain.add(newBlock);
+
+                Thread.sleep(1000);
+            } catch (MiningException | StorageException e)
+            {
+                e.printStackTrace();
+            } catch (InterruptedException e)
+            {
+                e.printStackTrace();
+            }*/
+
         }
     }
 
@@ -379,6 +403,27 @@ public class Node
 
                 peer.sendMessage(addressMessage);
                 break;
+            case Header:
+                if (!peer.hasClearedHandshake())
+                {
+                    peer.addBanScore(1);
+                    return;
+                }
+
+                if (m_isInitialDownload)
+                    return;
+
+                BlockHeader header = new BlockHeader(message.getPayload());
+                peer.setBestKnownBlock(header.getHash());
+                peer.addToKnownBlocks(header.getHash());
+
+                if (m_persistenceService.hasBlockMetadata(header.getHash()))
+                    return;
+
+                peer.sendMessage(ProtocolMessageFactory.createGetBlocksMessage(
+                        m_blockchain.getChainHead(),
+                        peer.getBestKnownBlock()));
+                break;
             case GetBlocks:
                 if (!peer.hasClearedHandshake())
                 {
@@ -392,7 +437,8 @@ public class Node
                     GetBlocksPayload getBlocksPayload = new GetBlocksPayload(message.getPayload());
 
                     peer.sendMessage(ProtocolMessageFactory
-                            .createBulkBlocksMessage(getBlocksPayload.getBlockLocatorHashes()));
+                            .createBlocksMessage(getBlocksPayload.getBlockLocatorHashes(),
+                                    getBlocksPayload.getHashToStop()));
                 }
                 catch (StorageException e)
                 {
@@ -400,7 +446,7 @@ public class Node
                 }
 
                 break;
-            case BulkBlocks:
+            case Blocks:
                 if (!peer.hasClearedHandshake())
                 {
                     peer.addBanScore(1);
@@ -408,10 +454,7 @@ public class Node
                 }
 
                 if (m_isInitialDownload && !peer.isSyncing())
-                {
-                    peer.addBanScore(10);
                     return;
-                }
 
                 try
                 {
@@ -424,33 +467,44 @@ public class Node
 
                         if (!wasBlockAdded)
                         {
-                            s_logger.debug("Invalid block send by peer {}, stopping sync.", peer);
+                            s_logger.debug("Invalid block send by peer {}, disconnecting peer.", peer);
                             peer.disconnect();
                         }
                     }
 
-                    if (bulkBlocksPayload.getBlocks().size() == 500)
+                    if (m_isInitialDownload)
                     {
-                        peer.sendMessage(ProtocolMessageFactory.createGetBlocksMessage(
-                                m_blockchain.getChainHead(),
-                                new Sha256Hash()));
+                        if (bulkBlocksPayload.getBlocks().size() == MAX_BLOCK_COUNT_IN_BULK)
+                        {
+                            peer.sendMessage(ProtocolMessageFactory.createGetBlocksMessage(
+                                    m_blockchain.getChainHead(),
+                                    new Sha256Hash()));
+                        }
+                        else
+                        {
+                            m_isInitialDownload = false;
+                            m_initialSyncingPeer = null;
+                            peer.setIsSyncing(false);
+
+                            s_logger.debug("Initial block download is over. Current tip {}", m_blockchain.getChainHead());
+                        }
                     }
                     else
                     {
-                        m_isInitialDownload = false;
-                        m_initialSyncingPeer = null;
-                        peer.setIsSyncing(false);
-
-                        s_logger.debug("Initial block download is over. Current tip {}", m_blockchain.getChainHead());
+                        if (!m_persistenceService.hasBlockMetadata(peer.getBestKnownBlock()))
+                        {
+                            peer.sendMessage(ProtocolMessageFactory.createGetBlocksMessage(
+                                    m_blockchain.getChainHead(),
+                                    peer.getBestKnownBlock()));
+                        }
                     }
                 }
                 catch (StorageException | ProtocolException e)
                 {
                     s_logger.error("There was an error while retrieving the item: ", e);
                 }
-
                 break;
-            case GetData:
+            case GetTransactions:
                 if (!peer.hasClearedHandshake())
                 {
                     peer.addBanScore(1);
@@ -459,52 +513,6 @@ public class Node
 
                 if (m_isInitialDownload)
                     return;
-
-                InventoryPayload getDataPayload = new InventoryPayload(message.getPayload());
-
-                List<InventoryItem> itemsNotFound = new ArrayList<>();
-                for (InventoryItem item: getDataPayload.getItems())
-                {
-                    try
-                    {
-                        if (item.getType() == InventoryItemType.Block)
-                        {
-                            Block foundBlock = m_persistenceService.getBlock(item.getHash());
-
-                            if (foundBlock == null)
-                            {
-                                itemsNotFound.add(item);
-                            }
-                            else
-                            {
-                                peer.sendMessage(ProtocolMessageFactory.createBlockMessage(foundBlock));
-                            }
-                        }
-                        else if (item.getType() == InventoryItemType.Transaction)
-                        {
-                            Transaction foundTransaction = m_persistenceService.getTransaction(item.getHash());
-
-                            if (foundTransaction == null)
-                            {
-                                itemsNotFound.add(item);
-                            }
-                            else
-                            {
-                                peer.sendMessage(ProtocolMessageFactory.createTransactionMessage(foundTransaction));
-                            }
-
-                        }
-                    }
-                    catch (StorageException e)
-                    {
-                        s_logger.error("There was an error while retrieving the item: ", e);
-                        itemsNotFound.add(item);
-                    }
-                }
-
-                if (itemsNotFound.size() > 0)
-                    peer.sendMessage(ProtocolMessageFactory.createNoFoundMessage(itemsNotFound));
-
                 break;
             default:
         }
@@ -597,5 +605,24 @@ public class Node
 
         if (restartBroadcastTimer)
             m_addressBroadcastCd.restart();
+    }
+
+    /**
+     * Called when a new chain head is selected.
+     *
+     * @param head The new head of the chain with most work.
+     */
+    @Override
+    public void onChainHeadChanged(BlockHeader head)
+    {
+        // Notify all peers.
+        Iterator<Peer> it = m_peerManager.getPeers();
+        while (it.hasNext())
+        {
+            Peer peer = it.next();
+
+            if (!peer.isBlockKnown(head.getHash()))
+                peer.sendMessage(ProtocolMessageFactory.createHeaderMessage(head));
+        }
     }
 }

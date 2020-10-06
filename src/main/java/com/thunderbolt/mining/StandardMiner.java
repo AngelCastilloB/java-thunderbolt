@@ -154,7 +154,7 @@ public class StandardMiner implements IMiner
      *
      * @return The newly mined block.
      */
-    public Block mine(Block parent, long height) throws MiningException
+    public Block mine(Sha256Hash parent, long height) throws MiningException
     {
         Block block = new Block();
 
@@ -201,7 +201,7 @@ public class StandardMiner implements IMiner
 
             block.getHeader().setTimeStamp((int)OffsetDateTime.now(ZoneOffset.UTC).toEpochSecond());
             block.getHeader().setTargetDifficulty(0x1ffffff8);
-            block.getHeader().setParentBlockHash(parent.getHeaderHash());
+            block.getHeader().setParentBlockHash(parent);
 
             BigInteger hash = block.getHeaderHash().toBigInteger();
             boolean solved = false;

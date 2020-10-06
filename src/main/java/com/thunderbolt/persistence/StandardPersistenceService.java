@@ -27,6 +27,7 @@ package com.thunderbolt.persistence;
 
 import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.common.NumberSerializer;
+import com.thunderbolt.persistence.contracts.IChainHeadUpdateListener;
 import com.thunderbolt.persistence.contracts.IContiguousStorage;
 import com.thunderbolt.persistence.contracts.IMetadataProvider;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
@@ -63,6 +64,9 @@ public class StandardPersistenceService implements IPersistenceService
     private IContiguousStorage m_blockStorage     = null;
     private IContiguousStorage m_revertsStorage   = null;
     private IMetadataProvider  m_metadataProvider = null;
+
+    // Event listeners.
+    private final List<IChainHeadUpdateListener> m_listeners = new ArrayList<>();
 
     /**
      * Initializes an instance of the persistence service.
@@ -162,6 +166,18 @@ public class StandardPersistenceService implements IPersistenceService
     }
 
     /**
+     * Gets whether we already persisted a block with this header.
+     *
+     * @param sha256Hash The hash of the header of the block.
+     *
+     * @return true if we have the block; otherwise; false.
+     */
+    public boolean hasBlockMetadata(Sha256Hash sha256Hash)
+    {
+        return m_metadataProvider.hasBlockMetadata(sha256Hash);
+    }
+
+    /**
      * Gets the spent outputs for the block with the given hash.
      *
      * @param sha256Hash The block hash.
@@ -208,6 +224,10 @@ public class StandardPersistenceService implements IPersistenceService
     public void setChainHead(BlockMetadata metadata) throws StorageException
     {
         m_metadataProvider.setChainHead(metadata);
+
+        // Notify the listeners.
+        for (IChainHeadUpdateListener listener : m_listeners)
+            listener.onChainHeadChanged(metadata.getHeader());
     }
 
     /**
@@ -337,5 +357,17 @@ public class StandardPersistenceService implements IPersistenceService
         }
 
         return data.toByteArray();
+    }
+
+    /**
+     * Adds a new listener to the list of chain head update listeners. This listener will be notified when a change
+     * regarding the chain head occurs.
+     *
+     * @param listener The new listener to be added.
+     */
+    @Override
+    public void addChainHeadUpdateListener(IChainHeadUpdateListener listener)
+    {
+        m_listeners.add(listener);
     }
 }

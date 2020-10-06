@@ -61,20 +61,22 @@ public class Peer
     private final InputStream                     m_inStream;
     private final NetworkParameters               m_params;
     private final boolean                         m_isInbound;
-    private final Queue<ProtocolMessage>          m_inbound          = new LinkedBlockingQueue<>();
-    private final Queue<ProtocolMessage>          m_outbound         = new LinkedBlockingQueue<>();
-    private int                                   m_banScore         = 0;
-    private final Stopwatch                       m_watch            = new Stopwatch();
-    private final Stopwatch                       m_outgoingWatch    = new Stopwatch();
-    private boolean                               m_clearedHandshake = false;
-    private int                                   m_protocolVersion  = 0;
-    private long                                  m_versionNonce     = 0;
-    private final List<TimestampedNetworkAddress> m_addressToBeSend  = new LinkedList<>();
-    private final Set<NetworkAddress>             m_knownAddresses   = new HashSet<>();
-    private final Map<Long, Stopwatch>            m_pongNonces       = new HashMap<>();
-    private boolean                               m_isSyncing        = false;
-    private long                                  m_knownBlockHeight = 0;
-    private Sha256Hash                            m_bestKnownBlock   = new Sha256Hash();
+    private final Queue<ProtocolMessage>          m_inbound           = new LinkedBlockingQueue<>();
+    private final Queue<ProtocolMessage>          m_outbound          = new LinkedBlockingQueue<>();
+    private int                                   m_banScore          = 0;
+    private final Stopwatch                       m_watch             = new Stopwatch();
+    private final Stopwatch                       m_outgoingWatch     = new Stopwatch();
+    private boolean                               m_clearedHandshake  = false;
+    private int                                   m_protocolVersion   = 0;
+    private long                                  m_versionNonce      = 0;
+    private final List<TimestampedNetworkAddress> m_addressToBeSend   = new LinkedList<>();
+    private final Set<NetworkAddress>             m_knownAddresses    = new HashSet<>();
+    private final Set<Sha256Hash>                 m_knownBlocks       = new HashSet<>();
+    private final Set<Sha256Hash>                 m_knownTransactions = new HashSet<>();
+    private final Map<Long, Stopwatch>            m_pongNonces        = new HashMap<>();
+    private boolean                               m_isSyncing         = false;
+    private long                                  m_knownBlockHeight  = 0;
+    private Sha256Hash                            m_bestKnownBlock    = new Sha256Hash();
 
     /**
      * Creates a connection with a given peer.
@@ -591,5 +593,49 @@ public class Peer
     public void setKnownBlockHeight(long knownBlockHeight)
     {
         m_knownBlockHeight = knownBlockHeight;
+    }
+
+    /**
+     * Adds a given hash to the known blocks by this peer. This way we avoid sending duplicate or redundant data.
+     *
+     * @param hash The hash of the block to add.
+     */
+    public void addToKnownBlocks(Sha256Hash hash)
+    {
+        m_knownBlocks.add(hash);
+    }
+
+    /**
+     * Gets whether this peer already knows about this block according to us.
+     *
+     * @param hash The hash of the block.
+     *
+     * @return true if this peer already knows about this block. Otherwise; false.
+     */
+    public boolean isBlockKnown(Sha256Hash hash)
+    {
+        return m_knownBlocks.contains(hash);
+    }
+
+    /**
+     * Adds a given hash to the known transactions by this peer. This way we avoid sending duplicate or redundant data.
+     *
+     * @param hash The hash of the transaction to add.
+     */
+    public void addToKnownTransactions(Sha256Hash hash)
+    {
+        m_knownTransactions.add(hash);
+    }
+
+    /**
+     * Gets whether this peer already knows about this transaction according to us.
+     *
+     * @param hash The hash of the transaction.
+     *
+     * @return true if this peer already knows about this transaction. Otherwise; false.
+     */
+    public boolean isTransactionKnown(Sha256Hash hash)
+    {
+        return m_knownTransactions.contains(hash);
     }
 }

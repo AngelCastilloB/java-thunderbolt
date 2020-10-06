@@ -328,7 +328,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
      * @param toAdd The new unspent outputs that were added.
      * @param toRemove The unspent outputs that are no longer available.
      */
-    public void outputsUpdated(List<UnspentTransactionOutput> toAdd, List<Sha256Hash> toRemove)
+    public void onOutputsUpdate(List<UnspentTransactionOutput> toAdd, List<Sha256Hash> toRemove)
     {
         for (Sha256Hash sha256Hash : toRemove)
             m_unspentOutputs.remove(sha256Hash);

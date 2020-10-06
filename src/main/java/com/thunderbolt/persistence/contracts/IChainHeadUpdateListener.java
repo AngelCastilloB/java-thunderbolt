@@ -22,62 +22,23 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.network.messages.structures;
+package com.thunderbolt.persistence.contracts;
+
+/* IMPORTS *******************************************************************/
+
+import com.thunderbolt.blockchain.BlockHeader;
 
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Type of inventory item that may be requested to peers.
+ * The listener interface for receiving update events when the chain head is changed.
  */
-public enum InventoryItemType
+public interface IChainHeadUpdateListener
 {
     /**
-     * 	Any data of with this number may be ignored.
-     */
-    Error((byte)0x00),
-
-    /**
-     * Hash is related to a transaction.
-     */
-    Transaction((byte)0x01),
-
-    /**
-     * Hash is related to a data block.
-     */
-    Block((byte)0x02);
-
-    // Instance fields.
-    private byte m_value;
-
-    /**
-     * Initializes a new instance of the InventoryItemType class.
+     * Called when a new chain head is selected.
      *
-     * @param value The enum value.
+     * @param head The new head of the chain with most work.
      */
-    InventoryItemType(byte value)
-    {
-        m_value = value;
-    }
-
-    /**
-     * Gets the byte value of this enum instance.
-     *
-     * @return The byte value.
-     */
-    public byte getValue()
-    {
-        return m_value;
-    }
-
-    /**
-     * Gets an enum value from a byte.
-     *
-     * @param value The byte to be casted.
-     *
-     * @return The enum value.
-     */
-    static public InventoryItemType from(byte value)
-    {
-        return InventoryItemType.values()[value & 0xFF];
-    }
+    void onChainHeadChanged(BlockHeader head);
 }

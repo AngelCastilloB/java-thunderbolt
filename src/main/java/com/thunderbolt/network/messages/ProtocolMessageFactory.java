@@ -30,8 +30,6 @@ import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.blockchain.BlockHeader;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.messages.payloads.*;
-import com.thunderbolt.network.messages.structures.InventoryItem;
-import com.thunderbolt.network.messages.structures.InventoryItemType;
 import com.thunderbolt.network.messages.structures.NetworkAddress;
 import com.thunderbolt.network.messages.structures.TimestampedNetworkAddress;
 import com.thunderbolt.network.peers.Peer;
@@ -244,104 +242,26 @@ public class ProtocolMessageFactory
     }
 
     /**
-     * Creates the GetHeaders message.
-     *
-     * @param headblock The head block up to where we want to sync.
-     * @param stopHash The hash where to stop, or zero for all the way to the genesis.
-     *
-     * @return The get headers message.
-     */
-    public static ProtocolMessage createGetHeadersMessage(BlockHeader headblock, Sha256Hash stopHash)
-    {
-        List<Sha256Hash> hashes = getBlockLocator(headblock);
-
-        ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
-        message.setMessageType(MessageType.GetHeaders);
-
-        GetHeadersPayload payload = new GetHeadersPayload();
-
-        payload.setBlockLocatorHashes(hashes);
-        payload.setVersion(m_params.getProtocol());
-        payload.setHashToStop(stopHash);
-        message.setPayload(payload);
-
-        message.setPayload(payload);
-
-        return message;
-    }
-
-    /**
-     * Creates a get data message.
-     *
-     * @param items The items of inventory.
-     *
-     * @return The newly created get data message message.
-     */
-    public static ProtocolMessage createGetDataMessage(List<InventoryItem> items)
-    {
-        ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
-        message.setMessageType(MessageType.GetData);
-
-        InventoryPayload payload = new InventoryPayload();
-
-        payload.setItems(items);
-        message.setPayload(payload);
-
-        return message;
-    }
-
-    /**
-     * Creates a not found message.
-     *
-     * @param items The items of inventory.
-     *
-     * @return The newly created not found message.
-     */
-    public static ProtocolMessage createNoFoundMessage(List<InventoryItem> items)
-    {
-        ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
-        message.setMessageType(MessageType.NotFound);
-
-        InventoryPayload payload = new InventoryPayload();
-
-        payload.setItems(items);
-        message.setPayload(payload);
-
-        return message;
-    }
-
-    /**
      * Creates a reply for the get blocks message.
      *
      * @param locator The block locator.
      *
      * @return The newly created inventory message.
      */
-    public static ProtocolMessage createBulkBlocksMessage(List<Sha256Hash> locator) throws StorageException
+    public static ProtocolMessage createBlocksMessage(List<Sha256Hash> locator, Sha256Hash stopHash) throws StorageException
     {
         ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
-        message.setMessageType(MessageType.BulkBlocks);
+        message.setMessageType(MessageType.Blocks);
 
-        BulkBlocksPayload payload = new BulkBlocksPayload(getBlocksToSend(s_persistenceService.getChainHead(), locator));
+        BlockMetadata metadata = stopHash
+                .equals(new Sha256Hash() /* All 0*/) ?
+                s_persistenceService.getChainHead() :
+                s_persistenceService.getBlockMetadata(stopHash);
+
+        BulkBlocksPayload payload =
+                new BulkBlocksPayload(getBlocksToSend(metadata, locator));
 
         message.setPayload(payload);
-
-        return message;
-    }
-
-    /**
-     * Creates a block message.
-     *
-     * @param block The block to be send in this message.
-     *
-     * @return The newly created blocks message.
-     */
-    public static ProtocolMessage createBlockMessage(Block block)
-    {
-        ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
-        message.setMessageType(MessageType.Block);
-
-        message.setPayload(block.serialize());
 
         return message;
     }
@@ -363,14 +283,30 @@ public class ProtocolMessageFactory
     }
 
     /**
+     * Creates a new header message.
+     *
+     * @param header The header message.
+     *
+     * @return The new message.
+     */
+    public static ProtocolMessage createHeaderMessage(BlockHeader header)
+    {
+        ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
+        message.setMessageType(MessageType.Header);
+        message.setPayload(header.serialize());
+
+        return message;
+    }
+
+    /**
      * Gets a segment of the blockchain that is encompassed by the two given blocks.
+     *
+     * If none of the locator hashes are on our main branch, we will reach down to genesis block.
      *
      * @param upper The upper bound block.
      * @param locator Locator containing the lower bound blocks of our search.
      *
      * @return The list of blocks between head and the locator blocks.
-     *
-     * @remark If none of the locator hashes are on our main branch, we will reach down to genesis block.
      */
     private static List<Block> getBlocksToSend(BlockMetadata upper, List<Sha256Hash> locator) throws StorageException
     {
@@ -401,60 +337,6 @@ public class ProtocolMessageFactory
             if (!stop)
             {
                 results.add(s_persistenceService.getBlock(cursor.getHash()));
-
-                cursor = s_persistenceService.getBlockMetadata(cursor.getHeader().getParentBlockHash());
-            }
-
-        } while (!stop);
-
-        // We need to reverse the list since we add them hashes from top to bottom.
-        Collections.reverse(results);
-        return results;
-    }
-
-    /**
-     * Gets a segment of the blockchain that is encompassed by the two given blocks.
-     *
-     * @param upper The upper bound block.
-     * @param locator Locator containing the lower bound blocks of our search.
-     *
-     * @return The list of blocks between head and the locator blocks.
-     *
-     * @remark If nonce of the locator hashes are on our main branch, we will reach down to genesis block.
-     */
-    private static List<InventoryItem> getInventoryItems(BlockMetadata upper, List<Sha256Hash> locator)
-    {
-        LinkedList<InventoryItem> results = new LinkedList<>();
-        BlockMetadata             cursor  = upper;
-
-        boolean stop = false;
-        do
-        {
-            // Check if we found a locator.
-            for (Sha256Hash locatorHash : locator)
-            {
-                // We found one match.
-                if (locatorHash.equals(cursor.getHash()))
-                {
-                    stop = true;
-                }
-            }
-
-            // Check if we reach genesis block.
-            if (cursor.getHash().equals(m_params.getGenesisBlock().getHeaderHash()))
-                stop = true;
-
-            // Check if we reach the limit
-            if (results.size() >= INVENTORY_LIMIT)
-                stop = true;
-
-            if (!stop)
-            {
-                InventoryItem item = new InventoryItem();
-                item.setHash(cursor.getHash());
-                item.setType(InventoryItemType.Block);
-                results.add(item);
-
                 cursor = s_persistenceService.getBlockMetadata(cursor.getHeader().getParentBlockHash());
             }
 

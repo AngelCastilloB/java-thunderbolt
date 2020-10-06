@@ -113,6 +113,16 @@ public class BlockHeader implements ISerializable
     }
 
     /**
+     * Creates a new instance of the Transaction class.
+     *
+     * @param buffer A buffer containing the transaction object Transaction object.
+     */
+    public BlockHeader(byte[] buffer)
+    {
+        this(ByteBuffer.wrap(buffer));
+    }
+
+    /**
      * Gets the version of the consensus rules used by this block.
      *
      * @return The version of the consensus rules applied to this block.

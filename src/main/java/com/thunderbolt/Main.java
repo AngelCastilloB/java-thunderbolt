@@ -29,6 +29,7 @@ package com.thunderbolt;
 import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.blockchain.StandardBlockchainCommitter;
 import com.thunderbolt.blockchain.contracts.IBlockchainCommitter;
+import com.thunderbolt.mining.StandardMiner;
 import com.thunderbolt.network.Node;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.ProtocolException;
@@ -46,12 +47,14 @@ import com.thunderbolt.transaction.MemoryTransactionsPoolService;
 import com.thunderbolt.transaction.StandardTransactionValidator;
 import com.thunderbolt.transaction.contracts.ITransactionValidator;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
+import com.thunderbolt.wallet.Wallet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.GeneralSecurityException;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -83,7 +86,7 @@ public class Main
      *
      * @param args Arguments.
      */
-    public static void main(String[] args) throws IOException, ProtocolException, InterruptedException, StorageException
+    public static void main(String[] args) throws IOException, ProtocolException, InterruptedException, StorageException, GeneralSecurityException
     {
         IPersistenceService      persistenceService     = createPersistenceService();
         ITransactionsPoolService memPool                = new MemoryTransactionsPoolService();
@@ -92,6 +95,13 @@ public class Main
         Blockchain               blockchain             = new Blockchain(NetworkParameters.mainNet(), transactionValidator, committer, persistenceService);
         IPeerDiscoverer          discoverer             = new StandardPeerDiscoverer();
         INetworkAddressPool      addressPool            = new LevelDbNetworkAddressPool(ADDRESS_PATH);
+
+        Wallet wallet = new Wallet(WALLET_PATH.toString(), "1234");
+        wallet.initialize(persistenceService);
+        s_logger.debug(wallet.getBalance().toString());
+        s_logger.debug(wallet.getAddress().toString());
+
+        StandardMiner miner = new StandardMiner(memPool, blockchain, wallet);
 
         ProtocolMessageFactory.initialize(NetworkParameters.mainNet(), persistenceService);
 
@@ -110,7 +120,7 @@ public class Main
             return;
         }
 
-        Node node = new Node(NetworkParameters.mainNet(), blockchain, memPool, peerManager, persistenceService);
+        Node node = new Node(NetworkParameters.mainNet(), blockchain, memPool, peerManager, persistenceService, miner);
         node.run();
 
         // Add connection to peers.

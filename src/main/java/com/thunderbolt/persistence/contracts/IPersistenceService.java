@@ -73,6 +73,15 @@ public interface IPersistenceService
     BlockMetadata getBlockMetadata(Sha256Hash sha256Hash);
 
     /**
+     * Gets whether we already persisted a block with this header.
+     *
+     * @param sha256Hash The hash of the header of the block.
+     *
+     * @return true if we have the block; otherwise; false.
+     */
+    boolean hasBlockMetadata(Sha256Hash sha256Hash);
+
+    /**
      * Gets the spent outputs for the block with the given hash.
      *
      * @param sha256Hash The block hash.
@@ -151,4 +160,12 @@ public interface IPersistenceService
      * @throws StorageException If there is an error querying the required metadata to create the revert data.
      */
     byte[] getRevertData(Block block, long height) throws StorageException;
+
+    /**
+     * Adds a new listener to the list of chain head update listeners. This listener will be notified when a change
+     * regarding the chain head occurs.
+     *
+     * @param listener The new listener to be added.
+     */
+    void addChainHeadUpdateListener(IChainHeadUpdateListener listener);
 }

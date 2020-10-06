@@ -46,5 +46,5 @@ public interface IOutputsUpdateListener
      * @param toAdd The new unspent outputs that were added.
      * @param toRemove The unspent outputs that are no longer available.
      */
-    void outputsUpdated(List<UnspentTransactionOutput> toAdd, List<Sha256Hash> toRemove);
+    void onOutputsUpdate(List<UnspentTransactionOutput> toAdd, List<Sha256Hash> toRemove);
 }
