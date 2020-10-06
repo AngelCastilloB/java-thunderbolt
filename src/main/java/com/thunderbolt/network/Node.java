@@ -470,6 +470,9 @@ public class Node implements IChainHeadUpdateListener
                             peer.setIsSyncing(false);
                             m_persistenceService.addChainHeadUpdateListener(this);
                             s_logger.debug("Initial block download is over. Current tip {}", m_blockchain.getChainHead());
+
+                            // Trigger advertise our address to all connected peers.
+                            m_addressBroadcastCd.stop();
                         }
                     }
                     else
@@ -577,8 +580,8 @@ public class Node implements IChainHeadUpdateListener
 
             // If 24 hours pass, we are going to broadcast our public address to all connected peers and
             // ask then to relay to other peers. We are also going to clear all their known addresses.
-            if (m_addressBroadcastCd.getElapsedTime().getTotalHours() > RELAY_PUBLIC_ADDRESS_TIME
-                    && !m_isInitialDownload) // We don't advertise our address during initial download.
+            if (!m_addressBroadcastCd.isRunning() || (m_addressBroadcastCd.getElapsedTime().getTotalHours() > RELAY_PUBLIC_ADDRESS_TIME
+                    && !m_isInitialDownload)) // We don't advertise our address during initial download.
             {
                 restartBroadcastTimer = true;
                 peer.sendMessage(ProtocolMessageFactory.createAddressMessage(m_publicAddress));
