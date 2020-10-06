@@ -77,6 +77,7 @@ public class Peer
     private boolean                               m_isSyncing         = false;
     private long                                  m_knownBlockHeight  = 0;
     private Sha256Hash                            m_bestKnownBlock    = new Sha256Hash();
+    private Sha256Hash m_lastCommonBlock = new Sha256Hash();
 
     /**
      * Creates a connection with a given peer.
@@ -638,4 +639,26 @@ public class Peer
     {
         return m_knownTransactions.contains(hash);
     }
+
+    /**
+     * Sets the last common block with this peer.
+     *
+     * @param block last common block with this peer.
+     */
+    public void setLastCommonBlock(Sha256Hash block)
+    {
+        m_lastCommonBlock = block;
+    }
+
+    /**
+     * Gets the last common block with this peer.
+     *
+     * @return The last common block with this peer.
+     */
+    public Sha256Hash getLastCommonBlock()
+    {
+        return m_lastCommonBlock;
+    }
+
+
 }

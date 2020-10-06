@@ -284,6 +284,19 @@ public class ProtocolMessageFactory
     }
 
     /**
+     * Creates a new get header message.
+     *
+     * @return The new message.
+     */
+    public static ProtocolMessage createGetHeaderMessage()
+    {
+        ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
+        message.setMessageType(MessageType.GetHeader);
+
+        return message;
+    }
+
+    /**
      * Creates a new header message.
      *
      * @param header The header message.

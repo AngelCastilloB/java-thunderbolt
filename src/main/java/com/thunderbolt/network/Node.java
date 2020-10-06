@@ -33,7 +33,6 @@ import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.common.TimeSpan;
 import com.thunderbolt.mining.MiningException;
 import com.thunderbolt.mining.StandardMiner;
-import com.thunderbolt.mining.contracts.IMiner;
 import com.thunderbolt.network.messages.payloads.*;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import com.thunderbolt.network.messages.ProtocolMessageFactory;
@@ -47,11 +46,11 @@ import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
 import com.thunderbolt.security.Sha256Hash;
-import com.thunderbolt.transaction.Transaction;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -83,6 +82,8 @@ public class Node implements IChainHeadUpdateListener
 
 
     private StandardMiner m_miner = null; //TODO: remove
+    Block m_miningChain = null;
+    int m_height = 0;
 
     // Use during initial block download.
     private boolean   m_isInitialDownload   = false;
@@ -110,6 +111,9 @@ public class Node implements IChainHeadUpdateListener
         m_memPool = transactionsPoolService;
         m_peerManager = peerManager;
         m_miner = miner;
+
+        m_miningChain = m_params.getGenesisBlock();
+        m_persistenceService.addChainHeadUpdateListener(this);
     }
 
     /**
@@ -161,6 +165,27 @@ public class Node implements IChainHeadUpdateListener
             }
 
             sendMessages();
+
+
+            try
+            {
+                if (m_miningChain == null)
+                    continue;
+                Block newBlock = m_miner.mine(m_miningChain.getHeaderHash(), m_height);
+                ++m_height;
+
+                m_miningChain = newBlock;
+                m_blockchain.add(newBlock);
+
+                Thread.sleep(1);
+            } catch (MiningException | StorageException e)
+            {
+                e.printStackTrace();
+            } catch (InterruptedException e)
+            {
+                e.printStackTrace();
+            }
+
         }
     }
 
@@ -386,6 +411,22 @@ public class Node implements IChainHeadUpdateListener
 
                 peer.sendMessage(addressMessage);
                 break;
+            case GetHeader:
+                if (!peer.hasClearedHandshake())
+                {
+                    peer.addBanScore(1);
+                    return;
+                }
+
+                try
+                {
+                    peer.send(ProtocolMessageFactory.createHeaderMessage(m_blockchain.getChainHead().getHeader()));
+                }
+                catch (IOException exception)
+                {
+                    s_logger.warn("An error has occur while sending header with peer: {}", peer, exception);
+                }
+                break;
             case Header:
                 if (!peer.hasClearedHandshake())
                 {
@@ -453,6 +494,8 @@ public class Node implements IChainHeadUpdateListener
                             s_logger.debug("Invalid block send by peer {}, disconnecting peer.", peer);
                             peer.disconnect();
                         }
+
+                        peer.setLastCommonBlock(block.getHeaderHash());
                     }
 
                     if (m_isInitialDownload)
@@ -468,20 +511,31 @@ public class Node implements IChainHeadUpdateListener
                             m_isInitialDownload = false;
                             m_initialSyncingPeer = null;
                             peer.setIsSyncing(false);
-                            m_persistenceService.addChainHeadUpdateListener(this);
                             s_logger.debug("Initial block download is over. Current tip {}", m_blockchain.getChainHead());
 
-                            // Trigger advertise our address to all connected peers.
-                            m_addressBroadcastCd.stop();
+                            // Advertise our address to all connected peers.
+                            broadcastPublicAddress();
+
+                            // Exchange headers with all peers.
+                            exchangeHeaders();
                         }
                     }
                     else
                     {
                         if (!m_persistenceService.hasBlockMetadata(peer.getBestKnownBlock()))
                         {
-                            peer.sendMessage(ProtocolMessageFactory.createGetBlocksMessage(
-                                    m_blockchain.getChainHead(),
-                                    peer.getBestKnownBlock()));
+                            if (peer.getLastCommonBlock().equals(new Sha256Hash()))
+                            {
+                                peer.sendMessage(ProtocolMessageFactory.createGetBlocksMessage(
+                                        m_blockchain.getChainHead(),
+                                        peer.getBestKnownBlock()));
+                            }
+                            else
+                            {
+                                peer.sendMessage(ProtocolMessageFactory.createGetBlocksMessage(
+                                        m_persistenceService.getBlockMetadata(peer.getLastCommonBlock()),
+                                        peer.getBestKnownBlock()));
+                            }
                         }
                     }
                 }
@@ -535,7 +589,6 @@ public class Node implements IChainHeadUpdateListener
      */
     private void sendMessages()
     {
-        boolean restartBroadcastTimer = false;
         Iterator<Peer> it = m_peerManager.getPeers();
 
         if (m_initialSyncingPeer != null &&
@@ -580,17 +633,56 @@ public class Node implements IChainHeadUpdateListener
 
             // If 24 hours pass, we are going to broadcast our public address to all connected peers and
             // ask then to relay to other peers. We are also going to clear all their known addresses.
-            if (!m_addressBroadcastCd.isRunning() || (m_addressBroadcastCd.getElapsedTime().getTotalHours() > RELAY_PUBLIC_ADDRESS_TIME
-                    && !m_isInitialDownload)) // We don't advertise our address during initial download.
+            if (m_addressBroadcastCd.getElapsedTime().getTotalHours() > RELAY_PUBLIC_ADDRESS_TIME
+                    && !m_isInitialDownload) // We don't advertise our address during initial download.
             {
-                restartBroadcastTimer = true;
-                peer.sendMessage(ProtocolMessageFactory.createAddressMessage(m_publicAddress));
-                peer.clearKnownAddresses();
+                broadcastPublicAddress();
+                m_addressBroadcastCd.restart();
             }
         }
+    }
 
-        if (restartBroadcastTimer)
-            m_addressBroadcastCd.restart();
+    /**
+     * Exchange headers between this node and the peers.
+     */
+    private void exchangeHeaders()
+    {
+        Iterator<Peer> it = m_peerManager.getPeers();
+        while (it.hasNext())
+        {
+            Peer peer = it.next();
+
+            if (!peer.isConnected() || peer.isBanned())
+                continue;
+
+            try
+            {
+                peer.send(ProtocolMessageFactory.createHeaderMessage(m_blockchain.getChainHead().getHeader()));
+                peer.send(ProtocolMessageFactory.createGetHeaderMessage());
+            }
+            catch (IOException exception)
+            {
+                s_logger.warn("An error has occur while exchanging headers with peer: {}", peer, exception);
+            }
+        }
+    }
+
+    /**
+     * Exchange headers between this node and the peers.
+     */
+    private void broadcastPublicAddress()
+    {
+        Iterator<Peer> it = m_peerManager.getPeers();
+        while (it.hasNext())
+        {
+            Peer peer = it.next();
+
+            if (!peer.isConnected() || peer.isBanned())
+                continue;
+
+            peer.sendMessage(ProtocolMessageFactory.createAddressMessage(m_publicAddress));
+            peer.clearKnownAddresses();
+        }
     }
 
     /**
@@ -601,6 +693,11 @@ public class Node implements IChainHeadUpdateListener
     @Override
     public void onChainHeadChanged(BlockHeader head)
     {
+        m_miningChain = null;
+
+        if (m_isInitialDownload)
+            return;
+
         // Notify all peers.
         Iterator<Peer> it = m_peerManager.getPeers();
         while (it.hasNext())

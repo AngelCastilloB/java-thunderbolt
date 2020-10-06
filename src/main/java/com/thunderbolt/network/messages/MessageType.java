@@ -79,9 +79,14 @@ public enum MessageType
     Blocks((short)0x07),
 
     /**
+     * Gets the header of the best known block from the receiving peer.
+     */
+    GetHeader((short)0x08),
+
+    /**
      * The header packet advertises a block. This message is used to advertise new blocks to the network.
      */
-    Header((short)0x08),
+    Header((short)0x09),
 
     /**
      * The getUnconfirmedTransactions message sends a request to a node asking for information about transactions it has
@@ -90,7 +95,7 @@ public enum MessageType
      * The response to receiving this message is an KnownTransactions message containing the transaction hashes for all
      * the transactions in the node's mempool.
      */
-    getUnconfirmedTransactions((short)0x09),
+    getUnconfirmedTransactions((short)0x0A),
 
     /**
      * Allows a node to advertise its knowledge of one or more transaction. It can be received unsolicited, or as
@@ -98,18 +103,18 @@ public enum MessageType
      *
      * Payload (maximum 50,000 entries, which is just over 1.8 megabytes):
      */
-    KnownTransactions((short)0x0A),
+    KnownTransactions((short)0x0B),
 
     /**
      * GetTransactions is used in response to KnownTransactions, to retrieve the content of a specific transactions,
      * and is usually sent after receiving an GetTransactions packet, after filtering known elements.
      */
-    GetTransactions((short)0x0B),
+    GetTransactions((short)0x0C),
 
     /**
      * Describes a transaction, in reply to GetTransactions.
      */
-    Transaction((short)0x0C);
+    Transaction((short)0x0D);
 
     // Instance fields.
     private final short m_value;
