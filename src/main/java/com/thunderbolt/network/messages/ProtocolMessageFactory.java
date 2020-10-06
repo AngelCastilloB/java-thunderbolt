@@ -26,6 +26,7 @@ package com.thunderbolt.network.messages;
 
 /* IMPORTS *******************************************************************/
 
+import com.google.common.collect.EvictingQueue;
 import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.blockchain.BlockHeader;
 import com.thunderbolt.network.NetworkParameters;
@@ -308,10 +309,11 @@ public class ProtocolMessageFactory
      *
      * @return The list of blocks between head and the locator blocks.
      */
-    private static List<Block> getBlocksToSend(BlockMetadata upper, List<Sha256Hash> locator) throws StorageException
+    private static LinkedList<Block> getBlocksToSend(BlockMetadata upper, List<Sha256Hash> locator) throws StorageException
     {
         LinkedList<Block> results = new LinkedList<>();
         BlockMetadata     cursor  = upper;
+        EvictingQueue<Block> evictingQueue = EvictingQueue.create(INVENTORY_LIMIT);
 
         boolean stop = false;
         do
@@ -330,20 +332,17 @@ public class ProtocolMessageFactory
             if (cursor.getHash().equals(m_params.getGenesisBlock().getHeaderHash()))
                 stop = true;
 
-            // Check if we reach the limit
-            if (results.size() >= INVENTORY_LIMIT)
-                stop = true;
-
             if (!stop)
             {
-                results.add(s_persistenceService.getBlock(cursor.getHash()));
+                evictingQueue.add(s_persistenceService.getBlock(cursor.getHash()));
                 cursor = s_persistenceService.getBlockMetadata(cursor.getHeader().getParentBlockHash());
             }
 
         } while (!stop);
 
-        // We need to reverse the list since we add them hashes from top to bottom.
+        results.addAll(evictingQueue);
         Collections.reverse(results);
+
         return results;
     }
 

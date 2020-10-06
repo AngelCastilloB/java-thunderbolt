@@ -160,24 +160,7 @@ public class Node implements IChainHeadUpdateListener
                 }
             }
 
-            sendMessages();/*
-            Block newBlock = null;
-            try
-            {
-                newBlock = m_miner.mine(
-                        m_persistenceService.getChainHead().getHash(), m_persistenceService.getChainHead().getHeight());
-
-                m_blockchain.add(newBlock);
-
-                Thread.sleep(1000);
-            } catch (MiningException | StorageException e)
-            {
-                e.printStackTrace();
-            } catch (InterruptedException e)
-            {
-                e.printStackTrace();
-            }*/
-
+            sendMessages();
         }
     }
 
@@ -485,7 +468,7 @@ public class Node implements IChainHeadUpdateListener
                             m_isInitialDownload = false;
                             m_initialSyncingPeer = null;
                             peer.setIsSyncing(false);
-
+                            m_persistenceService.addChainHeadUpdateListener(this);
                             s_logger.debug("Initial block download is over. Current tip {}", m_blockchain.getChainHead());
                         }
                     }
