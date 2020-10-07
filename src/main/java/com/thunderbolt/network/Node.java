@@ -418,14 +418,7 @@ public class Node implements IChainHeadUpdateListener
                     return;
                 }
 
-                try
-                {
-                    peer.send(ProtocolMessageFactory.createHeaderMessage(m_blockchain.getChainHead().getHeader()));
-                }
-                catch (IOException exception)
-                {
-                    s_logger.warn("An error has occur while sending header with peer: {}", peer, exception);
-                }
+                peer.sendMessage(ProtocolMessageFactory.createHeaderMessage(m_blockchain.getChainHead().getHeader()));
                 break;
             case Header:
                 if (!peer.hasClearedHandshake())
@@ -657,15 +650,8 @@ public class Node implements IChainHeadUpdateListener
             if (!peer.isConnected() || peer.isBanned())
                 continue;
 
-            try
-            {
-                peer.send(ProtocolMessageFactory.createHeaderMessage(m_blockchain.getChainHead().getHeader()));
-                peer.send(ProtocolMessageFactory.createGetHeaderMessage());
-            }
-            catch (IOException exception)
-            {
-                s_logger.warn("An error has occur while exchanging headers with peer: {}", peer, exception);
-            }
+            peer.sendMessage(ProtocolMessageFactory.createHeaderMessage(m_blockchain.getChainHead().getHeader()));
+            peer.sendMessage(ProtocolMessageFactory.createGetHeaderMessage());
         }
     }
 

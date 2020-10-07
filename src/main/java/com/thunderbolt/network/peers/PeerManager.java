@@ -368,7 +368,16 @@ public class PeerManager
                 disconnect = true;
             }
 
-            if (!peer.isConnected() || elapsed >= m_maxInactiveTime)
+            if (!peer.isConnected())
+            {
+                s_logger.debug(
+                        "Removing peer {} from peer pool due to disconnection.",
+                        peer);
+
+                disconnect = true;
+            }
+
+            if (elapsed >= m_maxInactiveTime)
             {
                 s_logger.debug(
                         "Removing peer {} from peer pool due to inactivity. Time elapsed without any messages: {} ms.",
