@@ -177,7 +177,7 @@ public class Node implements IChainHeadUpdateListener
                 m_miningChain = newBlock;
                 m_blockchain.add(newBlock);
 
-                Thread.sleep(1);
+                Thread.sleep(100);
             } catch (MiningException | StorageException e)
             {
                 e.printStackTrace();
@@ -480,6 +480,7 @@ public class Node implements IChainHeadUpdateListener
                 if (m_isInitialDownload && !peer.isSyncing())
                     return;
 
+                m_elapsedSinceRequest.restart();
                 try
                 {
                     // Reply the peer with the blocks he is missing.
@@ -511,6 +512,7 @@ public class Node implements IChainHeadUpdateListener
                             m_isInitialDownload = false;
                             m_initialSyncingPeer = null;
                             peer.setIsSyncing(false);
+                            m_elapsedSinceRequest.stop();
                             s_logger.debug("Initial block download is over. Current tip {}", m_blockchain.getChainHead());
 
                             // Advertise our address to all connected peers.

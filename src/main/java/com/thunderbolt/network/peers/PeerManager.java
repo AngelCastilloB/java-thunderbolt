@@ -61,10 +61,10 @@ public class PeerManager
 
     private static final Logger s_logger = LoggerFactory.getLogger(PeerManager.class);
 
-    private final Queue<Peer>  m_peers           = new ConcurrentLinkedQueue<>();
+    private final Queue<Peer>   m_peers           = new ConcurrentLinkedQueue<>();
     private Thread              m_thread          = null;
     private Thread              m_listenThread    = null;
-    private boolean             m_isRunning       = false;
+    private volatile boolean    m_isRunning       = false;
     private long                m_maxInactiveTime = 0;
     private long                m_heartbeatTime   = 0;
     private int                 m_minInitialPeers = 0;
