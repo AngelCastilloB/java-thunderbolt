@@ -280,7 +280,7 @@ public class PeerManager
     {
         for (Iterator<Peer> it = m_peers.iterator(); it.hasNext(); )
         {
-            Peer peer = (Peer)(it.next());
+            Peer peer = it.next();
 
             if (!peer.isConnected())
             {
@@ -296,13 +296,14 @@ public class PeerManager
                     if (message != null)
                         peer.getInputQueue().add(message);
                 }
-                catch (SocketException e)
+                catch (IOException e)
                 {
-                    s_logger.debug("Peer {} has disconnected.", peer);
+                    s_logger.debug("An error has occur while trying to receive a message from peer {}.", peer);
                 }
-                catch (IOException | ProtocolException e)
+                catch (ProtocolException e)
                 {
-                    e.printStackTrace();
+                    s_logger.debug("Protocol error from peer {}.", peer);
+                    peer.addBanScore(10);
                 }
             }
         }
@@ -315,7 +316,7 @@ public class PeerManager
     {
         for (Iterator<Peer> it = m_peers.iterator(); it.hasNext();)
         {
-            Peer peer = (Peer)(it.next());
+            Peer peer = it.next();
 
             if (!peer.isConnected())
             {
@@ -482,6 +483,13 @@ public class PeerManager
 
                 s_logger.debug("{} is trying to connect...", peerSocket.getRemoteSocketAddress());
 
+                if (alreadyConnected(peerSocket.getInetAddress()))
+                {
+                    peerSocket.close();
+                    disconnectPeer(peerSocket.getInetAddress());
+                    continue;
+                }
+
                 byte[] peerRawAddress = peerSocket.getInetAddress().getAddress();
                 // Check first that the peer is not banned.
                 if (m_addressPool.contains(peerRawAddress))
@@ -577,6 +585,9 @@ public class PeerManager
             if (address.getAddress().equals(localhost))
                 return;
 
+            if (alreadyConnected(address))
+                return;
+
             s_logger.info("Trying to connect with peer {}", address.toString());
 
             if (address.getAddress().isReachable(PING_TIMEOUT))
@@ -631,12 +642,59 @@ public class PeerManager
      */
     private boolean alreadyConnected(NetworkAddressMetadata addressMetadata)
     {
+        for (Peer peer : m_peers)
+        {
+            if (peer.getNetworkAddress().equals(addressMetadata.getNetworkAddress()))
+                return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Disconnects the given peer.
+     */
+    private void disconnectPeer(InetAddress address)
+    {
         for (Iterator<Peer> it = m_peers.iterator(); it.hasNext();)
         {
             Peer peer = it.next();
 
-            if (peer.getNetworkAddress().equals(addressMetadata.getNetworkAddress()))
-                return true;
+            if (Arrays.equals(peer.getNetworkAddress().getAddress().getAddress(),
+                    address.getAddress()))
+            {
+                peer.disconnect();
+                it.remove();
+            }
+        }
+
+    }
+
+    /**
+     * Check the we are not already connected to the peer.
+     *
+     * @param address The the address we want to check.
+     *
+     * @return True if we are not currently connected to this address; otherwise false.
+     */
+    private boolean alreadyConnected(InetSocketAddress address)
+    {
+        return alreadyConnected(address.getAddress());
+    }
+
+    /**
+     * Check the we are not already connected to the peer.
+     *
+     * @param address The the address we want to check.
+     *
+     * @return True if we are not currently connected to this address; otherwise false.
+     */
+    private boolean alreadyConnected(InetAddress address)
+    {
+        for (Peer peer : m_peers)
+        {
+            return Arrays.equals(peer.getNetworkAddress().getAddress().getAddress(),
+                    address.getAddress());
         }
 
         return false;

@@ -141,6 +141,10 @@ public class Node implements IChainHeadUpdateListener
         m_peerManager.allowInboundConnections();
         m_addressBroadcastCd.start();
 
+        // Cancel initial block download if not peers available.
+        if (m_peerManager.peerCount() == 0)
+            m_isInitialDownload = false;
+
         while (m_isRunning)
         {
             Iterator<Peer> it = m_peerManager.getPeers();
@@ -481,12 +485,15 @@ public class Node implements IChainHeadUpdateListener
 
                     for (Block block: bulkBlocksPayload.getBlocks())
                     {
+                        peer.addToKnownBlocks(block.getHeaderHash());
+
                         boolean wasBlockAdded = m_blockchain.add(block);
 
                         if (!wasBlockAdded)
                         {
                             s_logger.debug("Invalid block send by peer {}, disconnecting peer.", peer);
                             peer.disconnect();
+                            return;
                         }
 
                         peer.setLastCommonBlock(block.getHeaderHash());
@@ -691,6 +698,9 @@ public class Node implements IChainHeadUpdateListener
         while (it.hasNext())
         {
             Peer peer = it.next();
+
+            if (!peer.isConnected() || peer.isBanned())
+                continue;
 
             if (!peer.isBlockKnown(head.getHash()))
                 peer.sendMessage(ProtocolMessageFactory.createHeaderMessage(head));
