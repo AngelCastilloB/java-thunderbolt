@@ -132,10 +132,10 @@ public class Main
 
         // TODO: Remove this, only for testing purposes.
         s_miningThread = new Thread(() -> { startMining(blockchain, 1000); });
-        s_miningChain = persistenceService.getBlock(blockchain.getChainHead().getHash());
+        s_miningChain = persistenceService.getBlock(persistenceService.getChainHead().getHash());
         s_height = (int)blockchain.getChainHead().getHeight();
 
-        if (false)
+        if (true)
             s_miningThread.start();
 
         node.run();
@@ -163,6 +163,13 @@ public class Main
      */
     private static void startMining(Blockchain blockchain, int delayBetweenBlocks)
     {
+        try
+        {
+            Thread.sleep(5000);
+        } catch (InterruptedException e)
+        {
+            e.printStackTrace();
+        }
         while (true)
         {
             try
