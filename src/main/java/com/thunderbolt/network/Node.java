@@ -50,7 +50,6 @@ import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -80,15 +79,10 @@ public class Node implements IChainHeadUpdateListener
     private NetworkAddress                 m_publicAddress      = null;
     private final Stopwatch                m_addressBroadcastCd = new Stopwatch();
 
-
-    private StandardMiner m_miner = null; //TODO: remove
-    Block m_miningChain = null;
-    int m_height = 0;
-
     // Use during initial block download.
-    private boolean   m_isInitialDownload   = false;
-    private Peer      m_initialSyncingPeer  = null;
-    private Stopwatch m_elapsedSinceRequest = new Stopwatch();
+    private boolean         m_isInitialDownload   = false;
+    private Peer            m_initialSyncingPeer  = null;
+    private final Stopwatch m_elapsedSinceRequest = new Stopwatch();
 
     /**
      * Initializes a new instance of the Node class.
@@ -102,17 +96,13 @@ public class Node implements IChainHeadUpdateListener
                 Blockchain blockchain,
                 ITransactionsPoolService transactionsPoolService,
                 PeerManager peerManager,
-                IPersistenceService persistenceService,
-                StandardMiner miner)
+                IPersistenceService persistenceService)
     {
         m_persistenceService = persistenceService;
         m_params = params;
         m_blockchain = blockchain;
         m_memPool = transactionsPoolService;
         m_peerManager = peerManager;
-        m_miner = miner;
-
-        m_miningChain = m_params.getGenesisBlock();
         m_persistenceService.addChainHeadUpdateListener(this);
     }
 
@@ -136,7 +126,6 @@ public class Node implements IChainHeadUpdateListener
      */
     public void run()
     {
-        m_isRunning = true;
         m_isInitialDownload = true;
         m_peerManager.allowInboundConnections();
         m_addressBroadcastCd.start();
@@ -145,6 +134,7 @@ public class Node implements IChainHeadUpdateListener
         if (m_peerManager.peerCount() == 0)
             m_isInitialDownload = false;
 
+        m_isRunning = true;
         while (m_isRunning)
         {
             Iterator<Peer> it = m_peerManager.getPeers();
@@ -169,27 +159,6 @@ public class Node implements IChainHeadUpdateListener
             }
 
             sendMessages();
-
-
-            try
-            {
-                if (m_miningChain == null)
-                    continue;
-                Block newBlock = m_miner.mine(m_miningChain.getHeaderHash(), m_height);
-                ++m_height;
-
-                m_miningChain = newBlock;
-                m_blockchain.add(newBlock);
-
-                Thread.sleep(100);
-            } catch (MiningException | StorageException e)
-            {
-                e.printStackTrace();
-            } catch (InterruptedException e)
-            {
-                e.printStackTrace();
-            }
-
         }
     }
 
@@ -688,8 +657,6 @@ public class Node implements IChainHeadUpdateListener
     @Override
     public void onChainHeadChanged(BlockHeader head)
     {
-        m_miningChain = null;
-
         if (m_isInitialDownload)
             return;
 

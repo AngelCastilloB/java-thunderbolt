@@ -26,13 +26,14 @@ package com.thunderbolt;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.blockchain.StandardBlockchainCommitter;
 import com.thunderbolt.blockchain.contracts.IBlockchainCommitter;
+import com.thunderbolt.mining.MiningException;
 import com.thunderbolt.mining.StandardMiner;
 import com.thunderbolt.network.Node;
 import com.thunderbolt.network.NetworkParameters;
-import com.thunderbolt.network.ProtocolException;
 import com.thunderbolt.network.contracts.IPeerDiscoverer;
 import com.thunderbolt.network.discovery.StandardPeerDiscoverer;
 import com.thunderbolt.network.messages.ProtocolMessageFactory;
@@ -72,21 +73,28 @@ public class Main
     static private final Path   METADATA_PATH    = Paths.get(DEFAULT_PATH.toString(), "metadata");
     static private final Path   ADDRESS_PATH     = Paths.get(DEFAULT_PATH.toString(), "peers");
 
-    static private final Path   WALLET_PATH      = Paths.get(USER_HOME_PATH.toString(), "wallet.bin");
-    static private final Path   WALLET_PATH_1    = Paths.get(USER_HOME_PATH.toString(), "wallet1.bin");
-    static private final Path   WALLET_PATH_2    = Paths.get(USER_HOME_PATH.toString(), "wallet2.bin");
+    static private final Path   WALLET_PATH      = Paths.get(USER_HOME_PATH, "wallet.bin");
+    static private final Path   WALLET_PATH_1    = Paths.get(USER_HOME_PATH, "wallet1.bin");
+    static private final Path   WALLET_PATH_2    = Paths.get(USER_HOME_PATH, "wallet2.bin");
 
     static private final String BLOCK_PATTERN    = "block%05d.bin";
     static private final String REVERT_PATTERN   = "revert%05d.bin";
 
+    // Static variables
     private static final Logger s_logger = LoggerFactory.getLogger(Main.class);
+    private static Thread       s_miningThread = null;
+
+    // Mining test.
+    private static Block s_miningChain = null; //TODO: remove
+    private static int s_height = 0;
+    private static StandardMiner s_miner = null;
 
     /**
      * Application entry point.
      *
      * @param args Arguments.
      */
-    public static void main(String[] args) throws IOException, ProtocolException, InterruptedException, StorageException, GeneralSecurityException
+    public static void main(String[] args) throws IOException, StorageException, GeneralSecurityException
     {
         IPersistenceService      persistenceService     = createPersistenceService();
         ITransactionsPoolService memPool                = new MemoryTransactionsPoolService();
@@ -101,7 +109,7 @@ public class Main
         s_logger.debug(wallet.getBalance().toString());
         s_logger.debug(wallet.getAddress().toString());
 
-        StandardMiner miner = new StandardMiner(memPool, blockchain, wallet);
+        s_miner = new StandardMiner(memPool, blockchain, wallet);
 
         ProtocolMessageFactory.initialize(NetworkParameters.mainNet(), persistenceService);
 
@@ -120,89 +128,15 @@ public class Main
             return;
         }
 
-        Node node = new Node(NetworkParameters.mainNet(), blockchain, memPool, peerManager, persistenceService, miner);
+        Node node = new Node(NetworkParameters.mainNet(), blockchain, memPool, peerManager, persistenceService);
+
+        // TODO: Remove this, only for testing purposes.
+        s_miningThread = new Thread(() -> { startMining(blockchain, 1000); });
+        s_miningChain = persistenceService.getBlock(blockchain.getChainHead().getHash());
+        if (false)
+            s_miningThread.start();
+
         node.run();
-
-        // Add connection to peers.
-        // service.addConnection();
-
-
-        /*
-        StandardPeerDiscoverer PeerDiscoverer = new StandardPeerDiscoverer();
-        InetSocketAddress[] peers = PeerDiscoverer.getPeers();
-
-        ServerSocket serverSocket = new ServerSocket(NetworkParameters.mainNet().getPort());
-        serverSocket.setSoTimeout(0);
-
-        System.out.println("Waiting for client on port " + serverSocket.getLocalPort() + "...");
-        Socket server = serverSocket.accept();
-
-        System.out.println("Just connected to " + server.getRemoteSocketAddress());
-
-        while(true)
-        {
-            Thread.sleep(500);
-            while (server.getInputStream().available() > 0)
-            {/*
-                System.out.println(server.getInputStream().available());
-                byte[] message = server.getInputStream().readNBytes(server.getInputStream().available());
-                s_logger.debug(Convert.toHexString(message));
-
-                ProtocolMessage protocolMessage = new ProtocolMessage(server.getInputStream(), NetworkParameters.mainNet().getPacketMagic());
-                PingPayload payload = new PingPayload(ByteBuffer.wrap(protocolMessage.getPayload()));
-                s_logger.debug("{}", payload.getNonce());
-            }
-        }*/
-
-        /*
-        if (peers[1].getAddress().isReachable(1000))
-        {
-            Connection connection = new Connection(NetworkParameters.mainNet(), peers[1], 0, 1000);
-            connection.ping();
-            ProtocolMessage message = connection.receive();
-        }*/
-
-        /*
-        IPersistenceService      persistenceService    = createPersistenceService();
-        ITransactionsPoolService memPool               = new MemoryTransactionsPoolService();
-        ITransactionValidator    transactionValidator  = new StandardTransactionValidator(persistenceService, NetworkParameters.mainNet());
-        IBlockchainCommitter     committer             = new StandardBlockchainCommitter(persistenceService, memPool);
-        Blockchain               blockchain            = new Blockchain(NetworkParameters.mainNet(), transactionValidator, committer, persistenceService);
-
-        Wallet wallet = new Wallet(WALLET_PATH.toString(), "1234");
-        wallet.initialize(persistenceService);
-        s_logger.debug(wallet.getBalance().toString());
-        s_logger.debug(wallet.getAddress().toString());
-
-        Wallet wallet1 = new Wallet(WALLET_PATH_1.toString(), "1234");
-        wallet1.initialize(persistenceService);
-        s_logger.debug(wallet1.getBalance().toString());
-        s_logger.debug(wallet1.getAddress().toString());
-
-        Wallet wallet2 = new Wallet(WALLET_PATH_2.toString(), "1234");
-        wallet2.initialize(persistenceService);
-        s_logger.debug(wallet2.getBalance().toString());
-        s_logger.debug(wallet2.getAddress().toString());
-
-        //Transaction newTransaction = wallet.createTransaction(BigInteger.valueOf(0), wallet1.getAddress());
-        //memPool.addTransaction(newTransaction);
-
-        blockchain.addOutputsUpdateListener(wallet);
-        blockchain.addOutputsUpdateListener(wallet1);
-        blockchain.addOutputsUpdateListener(wallet2);
-
-        StandardMiner miner = new StandardMiner(memPool, blockchain, wallet2);
-        Block parent = NetworkParameters.createGenesis();
-
-        for (int  i = 0; i < 15; ++i)
-        {
-            Block newBlock = miner.mine(parent, i);
-            blockchain.add(newBlock);
-            parent = newBlock;
-            s_logger.debug(wallet.getBalance().toString());
-            s_logger.debug(wallet1.getBalance().toString());
-            s_logger.debug(wallet2.getBalance().toString());
-        }*/
     }
 
     /**
@@ -217,5 +151,38 @@ public class Main
         IMetadataProvider metadataProvider = new LevelDbMetadataProvider(METADATA_PATH);
 
         return new StandardPersistenceService(blockStorage, revertsStorage, metadataProvider);
+    }
+
+    /**
+     * Start mining new blocks.
+     *
+     * @param blockchain The current blockchain.
+     * @param delayBetweenBlocks The delay between new blocks.
+     */
+    private static void startMining(Blockchain blockchain, int delayBetweenBlocks)
+    {
+        while (true)
+        {
+            try
+            {
+                Block newBlock = s_miner.mine(s_miningChain.getHeaderHash(), s_height);
+                ++s_height;
+
+                s_miningChain = newBlock;
+                blockchain.add(newBlock);
+
+                Thread.sleep(delayBetweenBlocks);
+            }
+            catch (MiningException | StorageException e)
+            {
+                s_logger.error("An error has occur while mining the new block: ", e);
+            }
+            catch (InterruptedException e)
+            {
+                // The thread was interrupted, exiting...
+                s_logger.error("Thread interrupted");
+                return;
+            }
+        }
     }
 }
