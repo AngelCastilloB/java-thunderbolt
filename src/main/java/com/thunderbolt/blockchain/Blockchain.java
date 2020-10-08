@@ -261,7 +261,7 @@ public class Blockchain
                 BlockMetadata fork = findFork(newBlock);
                 String forkHash = fork != null ? fork.getHeader().getHash().toString() : "?";
 
-                s_logger.info("Block forks the chain at {} (height {}), but it did not cause a reorganize:\n{}", forkHash, m_persistence.getChainHead().getHeight(), newBlock);
+                s_logger.info("Block forks the chain at {} (height {}), but it did not cause a reorganize:\n{}", forkHash, fork.getHeight(), newBlock);
                 s_logger.info("Main branch total work: {}", m_persistence.getChainHead().getTotalWork());
                 s_logger.info("Forked branch total work: {}", newBlock.getTotalWork());
             }

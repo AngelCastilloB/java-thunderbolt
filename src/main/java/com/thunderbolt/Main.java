@@ -133,6 +133,8 @@ public class Main
         // TODO: Remove this, only for testing purposes.
         s_miningThread = new Thread(() -> { startMining(blockchain, 1000); });
         s_miningChain = persistenceService.getBlock(blockchain.getChainHead().getHash());
+        s_height = (int)blockchain.getChainHead().getHeight();
+
         if (false)
             s_miningThread.start();
 
