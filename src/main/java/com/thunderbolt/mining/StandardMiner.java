@@ -123,7 +123,7 @@ public class StandardMiner implements IMiner
             }
 
             block.getHeader().setTimeStamp((int)OffsetDateTime.now(ZoneOffset.UTC).toEpochSecond());
-            block.getHeader().setTargetDifficulty(0x1ffffff8); // TODO: Compute correct difficulty for next block.
+            block.getHeader().setTargetDifficulty(m_blockchain.computeTargetDifficulty());
             block.getHeader().setParentBlockHash(m_blockchain.getChainHead().getHeader().getHash());
 
             BigInteger hash = block.getHeaderHash().toBigInteger();
@@ -200,7 +200,7 @@ public class StandardMiner implements IMiner
             }
 
             block.getHeader().setTimeStamp((int)OffsetDateTime.now(ZoneOffset.UTC).toEpochSecond());
-            block.getHeader().setTargetDifficulty(0x1ffffff8);
+            block.getHeader().setTargetDifficulty(m_blockchain.computeTargetDifficulty());
             block.getHeader().setParentBlockHash(parent);
 
             BigInteger hash = block.getHeaderHash().toBigInteger();
@@ -208,7 +208,7 @@ public class StandardMiner implements IMiner
 
             while (!solved)
             {
-                solved = !(hash.compareTo(block.getTargetDifficultyAsInteger()) > 0);
+                solved = hash.compareTo(block.getTargetDifficultyAsInteger()) <= 0;
 
                 if (!solved)
                 {

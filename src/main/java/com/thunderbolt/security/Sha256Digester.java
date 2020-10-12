@@ -213,6 +213,74 @@ public class Sha256Digester
     }
 
     /**
+     * Continues the hash of the given data from the given midstate.
+     *
+     * @param midstate Allows us to start the hashing process from the midstate.
+     * @param data the remaining blocks to be hashed.
+     */
+    public Sha256Hash continuePreviousHash(byte[] midstate, byte[] data)
+    {
+        // let H = H0
+        int[] midStateInts = toIntArray(midstate);
+        System.arraycopy(midStateInts, 0, m_h, 0, midStateInts.length);
+
+        // initialize all words
+        int[] words = toIntArray(data);
+
+        // enumerate all blocks (each containing 16 words)
+        for (int i = 0, n = words.length / 16; i < n; ++i)
+        {
+            // initialize W from the block's words
+            System.arraycopy(words, i * 16, m_w, 0, 16);
+
+            for (int t = 16; t < m_w.length; ++t)
+                m_w[t] = smallSig1(m_w[t - 2]) + m_w[t - 7] + smallSig0(m_w[t - 15]) + m_w[t - 16];
+
+            // let TEMP = H
+            System.arraycopy(m_h, 0, m_tmp, 0, m_h.length);
+
+            // operate on TEMP
+            for (int t = 0; t < m_w.length; ++t)
+            {
+                int t1 = m_tmp[7] + bigSig1(m_tmp[4]) + choice(m_tmp[4], m_tmp[5], m_tmp[6]) + K[t] + m_w[t];
+                int t2 = bigSig0(m_tmp[0]) + majority(m_tmp[0], m_tmp[1], m_tmp[2]);
+                System.arraycopy(m_tmp, 0, m_tmp, 1, m_tmp.length - 1);
+                m_tmp[4] += t1;
+                m_tmp[0] = t1 + t2;
+            }
+
+            // add values in TEMP to values in H
+            for (int t = 0; t < m_h.length; ++t)
+                m_h[t] += m_tmp[t];
+        }
+
+        return new Sha256Hash(toByteArray(m_h));
+    }
+
+    /**
+     * Convets the given byte array into integers (big endian).
+     *
+     * @param bytes The bytes to be converted into integers.
+     *
+     * @return The int array.
+     */
+    private static int[] toIntArray(byte[] bytes)
+    {
+        if (bytes.length % 4 != 0)
+            throw new IllegalArgumentException("bytes must be an array of serialized integers (4 bytes each).");
+
+        int intCount = bytes.length / 4;
+        int[] integers = new int[intCount];
+
+        ByteBuffer buffer = ByteBuffer.wrap(bytes);
+
+        for (int i = 0; i < intCount; ++i)
+            integers[i] = buffer.getInt();
+
+        return integers;
+    }
+
+    /**
      * Converts the given int array into a byte array via big-endian conversion
      * (1 int becomes 4 bytes).
      *

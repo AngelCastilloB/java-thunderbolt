@@ -237,6 +237,7 @@ public class Block implements ISerializable
 
         return last24bits.shiftLeft(8 * (first8bits - 3));
     }
+
     /**
      * Returns the work represented by this block
      *

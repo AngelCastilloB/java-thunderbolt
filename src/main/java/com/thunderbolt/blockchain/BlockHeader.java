@@ -44,7 +44,7 @@ import java.util.Arrays;
 public class BlockHeader implements ISerializable
 {
     // Constants
-    private static final int STARTING_DIFFICULTY = 0x1d0fffff;
+    private static final int STARTING_DIFFICULTY = 0x1d00ffff;
 
     // Instance fields
     private int        m_version     = 0;
@@ -107,9 +107,9 @@ public class BlockHeader implements ISerializable
         buffer.get(m_parentBlock.getData());
         buffer.get(m_markleRoot.getData());
 
-        m_timeStamp   = buffer.getInt() & 0xffffffffL;
-        m_bits        = buffer.getInt() & 0xffffffffL;
-        m_nonce       = buffer.getInt() & 0xffffffffL;
+        m_timeStamp = buffer.getInt() & 0xffffffffL;
+        m_bits      = buffer.getInt() & 0xffffffffL;
+        m_nonce     = buffer.getInt() & 0xffffffffL;
     }
 
     /**
@@ -251,7 +251,13 @@ public class BlockHeader implements ISerializable
      */
     public Sha256Hash getHash()
     {
-        return Sha256Digester.digest(Sha256Digester.digest(serialize()).getData());
+        byte[] littleEndianArray = Convert.reverseEndian(serialize());
+
+        Sha256Hash doubleHash = Sha256Digester.digest(Sha256Digester.digest(littleEndianArray));
+
+        byte[] reversedArray = Convert.reverse(doubleHash.getData());
+
+        return new Sha256Hash(reversedArray);
     }
 
     /**
@@ -272,6 +278,7 @@ public class BlockHeader implements ISerializable
             data.write(NumberSerializer.serialize((int)m_timeStamp));
             data.write(NumberSerializer.serialize((int)m_bits));
             data.write(NumberSerializer.serialize((int)m_nonce));
+
         }
         catch (IOException e)
         {

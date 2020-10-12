@@ -130,6 +130,48 @@ public class Convert
     }
 
     /**
+     * Revers the endianness of an array.
+     *
+     * @param data The byte array to be reversed.
+     *
+     * @return The new reversed array.
+     */
+    public static byte[] reverseEndian(byte[] data)
+    {
+        int blocks = data.length / 4;
+        byte[] reversed = new byte[data.length];
+
+        for (int i = 0; i < blocks; ++i)
+        {
+            for (int j = 0; j < 4; ++j)
+            {
+                reversed[i * 4 + j] = data[i * 4 + (3 - j)];
+            }
+        }
+
+        return reversed;
+    }
+
+    /**
+     * Reverses an array.
+     *
+     * @param data The array to be reversed.
+     *
+     * @return The reversed array.
+     */
+    public static byte[] reverse(byte[] data)
+    {
+        byte[] result = new byte[data.length];
+
+        for (int i = 0; i < data.length; ++i)
+        {
+            result[i] = data[data.length - 1 - i];
+        }
+
+        return result;
+    }
+
+    /**
      * Converts the given array of objects to a JSON array like string.
      *
      * @param collection  The collection of items.

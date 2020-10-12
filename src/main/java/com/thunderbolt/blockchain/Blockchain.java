@@ -177,7 +177,7 @@ public class Blockchain
      *
      * @return The target difficulty for the next block.
      */
-    public long computeTargetDifficulty() throws StorageException
+    public long computeTargetDifficulty()
     {
         BlockMetadata currentHead = m_persistence.getChainHead();
         BlockHeader current = currentHead.getHeader();

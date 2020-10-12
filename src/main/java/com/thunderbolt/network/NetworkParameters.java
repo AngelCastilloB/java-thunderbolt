@@ -85,21 +85,22 @@ public class NetworkParameters implements Serializable
         output.setAmount(MAIN_NET_SUBSIDY_STARTING_VALUE);
         output.setLockType(OutputLockType.SingleSignature);
 
-        // The first eight bytes are for block height in coinbase transactions. This is to ensure unique hash for
-        // coinbase transactions in case the are mined by the same miner.
         output.setLockingParameters(Hex.decode("022050C8868389B80FA27575412CF8D4C7C4BA5438FD86C98D6F93CB439426508E"));
 
         transaction.getInputs().add(input);
         transaction.getOutputs().add(output);
 
-        String message = "Genesis block.";
-        input.setUnlockingParameters(message.getBytes(StandardCharsets.US_ASCII));
+        // The first eight bytes are for block height in coinbase transactions. This is to ensure unique hash for
+        // coinbase transactions in case the are mined by the same miner.
+        byte[] message = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 'G','e','n','e','s','i','s',' ','b','l','o','c','k','.'};
+        input.setUnlockingParameters(message);
 
         genesisBlock.addTransaction(transaction);
 
+        genesisBlock.getHeader().setVersion(PROTOCOL_VERSION);
         genesisBlock.getHeader().setTimeStamp(1525003294);
-        genesisBlock.getHeader().setTargetDifficulty(0x1dfffff8); //Todo: Add back normal difficulty.
-        genesisBlock.getHeader().setNonce(449327816);
+        genesisBlock.getHeader().setTargetDifficulty(0x1D00FFFFL); //Todo: Add back normal difficulty.
+        genesisBlock.getHeader().setNonce(0x7891EA91L);
 
         return genesisBlock;
     }
