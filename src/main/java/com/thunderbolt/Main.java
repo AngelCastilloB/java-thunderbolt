@@ -27,9 +27,11 @@ package com.thunderbolt;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.blockchain.Block;
+import com.thunderbolt.blockchain.BlockHeader;
 import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.blockchain.StandardBlockchainCommitter;
 import com.thunderbolt.blockchain.contracts.IBlockchainCommitter;
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.mining.MiningException;
 import com.thunderbolt.mining.StandardMiner;
 import com.thunderbolt.network.Node;
@@ -44,6 +46,7 @@ import com.thunderbolt.persistence.contracts.IMetadataProvider;
 import com.thunderbolt.persistence.contracts.INetworkAddressPool;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.storage.*;
+import com.thunderbolt.security.Sha256Digester;
 import com.thunderbolt.transaction.MemoryTransactionsPoolService;
 import com.thunderbolt.transaction.StandardTransactionValidator;
 import com.thunderbolt.transaction.contracts.ITransactionValidator;

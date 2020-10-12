@@ -99,8 +99,8 @@ public class NetworkParameters implements Serializable
 
         genesisBlock.getHeader().setVersion(PROTOCOL_VERSION);
         genesisBlock.getHeader().setTimeStamp(1525003294);
-        genesisBlock.getHeader().setTargetDifficulty(0x1D00FFFFL); //Todo: Add back normal difficulty.
-        genesisBlock.getHeader().setNonce(0x7891EA91L);
+        genesisBlock.getHeader().setTargetDifficulty(0x1D00FFFFL);
+        genesisBlock.getHeader().setNonce(0x91EA9178L);
 
         return genesisBlock;
     }
