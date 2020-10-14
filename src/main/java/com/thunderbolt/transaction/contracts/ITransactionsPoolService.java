@@ -25,8 +25,11 @@ package com.thunderbolt.transaction.contracts;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.Transaction;
+
+import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -43,7 +46,7 @@ public interface ITransactionsPoolService
      *
      * @return The size in bytes of the pool.
      */
-    long getSize();
+    long getSizeInBytes();
 
     /**
      * Gets the number of transaction currently sitting in the pool.
@@ -67,7 +70,7 @@ public interface ITransactionsPoolService
      *
      * @return The picks transaction.
      */
-    Transaction pickTransaction();
+    Transaction pickTransaction() throws StorageException;
 
     /**
      * Adds a transaction to the pool.
@@ -78,6 +81,14 @@ public interface ITransactionsPoolService
      */
     boolean addTransaction(Transaction transaction);
 
+    /**
+     * Gets whether this transaction is already in the memory pool.
+     *
+     * @param id The id of the transaction..
+     *
+     * @return True if the transaction is present; otherwise; false.
+     */
+    boolean containsTransaction(Sha256Hash id);
 
     /**
      * Removes a transaction from the pool.
@@ -87,4 +98,19 @@ public interface ITransactionsPoolService
      * @return True if the transaction was removed; otherwise; false.
      */
     boolean removeTransaction(Sha256Hash id);
+
+    /**
+     * Adds a new listener to the list of transactions added listeners. This listener will be notified when a transaction
+     * is added to the mempool.
+     *
+     * @param listener The new listener to be added.
+     */
+    void addTransactionAddedListener(ITransactionAddedListener listener);
+
+    /**
+     * Gets all the transactions currently living in the mem pool.
+     *
+     * @return The transactions.
+     */
+    List<Transaction> getAllTransactions();
 }

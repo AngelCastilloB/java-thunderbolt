@@ -99,7 +99,7 @@ public enum MessageType
 
     /**
      * Allows a node to advertise its knowledge of one or more transaction. It can be received unsolicited, or as
-     * a response to the get mempool command.
+     * a response to the getUnconfirmedTransactions command.
      *
      * Payload (maximum 50,000 entries, which is just over 1.8 megabytes):
      */
@@ -112,9 +112,9 @@ public enum MessageType
     GetTransactions((short)0x0C),
 
     /**
-     * Describes a transaction, in reply to GetTransactions.
+     * Describes a set of transactions, in reply to GetTransactions.
      */
-    Transaction((short)0x0D);
+    Transactions((short)0x0D);
 
     // Instance fields.
     private final short m_value;

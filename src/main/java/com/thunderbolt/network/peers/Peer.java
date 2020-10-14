@@ -73,11 +73,12 @@ public class Peer
     private final Set<NetworkAddress>             m_knownAddresses    = new HashSet<>();
     private final Set<Sha256Hash>                 m_knownBlocks       = new HashSet<>();
     private final Set<Sha256Hash>                 m_knownTransactions = new HashSet<>();
+    private final List<Sha256Hash>                m_transactionToSend = new LinkedList<>();
     private final Map<Long, Stopwatch>            m_pongNonces        = new HashMap<>();
     private boolean                               m_isSyncing         = false;
     private long                                  m_knownBlockHeight  = 0;
     private Sha256Hash                            m_bestKnownBlock    = new Sha256Hash();
-    private Sha256Hash m_lastCommonBlock = new Sha256Hash();
+    private Sha256Hash                            m_lastCommonBlock   = new Sha256Hash();
 
     /**
      * Creates a connection with a given peer.
@@ -510,6 +511,30 @@ public class Peer
     public List<TimestampedNetworkAddress> getQueuedAddresses()
     {
         return m_addressToBeSend;
+    }
+
+    /**
+     * Queue the a known transaction to be broadcast to the peer.
+     *
+     * @param transactionId The transaction id to be broadcast.
+     */
+    public void queueTransactionIdForBroadcast(Sha256Hash transactionId)
+    {
+        if (!m_knownTransactions.contains(transactionId))
+        {
+            m_transactionToSend.add(transactionId);
+            m_knownTransactions.add(transactionId);
+        }
+    }
+
+    /**
+     * Gets the list of transactions ids that are queued for broadcast.
+     *
+     * @return The list of transactions ids.
+     */
+    public List<Sha256Hash> getQueuedTransactions()
+    {
+        return m_transactionToSend;
     }
 
     /**

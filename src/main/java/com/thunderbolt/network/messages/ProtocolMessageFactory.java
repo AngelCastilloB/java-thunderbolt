@@ -259,8 +259,48 @@ public class ProtocolMessageFactory
                 s_persistenceService.getChainHead() :
                 s_persistenceService.getBlockMetadata(stopHash);
 
-        BulkBlocksPayload payload =
-                new BulkBlocksPayload(getBlocksToSend(metadata, locator));
+        BlocksPayload payload =
+                new BlocksPayload(getBlocksToSend(metadata, locator));
+
+        message.setPayload(payload);
+
+        return message;
+    }
+
+    /**
+     * Creates a get transactions message.
+     *
+     * @param ids The transaction ids.
+     *
+     * @return The newly created get transactions message.
+     */
+    public static ProtocolMessage createGetTransactionsMessage(List<Sha256Hash> ids)
+    {
+        ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
+        message.setMessageType(MessageType.GetTransactions);
+
+        GetTransactionsPayload payload = new GetTransactionsPayload();
+        payload.getIdsList().addAll(ids);
+        message.setPayload(payload);
+
+        return message;
+    }
+
+    /**
+     * Creates a known transactions message.
+     *
+     * @param ids The list of known transaction ids..
+     *
+     * @return The newly created known transactions message.
+     */
+    public static ProtocolMessage createKnownTransactionsMessage(List<Sha256Hash> ids)
+    {
+        ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
+        message.setMessageType(MessageType.Transactions);
+
+        KnownTransactionsPayload payload = new KnownTransactionsPayload();
+
+        payload.getTransactionIds().addAll(ids);
 
         message.setPayload(payload);
 
@@ -270,15 +310,20 @@ public class ProtocolMessageFactory
     /**
      * Creates a transaction message.
      *
-     * @param tx The transaction to be send in this message.
+     * @param transactions The transactions to be send in this message.
      *
      * @return The newly created transaction message.
      */
-    public static ProtocolMessage createTransactionMessage(Transaction tx)
+    public static ProtocolMessage createTransactionsMessage(List<Transaction> transactions)
     {
         ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
-        message.setMessageType(MessageType.Transaction);
-        message.setPayload(tx);
+        message.setMessageType(MessageType.Transactions);
+
+        TransactionsPayload payload = new TransactionsPayload();
+
+        payload.getTransactions().addAll(transactions);
+
+        message.setPayload(payload);
 
         return message;
     }

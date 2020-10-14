@@ -26,10 +26,18 @@ package com.thunderbolt.transaction;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.Convert;
+import com.thunderbolt.network.ProtocolException;
+import com.thunderbolt.persistence.contracts.IPersistenceService;
+import com.thunderbolt.persistence.storage.StorageException;
+import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Sha256Hash;
+import com.thunderbolt.transaction.contracts.ITransactionAddedListener;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigInteger;
+import java.security.InvalidParameterException;
 import java.util.*;
 
 /* IMPLEMENTATION ************************************************************/
@@ -37,13 +45,27 @@ import java.util.*;
 /**
  * A basic in memory backed unverified transaction pool. This pool is ephemeral, that means that once the application
  * shuts down all the transaction in the pool will be lost so we will need to repopulate the pool at startup.
- *
- * TODO: Make this class thread safe.
  */
 public class MemoryTransactionsPoolService implements ITransactionsPoolService
 {
-    private Map<Sha256Hash, Transaction> m_memPool = new HashMap<>();
-    private BigInteger                   m_size    = BigInteger.ZERO;
+    private static final Logger s_logger = LoggerFactory.getLogger(MemoryTransactionsPoolService.class);
+
+    private static final int MAX_TRANSACTION_COUNT = 4000;
+
+    private final Map<Sha256Hash, Transaction>    m_memPool            = new HashMap<>();
+    private BigInteger                            m_size               = BigInteger.ZERO;
+    private IPersistenceService                   m_persistenceService = null;
+    private final List<ITransactionAddedListener> m_listeners          = new ArrayList<>();
+
+    /**
+     * Initializes a new instance of the MemoryTransactionsPoolService class.
+     *
+     * @param service The persistence service.
+     */
+    public MemoryTransactionsPoolService(IPersistenceService service)
+    {
+        m_persistenceService = service;
+    }
 
     /**
      * Gets the size of the memory pool in bytes.
@@ -51,7 +73,7 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService
      * @return The size in bytes of the memory pool.
      */
     @Override
-    public long getSize()
+    synchronized public long getSizeInBytes()
     {
         return m_size.longValue();
     }
@@ -62,7 +84,7 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService
      * @return The number of transaction in the pool.
      */
     @Override
-    public long getCount()
+    synchronized public long getCount()
     {
         return m_memPool.size();
     }
@@ -75,7 +97,7 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService
      * @return The transaction.
      */
     @Override
-    public Transaction getTransaction(Sha256Hash id)
+    synchronized public Transaction getTransaction(Sha256Hash id)
     {
         return m_memPool.get(id);
     }
@@ -84,19 +106,31 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService
      * Picks a transaction from the memory pool. The strategy for picking said transaction is defined by the
      * concrete implementation of this interface.
      *
-     * @return The picks transaction.
+     * @return The pick transaction.
      */
     @Override
-    public Transaction pickTransaction()
+    synchronized public Transaction pickTransaction()
     {
         Set<Map.Entry<Sha256Hash, Transaction>> set = m_memPool.entrySet();
 
         // For now just picks the first transaction in the pool.
-        // TODO: Allow to change transaction picking strategy.
         for (Map.Entry<Sha256Hash, Transaction> entry : set)
             return entry.getValue();
 
         return null;
+    }
+
+    /**
+     * Gets whether this transaction is already in the memory pool.
+     *
+     * @param id The id of the transaction..
+     *
+     * @return True if the transaction is present; otherwise; false.
+     */
+    @Override
+    synchronized public boolean containsTransaction(Sha256Hash id)
+    {
+        return m_memPool.containsKey(id);
     }
 
     /**
@@ -105,10 +139,28 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService
      * @param transaction The transaction to be added.
      */
     @Override
-    public boolean addTransaction(Transaction transaction)
+    synchronized public boolean addTransaction(Transaction transaction)
     {
-        m_size = m_size.add(BigInteger.valueOf(transaction.serialize().length));
-        return m_memPool.put(transaction.getTransactionId(), transaction) == null;
+        if (m_memPool.containsKey(transaction.getTransactionId()))
+            return false;
+
+        if (m_memPool.size() > MAX_TRANSACTION_COUNT)
+        {
+            s_logger.warn("Mempool is full. The transaction wont be added to the pool. {}", transaction);
+            return false;
+        }
+
+        boolean added = m_memPool.put(transaction.getTransactionId(), transaction) == null;
+
+        if (added)
+        {
+            m_size = m_size.add(BigInteger.valueOf(transaction.serialize().length));
+
+            for (ITransactionAddedListener listener : m_listeners)
+                listener.onTransactionAdded(transaction);
+        }
+
+        return added;
     }
 
     /**
@@ -117,8 +169,14 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService
      * @param id The id of the transaction to be removed.
      */
     @Override
-    public boolean removeTransaction(Sha256Hash id)
+    synchronized public boolean removeTransaction(Sha256Hash id)
     {
+        if (!m_memPool.containsKey(id))
+            return false;
+
+        Transaction transaction = m_memPool.get(id);
+        m_size = m_size.subtract(BigInteger.valueOf(transaction.serialize().length));
+
         return m_memPool.remove(id) != null;
     }
 
@@ -140,7 +198,7 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService
                             "  \"sizeInBytes\":       %s, %n" +
                             "  \"count\":             %s, %n" +
                             "  \"transactions\":",
-                    getSize(),
+                    getSizeInBytes(),
                     getCount()));
 
         List<Transaction> transaction = new ArrayList<>(m_memPool.values());
@@ -154,5 +212,61 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService
         stringBuilder.append("}");
 
         return stringBuilder.toString();
+    }
+
+    /**
+     * Adds a new listener to the list of transactions added listeners. This listener will be notified when a transaction
+     * is added to the mempool.
+     *
+     * @param listener The new listener to be added.
+     */
+    @Override
+    public void addTransactionAddedListener(ITransactionAddedListener listener)
+    {
+        m_listeners.add(listener);
+    }
+
+    /**
+     * Gets all the transactions currently living in the mem pool.
+     *
+     * @return The transactions.
+     */
+    @Override
+    public List<Transaction> getAllTransactions()
+    {
+        return new ArrayList<>(m_memPool.values());
+    }
+
+    /**
+     * Gets the amount that will be paid by the miner as a fee for including this transaction.
+     *
+     * @return The fee.
+     */
+    private long getMinersFee(Transaction transaction) throws ProtocolException, StorageException
+    {
+        BigInteger totalOutput = BigInteger.ZERO;
+        BigInteger totalInput  = BigInteger.ZERO;
+
+        for (TransactionOutput out : transaction.getOutputs())
+            totalOutput = totalOutput.add(out.getAmount());
+
+        for (TransactionInput input : transaction.getInputs())
+        {
+            UnspentTransactionOutput output =
+                    m_persistenceService.getUnspentOutput(input.getReferenceHash(), input.getIndex());
+
+            if (output == null)
+                throw new InvalidParameterException(
+                        "Invalid transaction. This transaction references an output that does not exists.");
+
+            totalInput = totalInput.add(output.getOutput().getAmount());
+        }
+
+        long fee = totalInput.subtract(totalOutput).longValue();
+
+        if (fee < 0)
+            throw new ProtocolException("Invalid transaction fee.");
+
+        return fee;
     }
 }

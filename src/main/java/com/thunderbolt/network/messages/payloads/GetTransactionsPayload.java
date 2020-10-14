@@ -26,10 +26,9 @@ package com.thunderbolt.network.messages.payloads;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.common.contracts.ISerializable;
-import com.thunderbolt.network.ProtocolException;
+import com.thunderbolt.security.Sha256Hash;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -40,49 +39,38 @@ import java.util.List;
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Payload data for the headers message.
+ * Request the peer to send the specified transactions.
  */
-public class BulkBlocksPayload implements ISerializable
+public class GetTransactionsPayload implements ISerializable
 {
-    // Constants
-    private static final int MAX_BLOCKS_COUNT = 500; // TODO: Move this to network parameters?
-
-    // Instance fields
-    private final List<Block> m_blocks = new ArrayList<>();
+    private final List<Sha256Hash> m_transactions = new ArrayList<>();
 
     /**
-     * The payload for the blocks message.
-     *
-     * @param list the list of blocks to send.
+     * Initializes a new instance of the GetTransactionsPayload class.
      */
-    public BulkBlocksPayload(List<Block> list)
+    public GetTransactionsPayload()
     {
-        m_blocks.addAll(list);
     }
 
     /**
-     * The payload for the headers message.
+     * Initializes a new instance of the GetTransactionsPayload class.
      *
-     * @param buffer the headers payload data.
+     * @param buffer The buffer containing the payload.
      */
-    public BulkBlocksPayload(ByteBuffer buffer) throws ProtocolException
+    public GetTransactionsPayload(ByteBuffer buffer)
     {
-        int entryCount = buffer.getInt();
-
-        if (entryCount > MAX_BLOCKS_COUNT)
-            throw new ProtocolException(String.format("The number of blocks in this message (%s) is bigger than the limit %s",
-                    entryCount, MAX_BLOCKS_COUNT));
+        long entryCount = buffer.getInt() & 0xFFFFFFFFL;
 
         for (int i = 0; i < entryCount; ++i)
-            getBlocks().add(new Block(buffer));
+            m_transactions.add(new Sha256Hash(buffer));
     }
 
     /**
-     * The payload for the headers message.
+     * Initializes a new instance of the GetTransactionsPayload class.
      *
-     * @param buffer the headers payload data.
+     * @param buffer The buffer containing the payload.
      */
-    public BulkBlocksPayload(byte[] buffer) throws ProtocolException
+    public GetTransactionsPayload(byte[] buffer)
     {
         this(ByteBuffer.wrap(buffer));
     }
@@ -99,10 +87,10 @@ public class BulkBlocksPayload implements ISerializable
 
         try
         {
-            data.write(NumberSerializer.serialize(getBlocks().size()));
+            data.write(NumberSerializer.serialize(m_transactions.size()));
 
-            for (Block blocks: getBlocks())
-                data.write(blocks.serialize());
+            for (Sha256Hash hash: m_transactions)
+                data.write(hash.serialize());
         }
         catch (IOException e)
         {
@@ -112,13 +100,14 @@ public class BulkBlocksPayload implements ISerializable
         return data.toByteArray();
     }
 
+
     /**
-     * Gets a reference to the blocks collection.
+     * Gets the list if ids to request to the peer..
      *
-     * @return The block collection.
+     * @return The list of ids..
      */
-    public List<Block> getBlocks()
+    public List<Sha256Hash> getIdsList()
     {
-        return m_blocks;
+        return m_transactions;
     }
 }

@@ -31,8 +31,6 @@ import com.thunderbolt.blockchain.BlockHeader;
 import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.common.TimeSpan;
-import com.thunderbolt.mining.MiningException;
-import com.thunderbolt.mining.StandardMiner;
 import com.thunderbolt.network.messages.payloads.*;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import com.thunderbolt.network.messages.ProtocolMessageFactory;
@@ -46,6 +44,8 @@ import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
 import com.thunderbolt.security.Sha256Hash;
+import com.thunderbolt.transaction.Transaction;
+import com.thunderbolt.transaction.contracts.ITransactionAddedListener;
 import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,7 +58,7 @@ import java.util.*;
 /**
  * Network node. Handles all the messages exchanges between this instance and the peers.
  */
-public class Node implements IChainHeadUpdateListener
+public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
 {
     // Constants
     private static final int MAIN_LOOP_DELAY           = 100; // ms
@@ -104,6 +104,7 @@ public class Node implements IChainHeadUpdateListener
         m_memPool = transactionsPoolService;
         m_peerManager = peerManager;
         m_persistenceService.addChainHeadUpdateListener(this);
+        m_memPool.addTransactionAddedListener(this);
     }
 
     /**
@@ -450,7 +451,7 @@ public class Node implements IChainHeadUpdateListener
                 try
                 {
                     // Reply the peer with the blocks he is missing.
-                    BulkBlocksPayload bulkBlocksPayload = new BulkBlocksPayload(message.getPayload());
+                    BlocksPayload bulkBlocksPayload = new BlocksPayload(message.getPayload());
 
                     for (Block block: bulkBlocksPayload.getBlocks())
                     {
@@ -515,6 +516,54 @@ public class Node implements IChainHeadUpdateListener
                     s_logger.error("There was an error while retrieving the item: ", e);
                 }
                 break;
+            case getUnconfirmedTransactions:
+                if (!peer.hasClearedHandshake())
+                {
+                    peer.addBanScore(1);
+                    return;
+                }
+
+                if (m_isInitialDownload)
+                    return;
+
+                List<Transaction> unconfirmedTransactions = m_memPool.getAllTransactions();
+                peer.sendMessage(ProtocolMessageFactory.createTransactionsMessage(unconfirmedTransactions));
+
+                break;
+            case KnownTransactions:
+                if (!peer.hasClearedHandshake())
+                {
+                    peer.addBanScore(1);
+                    return;
+                }
+
+                if (m_isInitialDownload)
+                    return;
+
+                try
+                {
+                    KnownTransactionsPayload knownTransactionsPayload = new KnownTransactionsPayload(message.getPayload());
+
+                    List<Sha256Hash> ids = new ArrayList<>();
+
+                    for (Sha256Hash xtId : knownTransactionsPayload.getTransactionIds())
+                    {
+                        peer.addToKnownTransactions(xtId);
+
+                        if (!m_memPool.containsTransaction(xtId))
+                            ids.add(xtId);
+                    }
+
+                    peer.sendMessage(ProtocolMessageFactory.createGetTransactionsMessage(ids));
+                }
+                catch (ProtocolException e)
+                {
+                    s_logger.error("Invalid known transactions message from peer {}", peer, e);
+                    peer.addBanScore(10);
+                    break;
+                }
+
+                break;
             case GetTransactions:
                 if (!peer.hasClearedHandshake())
                 {
@@ -524,6 +573,51 @@ public class Node implements IChainHeadUpdateListener
 
                 if (m_isInitialDownload)
                     return;
+
+                List<Transaction> transactions = new ArrayList<>();
+
+                GetTransactionsPayload getTransactionsPayload = new GetTransactionsPayload(message.getPayload());
+
+                for (Sha256Hash xtId : getTransactionsPayload.getIdsList())
+                {
+                    if (m_memPool.containsTransaction(xtId))
+                        transactions.add(m_memPool.getTransaction(xtId));
+                }
+
+                peer.sendMessage(ProtocolMessageFactory.createTransactionsMessage(transactions));
+                break;
+            case Transactions:
+                if (!peer.hasClearedHandshake())
+                {
+                    peer.addBanScore(1);
+                    return;
+                }
+
+                if (m_isInitialDownload)
+                    return;
+
+                try
+                {
+                    TransactionsPayload transactionsPayload = new TransactionsPayload(message.getPayload());
+
+                    for (Transaction transaction : transactionsPayload.getTransactions())
+                    {
+                        if (transaction.isValid())
+                        {
+                            m_memPool.addTransaction(transaction);
+                        }
+                        else
+                        {
+                            s_logger.warn("Invalid transaction from peer {}", peer);
+                            peer.addBanScore(10);
+                        }
+                    }
+                }
+                catch (ProtocolException e)
+                {
+                    s_logger.error("Invalid transaction from peer {}", peer, e);
+                    peer.addBanScore(10);
+                }
                 break;
             default:
         }
@@ -602,6 +696,16 @@ public class Node implements IChainHeadUpdateListener
                 peer.getQueuedAddresses().clear();
             }
 
+            // Send queue transactions.
+            if (peer.getQueuedTransactions().size() > 0)
+            {
+                ProtocolMessage knownTransactionMessage = ProtocolMessageFactory
+                        .createKnownTransactionsMessage(peer.getQueuedTransactions());
+
+                peer.sendMessage(knownTransactionMessage);
+                peer.getQueuedTransactions().clear();
+            }
+
             // If 24 hours pass, we are going to broadcast our public address to all connected peers and
             // ask then to relay to other peers. We are also going to clear all their known addresses.
             if (m_addressBroadcastCd.getElapsedTime().getTotalHours() > RELAY_PUBLIC_ADDRESS_TIME
@@ -671,6 +775,30 @@ public class Node implements IChainHeadUpdateListener
 
             if (!peer.isBlockKnown(head.getHash()))
                 peer.sendMessage(ProtocolMessageFactory.createHeaderMessage(head));
+        }
+    }
+
+    /**
+     * Called when a change on the available unspent outputs occur.
+     *
+     * @param transaction The transaction that was added.
+     */
+    @Override
+    public void onTransactionAdded(Transaction transaction)
+    {
+        if (m_isInitialDownload)
+            return;
+
+        // Notify all peers.
+        Iterator<Peer> it = m_peerManager.getPeers();
+        while (it.hasNext())
+        {
+            Peer peer = it.next();
+
+            if (!peer.isConnected() || peer.isBanned())
+                continue;
+
+            peer.queueTransactionIdForBroadcast(transaction.getTransactionId());
         }
     }
 }

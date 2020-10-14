@@ -54,7 +54,7 @@ public class Address
      */
     Address(byte prefix, byte[] data)
     {
-        byte[] publicHash = Ripemd160Digester.digest(Sha256Digester.digest(data).getData());
+        byte[] publicHash = Ripemd160Digester.digest(data);
         byte[] checksum   = computeCheckSum(prefix, publicHash);
 
         m_address = new byte[PREFIX_SIZE + publicHash.length + checksum.length];

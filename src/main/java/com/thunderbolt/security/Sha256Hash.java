@@ -93,6 +93,17 @@ public class Sha256Hash
     }
 
     /**
+     * Creates a string representation of the hash value of this object
+     *
+     * @return The string representation.
+     */
+    @Override
+    public String toString()
+    {
+        return Convert.toHexString(m_data);
+    }
+
+    /**
      * Compares this Hash instance to another one
      *
      * @param other The object to compare.

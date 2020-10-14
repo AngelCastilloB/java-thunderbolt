@@ -129,7 +129,7 @@ public interface IPersistenceService
      *
      * @return An array with all the unspent outputs related to a given public address.
      */
-    public List<UnspentTransactionOutput> getUnspentOutputsForAddress(Address address) throws StorageException;
+    List<UnspentTransactionOutput> getUnspentOutputsForAddress(Address address) throws StorageException;
 
     /**
      * Adds the given unspent output to the database.

@@ -28,6 +28,7 @@ package com.thunderbolt.transaction;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
+import com.thunderbolt.network.ProtocolException;
 import com.thunderbolt.security.Sha256Digester;
 import com.thunderbolt.security.Sha256Hash;
 import org.slf4j.Logger;
@@ -277,7 +278,7 @@ public class Transaction implements ISerializable
         {
             int coinbaseSize = m_inputs.get(0).getUnlockingParameters().length;
 
-            if (coinbaseSize > 100)
+            if (coinbaseSize > MAX_COINBASE_SIZE)
             {
                 s_logger.debug("Unlocking parameters in coinbase transaction {}, has an invalid size: {}", getTransactionId(), MAX_COINBASE_SIZE);
                 return false;

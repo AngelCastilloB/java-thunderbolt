@@ -100,7 +100,7 @@ public class Main
     public static void main(String[] args) throws IOException, StorageException, GeneralSecurityException
     {
         IPersistenceService      persistenceService     = createPersistenceService();
-        ITransactionsPoolService memPool                = new MemoryTransactionsPoolService();
+        ITransactionsPoolService memPool                = new MemoryTransactionsPoolService(persistenceService);
         ITransactionValidator    transactionValidator   = new StandardTransactionValidator(persistenceService, NetworkParameters.mainNet());
         IBlockchainCommitter     committer              = new StandardBlockchainCommitter(persistenceService, memPool);
         Blockchain               blockchain             = new Blockchain(NetworkParameters.mainNet(), transactionValidator, committer, persistenceService);
