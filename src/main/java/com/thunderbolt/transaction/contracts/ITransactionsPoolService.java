@@ -82,6 +82,16 @@ public interface ITransactionsPoolService
     boolean addTransaction(Transaction transaction);
 
     /**
+     * Adds a transaction to the pool.
+     *
+     * @param transaction The transaction to be added.
+     * @param notify      whether notify all the listeners if the transaction was added correctly.
+     *
+     * @return True if the transaction was added; otherwise; false.
+     */
+    boolean addTransaction(Transaction transaction, boolean notify);
+
+    /**
      * Gets whether this transaction is already in the memory pool.
      *
      * @param id The id of the transaction..

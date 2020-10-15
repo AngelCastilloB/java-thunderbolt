@@ -139,7 +139,19 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService
      * @param transaction The transaction to be added.
      */
     @Override
-    synchronized public boolean addTransaction(Transaction transaction)
+    public boolean addTransaction(Transaction transaction)
+    {
+        return addTransaction(transaction, true);
+    }
+
+    /**
+     * Adds a transaction to the memory pool.
+     *
+     * @param transaction The transaction to be added.
+     * @param notify Whether to notify or not the listeners.
+     */
+    @Override
+    synchronized public boolean addTransaction(Transaction transaction, boolean notify)
     {
         if (m_memPool.containsKey(transaction.getTransactionId()))
             return false;
@@ -156,8 +168,11 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService
         {
             m_size = m_size.add(BigInteger.valueOf(transaction.serialize().length));
 
-            for (ITransactionAddedListener listener : m_listeners)
-                listener.onTransactionAdded(transaction);
+            if (notify)
+            {
+                for (ITransactionAddedListener listener : m_listeners)
+                    listener.onTransactionAdded(transaction);
+            }
         }
 
         return added;

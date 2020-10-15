@@ -267,6 +267,20 @@ public class ProtocolMessageFactory
         return message;
     }
 
+
+    /**
+     * Creates a get unconfirmed transactions message.
+     *
+     * @return The newly created get transactions message.
+     */
+    public static ProtocolMessage createGetUnconfirmedTransactions()
+    {
+        ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
+        message.setMessageType(MessageType.getUnconfirmedTransactions);
+
+        return message;
+    }
+
     /**
      * Creates a get transactions message.
      *

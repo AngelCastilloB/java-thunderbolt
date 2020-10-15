@@ -61,11 +61,12 @@ import java.util.*;
 public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
 {
     // Constants
-    private static final int MAIN_LOOP_DELAY           = 100; // ms
-    private static final int MAX_GET_ADDRESS_RESPONSE  = 1000;
-    private static final int RELAY_ADDRESS_LIMIT       = 2;
-    private static final int RELAY_PUBLIC_ADDRESS_TIME = 24; //hours
-    private static final int MAX_BLOCK_COUNT_IN_BULK   = 500;
+    private static final int MAIN_LOOP_DELAY                = 100; // ms
+    private static final int MAX_GET_ADDRESS_RESPONSE       = 1000;
+    private static final int RELAY_ADDRESS_LIMIT            = 2;
+    private static final int RELAY_PUBLIC_ADDRESS_TIME      = 24; //hours
+    private static final int MAX_BLOCK_COUNT_IN_BULK        = 500;
+    private static final int MAX_TRANSACTIONS_COUNT_IN_BULK = 2000;
 
     private static final Logger s_logger = LoggerFactory.getLogger(Node.class);
 
@@ -76,13 +77,15 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
     private final ITransactionsPoolService m_memPool;
     private final IPersistenceService      m_persistenceService;
     private final PeerManager              m_peerManager;
-    private NetworkAddress                 m_publicAddress      = null;
-    private final Stopwatch                m_addressBroadcastCd = new Stopwatch();
+    private NetworkAddress                 m_publicAddress       = null;
+    private final Stopwatch                m_addressBroadcastCd  = new Stopwatch();
+    private final Stopwatch                m_requestTransactions = new Stopwatch();
 
-    // Use during initial block download.
-    private boolean         m_isInitialDownload   = false;
-    private Peer            m_initialSyncingPeer  = null;
-    private final Stopwatch m_elapsedSinceRequest = new Stopwatch();
+    // Use during initial sync.
+    private boolean         m_isInitialXtDownload    = false;
+    private boolean         m_isInitialBlockDownload = false;
+    private Peer            m_initialSyncingPeer     = null;
+    private final Stopwatch m_elapsedSinceRequest    = new Stopwatch();
 
     /**
      * Initializes a new instance of the Node class.
@@ -116,7 +119,7 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
             return;
 
         m_isRunning = false;
-        m_isInitialDownload = false;
+        m_isInitialBlockDownload = false;
 
         s_logger.debug("Please wait while the node shuts down");
         m_peerManager.stop();
@@ -127,13 +130,14 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
      */
     public void run()
     {
-        m_isInitialDownload = true;
+        m_isInitialBlockDownload = true;
+        m_isInitialXtDownload = true;
         m_peerManager.allowInboundConnections();
         m_addressBroadcastCd.start();
 
         // Cancel initial block download if not peers available.
         if (m_peerManager.peerCount() == 0)
-            m_isInitialDownload = false;
+            m_isInitialBlockDownload = false;
 
         m_isRunning = true;
         while (m_isRunning)
@@ -279,7 +283,7 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
                 if (!weAreServer)
                 {
                     // We don't want to advertise ourselves until we sync with the network.
-                    if (!m_isInitialDownload)
+                    if (!m_isInitialBlockDownload)
                         peer.sendMessage(ProtocolMessageFactory.createAddressMessage(m_publicAddress));
 
                     peer.sendMessage(ProtocolMessageFactory.createGetAddressMessage());
@@ -401,7 +405,7 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
                     return;
                 }
 
-                if (m_isInitialDownload)
+                if (m_isInitialBlockDownload)
                     return;
 
                 BlockHeader header = new BlockHeader(message.getPayload());
@@ -444,7 +448,7 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
                     return;
                 }
 
-                if (m_isInitialDownload && !peer.isSyncing())
+                if (m_isInitialBlockDownload && !peer.isSyncing())
                     return;
 
                 m_elapsedSinceRequest.restart();
@@ -452,6 +456,13 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
                 {
                     // Reply the peer with the blocks he is missing.
                     BlocksPayload bulkBlocksPayload = new BlocksPayload(message.getPayload());
+
+                    if (bulkBlocksPayload.getBlocks().size() > MAX_BLOCK_COUNT_IN_BULK)
+                    {
+                        s_logger.warn("Peer {} send too many blocks ({})", peer, bulkBlocksPayload.getBlocks().size() );
+                        peer.addBanScore(50);
+                        break;
+                    }
 
                     for (Block block: bulkBlocksPayload.getBlocks())
                     {
@@ -469,7 +480,7 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
                         peer.setLastCommonBlock(block.getHeaderHash());
                     }
 
-                    if (m_isInitialDownload)
+                    if (m_isInitialBlockDownload)
                     {
                         if (bulkBlocksPayload.getBlocks().size() == MAX_BLOCK_COUNT_IN_BULK)
                         {
@@ -479,7 +490,7 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
                         }
                         else
                         {
-                            m_isInitialDownload = false;
+                            m_isInitialBlockDownload = false;
                             m_initialSyncingPeer = null;
                             peer.setIsSyncing(false);
                             m_elapsedSinceRequest.stop();
@@ -490,6 +501,12 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
 
                             // Exchange headers with all peers.
                             exchangeHeaders();
+
+                            s_logger.debug("Requesting mem pool from peer...");
+                            peer.sendMessage(ProtocolMessageFactory.createGetUnconfirmedTransactions());
+
+                            // We will request transactions to peers every 30 minutes if our mempool is empty.
+                            m_requestTransactions.restart();
                         }
                     }
                     else
@@ -523,11 +540,21 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
                     return;
                 }
 
-                if (m_isInitialDownload)
+                if (m_isInitialBlockDownload)
                     return;
 
-                List<Transaction> unconfirmedTransactions = m_memPool.getAllTransactions();
-                peer.sendMessage(ProtocolMessageFactory.createTransactionsMessage(unconfirmedTransactions));
+                List<Transaction> toSend = new ArrayList<>();
+
+                for (Transaction unconfirmedTransaction: m_memPool.getAllTransactions())
+                {
+                    if (!peer.isTransactionKnown(unconfirmedTransaction.getTransactionId()))
+                        toSend.add(unconfirmedTransaction);
+                }
+
+                peer.sendMessage(ProtocolMessageFactory.createTransactionsMessage(toSend));
+
+                for (Transaction transaction: toSend)
+                    peer.addToKnownTransactions(transaction.getTransactionId());
 
                 break;
             case KnownTransactions:
@@ -537,7 +564,7 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
                     return;
                 }
 
-                if (m_isInitialDownload)
+                if (m_isInitialBlockDownload)
                     return;
 
                 try
@@ -571,7 +598,7 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
                     return;
                 }
 
-                if (m_isInitialDownload)
+                if (m_isInitialBlockDownload)
                     return;
 
                 List<Transaction> transactions = new ArrayList<>();
@@ -593,24 +620,40 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
                     return;
                 }
 
-                if (m_isInitialDownload)
+                if (m_isInitialBlockDownload)
                     return;
 
                 try
                 {
                     TransactionsPayload transactionsPayload = new TransactionsPayload(message.getPayload());
 
+                    if (transactionsPayload.getTransactions().size() > MAX_TRANSACTIONS_COUNT_IN_BULK)
+                    {
+                        s_logger.warn("Peer {} send too many transactions ({})", peer, transactionsPayload.getTransactions().size());
+                        peer.addBanScore(50);
+                        break;
+                    }
+
                     for (Transaction transaction : transactionsPayload.getTransactions())
                     {
                         if (transaction.isValid())
                         {
-                            m_memPool.addTransaction(transaction);
+                            m_memPool.addTransaction(transaction, !m_isInitialXtDownload);
                         }
                         else
                         {
                             s_logger.warn("Invalid transaction from peer {}", peer);
                             peer.addBanScore(10);
                         }
+                    }
+
+                    if (transactionsPayload.getTransactions().size() == MAX_TRANSACTIONS_COUNT_IN_BULK)
+                    {
+                        peer.sendMessage(ProtocolMessageFactory.createGetUnconfirmedTransactions());
+                    }
+                    else
+                    {
+                        m_isInitialXtDownload = false;
                     }
                 }
                 catch (ProtocolException e)
@@ -675,7 +718,7 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
 
             // If we are during initial download and we haven't sync our headers to the tip, we are going
             // to chose the first outbound connection to a peer that has already cleared the handshake.
-            if (m_isInitialDownload && m_initialSyncingPeer == null && !peer.isClient() && peer.hasClearedHandshake())
+            if (m_isInitialBlockDownload && m_initialSyncingPeer == null && !peer.isClient() && peer.hasClearedHandshake())
             {
                 // If we are during initial download and are not syncing, start syncing with the first peer
                 // we find.
@@ -706,10 +749,18 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
                 peer.getQueuedTransactions().clear();
             }
 
+            // If our mempool is empty, ask peers for more transactions every 30 minutes just in case.
+            if (!m_isInitialXtDownload && m_memPool.getCount() == 0 &&
+                    m_requestTransactions.getElapsedTime().getTotalMinutes() >= 30)
+            {
+                peer.sendMessage(ProtocolMessageFactory.createGetUnconfirmedTransactions());
+                m_requestTransactions.restart();
+            }
+
             // If 24 hours pass, we are going to broadcast our public address to all connected peers and
             // ask then to relay to other peers. We are also going to clear all their known addresses.
             if (m_addressBroadcastCd.getElapsedTime().getTotalHours() > RELAY_PUBLIC_ADDRESS_TIME
-                    && !m_isInitialDownload) // We don't advertise our address during initial download.
+                    && !m_isInitialBlockDownload) // We don't advertise our address during initial download.
             {
                 broadcastPublicAddress();
                 m_addressBroadcastCd.restart();
@@ -761,7 +812,7 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
     @Override
     public void onChainHeadChanged(BlockHeader head)
     {
-        if (m_isInitialDownload)
+        if (m_isInitialBlockDownload)
             return;
 
         // Notify all peers.
@@ -786,7 +837,7 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
     @Override
     public void onTransactionAdded(Transaction transaction)
     {
-        if (m_isInitialDownload)
+        if (m_isInitialBlockDownload)
             return;
 
         // Notify all peers.
