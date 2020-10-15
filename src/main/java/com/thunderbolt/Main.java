@@ -109,6 +109,7 @@ public class Main
 
         blockchain.addOutputsUpdateListener(memPool);
 
+        s_logger.debug(memPool.toString());
         Wallet wallet = new Wallet(WALLET_PATH.toString(), "1234");
         wallet.initialize(persistenceService);
         s_logger.debug(wallet.getBalance().toString());

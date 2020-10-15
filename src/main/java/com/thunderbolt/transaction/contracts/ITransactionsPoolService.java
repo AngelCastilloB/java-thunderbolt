@@ -68,9 +68,21 @@ public interface ITransactionsPoolService
      * Picks a transaction from the pool. The strategy for picking said transaction is defined by the
      * concrete implementation of this interface.
      *
-     * @return The picks transaction.
+     * @return The picked transaction.
      */
-    Transaction pickTransaction() throws StorageException;
+    Transaction pickTransaction();
+
+    /**
+     * Picks a set of transactions from the memory pool. The strategy for picking said transactions is defined by the
+     * concrete implementation of this interface.
+     *
+     * In this implementation, we will pick the transaction with highest fee until we reach the budget limit.
+     *
+     * @param budget The budget in bytes for the transactions.
+     *
+     * @return The picked transactions.
+     */
+    List<Transaction> pickTransactions(long budget);
 
     /**
      * Adds a transaction to the pool.
@@ -123,4 +135,9 @@ public interface ITransactionsPoolService
      * @return The transactions.
      */
     List<Transaction> getAllTransactions();
+
+    /**
+     * Performs basic cleanup on the mempool; this method can be call periodically to evict old transactions.
+     */
+    void cleanup();
 }
