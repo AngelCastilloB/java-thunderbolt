@@ -99,13 +99,15 @@ public class Main
      */
     public static void main(String[] args) throws IOException, StorageException, GeneralSecurityException
     {
-        IPersistenceService      persistenceService     = createPersistenceService();
-        ITransactionsPoolService memPool                = new MemoryTransactionsPoolService(persistenceService);
-        ITransactionValidator    transactionValidator   = new StandardTransactionValidator(persistenceService, NetworkParameters.mainNet());
-        IBlockchainCommitter     committer              = new StandardBlockchainCommitter(persistenceService, memPool);
-        Blockchain               blockchain             = new Blockchain(NetworkParameters.mainNet(), transactionValidator, committer, persistenceService);
-        IPeerDiscoverer          discoverer             = new StandardPeerDiscoverer();
-        INetworkAddressPool      addressPool            = new LevelDbNetworkAddressPool(ADDRESS_PATH);
+        IPersistenceService           persistenceService     = createPersistenceService();
+        MemoryTransactionsPoolService memPool                = new MemoryTransactionsPoolService(persistenceService);
+        ITransactionValidator         transactionValidator   = new StandardTransactionValidator(persistenceService, NetworkParameters.mainNet());
+        IBlockchainCommitter          committer              = new StandardBlockchainCommitter(persistenceService, memPool);
+        Blockchain                    blockchain             = new Blockchain(NetworkParameters.mainNet(), transactionValidator, committer, persistenceService);
+        IPeerDiscoverer               discoverer             = new StandardPeerDiscoverer();
+        INetworkAddressPool           addressPool            = new LevelDbNetworkAddressPool(ADDRESS_PATH);
+
+        blockchain.addOutputsUpdateListener(memPool);
 
         Wallet wallet = new Wallet(WALLET_PATH.toString(), "1234");
         wallet.initialize(persistenceService);

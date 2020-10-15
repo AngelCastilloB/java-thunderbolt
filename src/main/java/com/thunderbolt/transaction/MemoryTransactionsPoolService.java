@@ -25,6 +25,7 @@ package com.thunderbolt.transaction;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.blockchain.contracts.IOutputsUpdateListener;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.network.ProtocolException;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
@@ -46,16 +47,19 @@ import java.util.*;
  * A basic in memory backed unverified transaction pool. This pool is ephemeral, that means that once the application
  * shuts down all the transaction in the pool will be lost so we will need to repopulate the pool at startup.
  */
-public class MemoryTransactionsPoolService implements ITransactionsPoolService
+public class MemoryTransactionsPoolService implements ITransactionsPoolService, IOutputsUpdateListener
 {
     private static final Logger s_logger = LoggerFactory.getLogger(MemoryTransactionsPoolService.class);
 
-    private static final int MAX_TRANSACTION_COUNT = 4000;
+    private static final int MAX_TRANSACTION_COUNT        = 20000;
+    private static final int MAX_ORPHAN_TRANSACTION_COUNT = 10000;
 
-    private final Map<Sha256Hash, Transaction>    m_memPool            = new HashMap<>();
-    private BigInteger                            m_size               = BigInteger.ZERO;
-    private IPersistenceService                   m_persistenceService = null;
-    private final List<ITransactionAddedListener> m_listeners          = new ArrayList<>();
+    private final Map<Sha256Hash, Transaction>    m_memPool                  = new HashMap<>();
+    private final Map<Sha256Hash, Transaction>    m_orphanTransactions       = new HashMap<>();
+    private final Map<Sha256Hash, Transaction>    m_orphanTransactionsByPrev = new HashMap<>();
+    private BigInteger                            m_size                     = BigInteger.ZERO;
+    private IPersistenceService                   m_persistenceService       = null;
+    private final List<ITransactionAddedListener> m_listeners                = new ArrayList<>();
 
     /**
      * Initializes a new instance of the MemoryTransactionsPoolService class.
@@ -156,9 +160,22 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService
         if (m_memPool.containsKey(transaction.getTransactionId()))
             return false;
 
+        if (isDoubleSpending(transaction))
+        {
+            s_logger.info("Transaction {} is double spending. Rejected.", transaction);
+            return false;
+        }
+
         if (m_memPool.size() > MAX_TRANSACTION_COUNT)
         {
             s_logger.warn("Mempool is full. The transaction wont be added to the pool. {}", transaction);
+            return false;
+        }
+
+        if (isTransactionOrphan(transaction))
+        {
+            s_logger.info("Transaction {} is orphan. Added to orphan transaction list.", transaction);
+            addOrphanTransaction(transaction);
             return false;
         }
 
@@ -253,11 +270,98 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService
     }
 
     /**
+     * Adds a transaction to the orphan transaction collection.
+     *
+     * @param transaction The transaction to be added.
+     *
+     * @return true if the transaction is orphan; otherwise false.
+     */
+    private boolean addOrphanTransaction(Transaction transaction)
+    {
+        if (m_orphanTransactions.size() >= MAX_ORPHAN_TRANSACTION_COUNT)
+        {
+            s_logger.info("Orphan transaction limit reached. The transaction will be discarded. {}", transaction);
+            return false;
+        }
+
+        if (m_orphanTransactions.containsKey(transaction.getTransactionId()))
+            return false;
+
+        m_orphanTransactions.put(transaction.getTransactionId(), transaction);
+
+        for (TransactionInput input : transaction.getInputs())
+            m_orphanTransactionsByPrev.put(input.getReferenceHash(), transaction);
+
+        return true;
+    }
+
+    /**
+     * Tried an un-orphan some transactions now that we have new outputs available.
+     *
+     * @param newParent The new transaction added to the pool.
+     */
+    private void unorphanTransactions(UnspentTransactionOutput newParent)
+    {
+        if (m_orphanTransactionsByPrev.containsKey(newParent.getTransactionHash()))
+        {
+            Transaction transaction = m_orphanTransactionsByPrev.get(newParent.getTransactionHash());
+
+            // If transaction is no longer orphan, move it to the mem pool.
+            if (!isTransactionOrphan(transaction))
+            {
+                m_orphanTransactions.remove(transaction.getTransactionId());
+
+                for (TransactionInput input: transaction.getInputs())
+                    m_orphanTransactionsByPrev.remove(input.getReferenceHash());
+
+                m_memPool.put(transaction.getTransactionId(), transaction);
+            }
+        }
+    }
+
+    /**
+     * Gets whether this transaction is trying to double spent an output.
+     *
+     * @return true if the transaction is double spending; otherwise; false.
+     */
+    private boolean isDoubleSpending(Transaction transaction)
+    {
+        for (TransactionInput input: transaction.getInputs())
+        {
+            if (m_persistenceService.hasTransaction(input.getReferenceHash()))
+            {
+                if (m_persistenceService.getUnspentOutput(input.getReferenceHash(), input.getIndex()) == null)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Gets whether this is an orphan transaction or not.
+     *
+     * @param transaction The transaction to be check.
+     *
+     * @return true if the transaction is orphan; otherwise; false.
+     */
+    private boolean isTransactionOrphan(Transaction transaction)
+    {
+        for (TransactionInput input: transaction.getInputs())
+        {
+            if (m_persistenceService.getUnspentOutput(input.getReferenceHash(), input.getIndex()) == null)
+                return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Gets the amount that will be paid by the miner as a fee for including this transaction.
      *
      * @return The fee.
      */
-    private long getMinersFee(Transaction transaction) throws ProtocolException, StorageException
+    private long getMinersFee(Transaction transaction) throws ProtocolException
     {
         BigInteger totalOutput = BigInteger.ZERO;
         BigInteger totalInput  = BigInteger.ZERO;
@@ -283,5 +387,39 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService
             throw new ProtocolException("Invalid transaction fee.");
 
         return fee;
+    }
+
+    /**
+     * Called when a change on the available unspent outputs occur.
+     *
+     * @param toAdd The new unspent outputs that were added.
+     * @param toRemove The unspent outputs that are no longer available.
+     */
+    @Override
+    synchronized public void onOutputsUpdate(List<UnspentTransactionOutput> toAdd, List<Sha256Hash> toRemove)
+    {
+        for (UnspentTransactionOutput output: toAdd)
+            unorphanTransactions(output);
+
+        // 1.- Remove all the transactions that are now considered double spending.
+        // 2.- Unorphan all transactions without parents.
+        Iterator<Map.Entry<Sha256Hash, Transaction>> it = m_memPool.entrySet().iterator();
+
+        while (it.hasNext())
+        {
+            Transaction transaction = it.next().getValue();
+
+            if (isDoubleSpending(transaction))
+            {
+                it.remove();
+                continue;
+            }
+
+            if (isTransactionOrphan(transaction))
+            {
+                it.remove();
+                addOrphanTransaction(transaction);
+            }
+        }
     }
 }

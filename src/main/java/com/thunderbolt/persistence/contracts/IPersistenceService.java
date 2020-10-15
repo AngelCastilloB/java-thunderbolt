@@ -82,6 +82,15 @@ public interface IPersistenceService
     boolean hasBlockMetadata(Sha256Hash sha256Hash);
 
     /**
+     * Gets whether we have persisted this transaction or not.
+     *
+     * @param sha256Hash The id of the transaction.
+     *
+     * @return true if the transaction is already present; otherwise false;
+     */
+    boolean hasTransaction(Sha256Hash sha256Hash);
+
+    /**
      * Gets the spent outputs for the block with the given hash.
      *
      * @param sha256Hash The block hash.
@@ -120,7 +129,7 @@ public interface IPersistenceService
      *
      * @return The transaction output, or null if the output is not available or was already spent.
      */
-    UnspentTransactionOutput getUnspentOutput(Sha256Hash transactionId, int index) throws StorageException;
+    UnspentTransactionOutput getUnspentOutput(Sha256Hash transactionId, int index);
 
     /**
      * Gets all the unspent outputs of a given public key.

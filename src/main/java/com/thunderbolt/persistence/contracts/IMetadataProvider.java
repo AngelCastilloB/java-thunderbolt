@@ -95,6 +95,15 @@ public interface IMetadataProvider
     TransactionMetadata getTransactionMetadata(Sha256Hash id) throws StorageException;
 
     /**
+     * Gets whether we have persisted this transaction or not.
+     *
+     * @param sha256Hash The id of the transaction.
+     *
+     * @return true if the transaction is already present; otherwise false;
+     */
+    boolean hasTransaction(Sha256Hash sha256Hash);
+
+    /**
      * Adds an unspent transaction to the provider. This outputs is now spendable by any other transaction in
      * the mem pool.
      *
@@ -108,7 +117,7 @@ public interface IMetadataProvider
      * @param id    The id of the transaction that contains the unspent output.
      * @param index The index of the output inside the transaction.
      */
-    UnspentTransactionOutput getUnspentOutput(Sha256Hash id, int index) throws StorageException;
+    UnspentTransactionOutput getUnspentOutput(Sha256Hash id, int index);
 
     /**
      * Gets all the unspent outputs of a given public key.

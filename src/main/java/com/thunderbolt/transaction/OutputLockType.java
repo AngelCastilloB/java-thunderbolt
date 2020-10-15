@@ -53,7 +53,6 @@ public enum OutputLockType
      */
     Unlockable((byte)0x02);
 
-
     // Instance fields.
     private byte m_value;
 

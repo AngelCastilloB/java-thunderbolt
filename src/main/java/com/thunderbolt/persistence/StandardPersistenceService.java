@@ -259,7 +259,7 @@ public class StandardPersistenceService implements IPersistenceService
      *
      * @return The transaction output, or null if the output is not available or was already spent.
      */
-    public UnspentTransactionOutput getUnspentOutput(Sha256Hash transactionId, int index) throws StorageException
+    public UnspentTransactionOutput getUnspentOutput(Sha256Hash transactionId, int index)
     {
         return m_metadataProvider.getUnspentOutput(transactionId, index);
     }
@@ -295,6 +295,18 @@ public class StandardPersistenceService implements IPersistenceService
     public boolean removeUnspentOutput(Sha256Hash id, int index) throws StorageException
     {
         return m_metadataProvider.removeUnspentOutput(id, index);
+    }
+
+    /**
+     * Gets whether we have persisted this transaction or not.
+     *
+     * @param sha256Hash The id of the transaction.
+     *
+     * @return true if the transaction is already present; otherwise false;
+     */
+    public boolean hasTransaction(Sha256Hash sha256Hash)
+    {
+        return m_metadataProvider.hasTransaction(sha256Hash);
     }
 
     /**

@@ -213,6 +213,19 @@ public class LevelDbMetadataProvider implements IMetadataProvider
     }
 
     /**
+     * Gets whether we have persisted this transaction or not.
+     *
+     * @param sha256Hash The id of the transaction.
+     *
+     * @return true if the transaction is already present; otherwise false;
+     */
+    @Override
+    public boolean hasTransaction(Sha256Hash sha256Hash)
+    {
+        return m_transactionCache.containsKey(sha256Hash.toString());
+    }
+
+    /**
      * Adds an unspent transaction to the provider. This outputs is now spendable by any other transaction in
      * the mem pool.
      *
@@ -247,7 +260,7 @@ public class LevelDbMetadataProvider implements IMetadataProvider
      * @param index The index of the output inside the transaction.
      */
     @Override
-    public UnspentTransactionOutput getUnspentOutput(Sha256Hash id, int index) throws StorageException
+    public UnspentTransactionOutput getUnspentOutput(Sha256Hash id, int index)
     {
         UnspentTransactionOutput output;
 
@@ -261,7 +274,10 @@ public class LevelDbMetadataProvider implements IMetadataProvider
         }
         catch (Exception exception)
         {
-            throw new StorageException(String.format("Unable to get unspent output %s for transaction '%s'", index, id), exception);
+            // Since ByteArrayOutputStream simply writes to memory, an IOException should never occur. However,
+            // because of the contract of the OutputStream interface, all stream operations define IOException in their
+            // throws clause.
+            throw new IllegalStateException(String.format("Unable to get unspent output %s for transaction '%s'", index, id), exception);
         }
 
         return output;
@@ -351,7 +367,8 @@ public class LevelDbMetadataProvider implements IMetadataProvider
                     default:
                 }
             }
-        } catch (Exception exception)
+        }
+        catch (Exception exception)
         {
             s_logger.error("Unable to get metadata.", exception);
         }
