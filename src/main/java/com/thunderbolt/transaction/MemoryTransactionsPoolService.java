@@ -29,7 +29,6 @@ import com.thunderbolt.blockchain.contracts.IOutputsUpdateListener;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.network.ProtocolException;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
-import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.contracts.ITransactionAddedListener;
@@ -328,10 +327,22 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService, 
     {
         for (TransactionInput input: transaction.getInputs())
         {
+            // If we already registered the output referred by this input, but the output is not currently
+            // in the unspent output set, it must be a double spent.
             if (m_persistenceService.hasTransaction(input.getReferenceHash()))
             {
                 if (m_persistenceService.getUnspentOutput(input.getReferenceHash(), input.getIndex()) == null)
                     return true;
+            }
+
+            // If another transaction in the mem pool referenced the same output as this transaction, is a double spent.
+            for (Transaction memPoolTransaction: m_memPool.values())
+            {
+                for (TransactionInput memPoolInput: memPoolTransaction.getInputs())
+                {
+                    if (memPoolInput.getReferenceHash().equals(input.getReferenceHash()))
+                        return true;
+                }
             }
         }
 
@@ -402,7 +413,7 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService, 
             unorphanTransactions(output);
 
         // 1.- Remove all the transactions that are now considered double spending.
-        // 2.- Unorphan all transactions without parents.
+        // 2.- Orphan all transactions without parents.
         Iterator<Map.Entry<Sha256Hash, Transaction>> it = m_memPool.entrySet().iterator();
 
         while (it.hasNext())
