@@ -301,8 +301,8 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
         return String.format(
                 System.lineSeparator() +
                 "{                                %n" +
-                        "  \"sizeInBytes\":       %s, %n" +
-                        "  \"count\":             %s%n",
+                "  \"sizeInBytes\":       %s, %n" +
+                "  \"count\":             %s%n",
                 getSizeInBytes(),
                 getCount()) +
                 "}";
