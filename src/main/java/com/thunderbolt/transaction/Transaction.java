@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -333,6 +334,19 @@ public class Transaction implements ISerializable
     public boolean isCoinbase()
     {
         return m_inputs.get(0).isCoinBase();
+    }
+
+    /**
+     * Compares this Hash instance to another one
+     *
+     * @param other The object to compare.
+     *
+     * @return True if the instances are equal; otherwise; false.
+     */
+    @Override
+    public boolean equals(Object other)
+    {
+        return ((other instanceof Transaction) && getTransactionId().equals(((Transaction) other).getTransactionId()));
     }
 
     /**

@@ -31,7 +31,7 @@ import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.contracts.ITransactionAddedListener;
-import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
+import com.thunderbolt.transaction.contracts.ITransactionsPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,9 +45,9 @@ import java.util.*;
  * A basic in memory backed unverified transaction pool. This pool is ephemeral, that means that once the application
  * shuts down all the transaction in the pool will be lost so we will need to repopulate the pool at startup.
  */
-public class MemoryTransactionsPoolService implements ITransactionsPoolService, IOutputsUpdateListener
+public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdateListener
 {
-    private static final Logger s_logger = LoggerFactory.getLogger(MemoryTransactionsPoolService.class);
+    private static final Logger s_logger = LoggerFactory.getLogger(MemoryTransactionsPool.class);
 
     private static final int MAX_TRANSACTION_COUNT        = 20000;
     private static final int REMOVE_TRANSACTION_COUNT     = 10;
@@ -65,7 +65,7 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService, 
      *
      * @param service The persistence service.
      */
-    public MemoryTransactionsPoolService(IPersistenceService service)
+    public MemoryTransactionsPool(IPersistenceService service)
     {
         m_persistenceService = service;
     }
@@ -123,7 +123,7 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService, 
     {
         // Pick transaction with higher transaction fee per byte.
         List<TransactionPoolEntry> entries = new LinkedList<>(m_memPool.values());
-        entries.sort(Comparator.comparingLong(TransactionPoolEntry::getFeePerByte));
+        entries.sort(Comparator.comparingLong(TransactionPoolEntry::getFeePerByte).reversed());
 
         if (entries.isEmpty())
             return null;
@@ -146,7 +146,7 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService, 
         List<TransactionPoolEntry> entries      = new LinkedList<>(m_memPool.values());
         List<Transaction>          transactions = new ArrayList<>();
 
-        entries.sort(Comparator.comparingLong(TransactionPoolEntry::getFeePerByte));
+        entries.sort(Comparator.comparingLong(TransactionPoolEntry::getFeePerByte).reversed());
 
         if (entries.isEmpty())
             return null;
@@ -157,12 +157,13 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService, 
         {
             TransactionPoolEntry entry = entries.get(0);
 
-            if (entry.getSize() + currentSize < budget)
+            if (entry.getSize() + currentSize <= budget)
             {
                 transactions.add(entry.getTransaction());
-                m_memPool.remove(entry.getTransaction().getTransactionId());
+                currentSize += entry.getSize();
             }
 
+            entries.remove(entry);
         }
 
         s_logger.debug("Reached {} bytes (out of {} bytes) in {} transactions.",
@@ -242,11 +243,11 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService, 
                 listener.onTransactionAdded(transaction);
         }
 
-        // We should never reach this point; however if so; removes the 10 transactions with the lowest fee.
+        // We should never reach this point; however if so; removes the 10 transactions with the lowest fee per byte.
         if (m_memPool.size() > MAX_TRANSACTION_COUNT)
         {
             List<TransactionPoolEntry> entries = new LinkedList<>(m_memPool.values());
-            entries.sort(Comparator.comparingLong(TransactionPoolEntry::getFeePerByte));
+            entries.sort(Comparator.comparingLong(TransactionPoolEntry::getFeePerByte).reversed());
 
             s_logger.debug("Mempool has reached its limits, removing some transactions.");
             for (int i = MAX_TRANSACTION_COUNT - 1; i > MAX_TRANSACTION_COUNT - REMOVE_TRANSACTION_COUNT; --i)
@@ -342,7 +343,7 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService, 
      * @param transaction The transaction to be added.
      *
      */
-    private void addOrphanTransaction(Transaction transaction)
+    public void addOrphanTransaction(Transaction transaction)
     {
         if (m_orphanTransactions.size() >= MAX_ORPHAN_TRANSACTION_COUNT)
         {
@@ -365,29 +366,11 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService, 
     }
 
     /**
-     * Tried to un-orphan some transactions now that we have new outputs available.
-     */
-    private void unorphanTransactions()
-    {
-        for (Map.Entry<Sha256Hash, TransactionPoolEntry> entry: m_orphanTransactions.entrySet())
-        {
-            TransactionPoolEntry poolEntry = entry.getValue();
-
-            // If transaction is no longer orphan, move it to the mem pool.
-            if (!isTransactionOrphan(poolEntry.getTransaction()))
-            {
-                m_orphanTransactions.remove(poolEntry.getTransaction().getTransactionId());
-                m_memPool.put(poolEntry.getTransaction().getTransactionId(), poolEntry);
-            }
-        }
-    }
-
-    /**
      * Gets whether this transaction is trying to double spent an output.
      *
      * @return true if the transaction is double spending; otherwise; false.
      */
-    private boolean isDoubleSpending(Transaction transaction)
+    public boolean isDoubleSpending(Transaction transaction)
     {
         for (TransactionInput input: transaction.getInputs())
         {
@@ -420,7 +403,7 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService, 
      *
      * @return true if the transaction is orphan; otherwise; false.
      */
-    private boolean isTransactionOrphan(Transaction transaction)
+    public boolean isTransactionOrphan(Transaction transaction)
     {
         for (TransactionInput input: transaction.getInputs())
         {
@@ -436,7 +419,7 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService, 
      *
      * @return The fee.
      */
-    private long getMinersFee(Transaction transaction) throws ProtocolException
+    public long getMinersFee(Transaction transaction) throws ProtocolException
     {
         BigInteger totalOutput = BigInteger.ZERO;
         BigInteger totalInput  = BigInteger.ZERO;
@@ -493,6 +476,24 @@ public class MemoryTransactionsPoolService implements ITransactionsPoolService, 
             {
                 it.remove();
                 addOrphanTransaction(entry.getTransaction());
+            }
+        }
+    }
+
+    /**
+     * Tried to un-orphan some transactions now that we have new outputs available.
+     */
+    private void unorphanTransactions()
+    {
+        for (Map.Entry<Sha256Hash, TransactionPoolEntry> entry: m_orphanTransactions.entrySet())
+        {
+            TransactionPoolEntry poolEntry = entry.getValue();
+
+            // If transaction is no longer orphan, move it to the mem pool.
+            if (!isTransactionOrphan(poolEntry.getTransaction()))
+            {
+                m_orphanTransactions.remove(poolEntry.getTransaction().getTransactionId());
+                m_memPool.put(poolEntry.getTransaction().getTransactionId(), poolEntry);
             }
         }
     }

@@ -39,7 +39,7 @@ import java.util.List;
  *
  * This is the source of transactions that the miners use for adding to the blocks.
  */
-public interface ITransactionsPoolService
+public interface ITransactionsPool
 {
     /**
      * Gets the size of the pool in bytes.

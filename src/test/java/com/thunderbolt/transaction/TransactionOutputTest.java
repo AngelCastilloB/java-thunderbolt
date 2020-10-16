@@ -42,6 +42,6 @@ public class TransactionOutputTest
     {
         TransactionOutput output = new TransactionOutput();
         output.setAmount(BigInteger.valueOf(100));
-        assertEquals(output.getAmount().longValue(), 100);
+        assertEquals(100, output.getAmount().longValue());
     }
 }

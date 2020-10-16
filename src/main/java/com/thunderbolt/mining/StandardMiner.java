@@ -35,7 +35,7 @@ import com.thunderbolt.transaction.OutputLockType;
 import com.thunderbolt.transaction.Transaction;
 import com.thunderbolt.transaction.TransactionInput;
 import com.thunderbolt.transaction.TransactionOutput;
-import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
+import com.thunderbolt.transaction.contracts.ITransactionsPool;
 import com.thunderbolt.wallet.Wallet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +53,7 @@ public class StandardMiner implements IMiner
 {
     private static final Logger s_logger = LoggerFactory.getLogger(StandardMiner.class);
 
-    private final ITransactionsPoolService m_pool;
+    private final ITransactionsPool m_pool;
     private final Blockchain               m_blockchain;
     private final Wallet                   m_wallet;
 
@@ -64,7 +64,7 @@ public class StandardMiner implements IMiner
      * @param blockchain  The blockchain.
      * @param wallet      The wallet where to store the block rewards.
      */
-    public StandardMiner(ITransactionsPoolService poolService, Blockchain blockchain, Wallet wallet)
+    public StandardMiner(ITransactionsPool poolService, Blockchain blockchain, Wallet wallet)
     {
         m_pool = poolService;
         m_blockchain = blockchain;

@@ -35,7 +35,7 @@ import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.Transaction;
 import com.thunderbolt.transaction.TransactionInput;
 import com.thunderbolt.transaction.TransactionOutput;
-import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
+import com.thunderbolt.transaction.contracts.ITransactionsPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +54,7 @@ public class StandardBlockchainCommitter implements IBlockchainCommitter
 
     // Instance fields.
     private IPersistenceService          m_persistence;
-    private ITransactionsPoolService     m_memPool;
+    private ITransactionsPool m_memPool;
     private List<IOutputsUpdateListener> m_listeners = new ArrayList<IOutputsUpdateListener>();
 
     /**
@@ -64,7 +64,7 @@ public class StandardBlockchainCommitter implements IBlockchainCommitter
      * @param memPool     The memory pool service. When a block is added or removed, transaction are added and removed
      *                    from the mem pool as well.
      */
-    public StandardBlockchainCommitter(IPersistenceService persistence, ITransactionsPoolService memPool)
+    public StandardBlockchainCommitter(IPersistenceService persistence, ITransactionsPool memPool)
     {
         m_persistence = persistence;
         m_memPool = memPool;

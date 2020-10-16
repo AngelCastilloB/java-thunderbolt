@@ -46,7 +46,7 @@ import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.Transaction;
 import com.thunderbolt.transaction.contracts.ITransactionAddedListener;
-import com.thunderbolt.transaction.contracts.ITransactionsPoolService;
+import com.thunderbolt.transaction.contracts.ITransactionsPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,7 +74,7 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
     private final NetworkParameters        m_params;
     private final Blockchain               m_blockchain;
     private volatile boolean               m_isRunning;
-    private final ITransactionsPoolService m_memPool;
+    private final ITransactionsPool m_memPool;
     private final IPersistenceService      m_persistenceService;
     private final PeerManager              m_peerManager;
     private NetworkAddress                 m_publicAddress       = null;
@@ -97,7 +97,7 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
      */
     public Node(NetworkParameters params,
                 Blockchain blockchain,
-                ITransactionsPoolService transactionsPoolService,
+                ITransactionsPool transactionsPoolService,
                 PeerManager peerManager,
                 IPersistenceService persistenceService)
     {
