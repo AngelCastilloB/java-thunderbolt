@@ -50,7 +50,7 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
     private static final Logger s_logger = LoggerFactory.getLogger(MemoryTransactionsPool.class);
 
     private static final int MAX_TRANSACTION_COUNT        = 20000;
-    private static final int REMOVE_TRANSACTION_COUNT     = 10;
+    private static final int REMOVE_TRANSACTION_COUNT     = 1000;
     private static final int MAX_ORPHAN_TRANSACTION_COUNT = 10000;
     private static final int EVICTION_TIME                = 24; //hours
 
@@ -250,10 +250,9 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
             entries.sort(Comparator.comparingLong(TransactionPoolEntry::getFeePerByte).reversed());
 
             s_logger.debug("Mempool has reached its limits, removing some transactions.");
-            for (int i = MAX_TRANSACTION_COUNT - 1; i > MAX_TRANSACTION_COUNT - REMOVE_TRANSACTION_COUNT; --i)
+            for (int i = MAX_TRANSACTION_COUNT; i > MAX_TRANSACTION_COUNT - REMOVE_TRANSACTION_COUNT; --i)
             {
                 TransactionPoolEntry e = entries.get(i);
-                s_logger.debug("Transaction {} removed.", e);
                 m_memPool.remove(e.getTransaction().getTransactionId());
             }
         }
@@ -303,7 +302,7 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
                 System.lineSeparator() +
                 "{                                %n" +
                         "  \"sizeInBytes\":       %s, %n" +
-                        "  \"count\":             %s, %n",
+                        "  \"count\":             %s%n",
                 getSizeInBytes(),
                 getCount()) +
                 "}";
@@ -343,16 +342,16 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
      * @param transaction The transaction to be added.
      *
      */
-    public void addOrphanTransaction(Transaction transaction)
+    public boolean addOrphanTransaction(Transaction transaction)
     {
         if (m_orphanTransactions.size() >= MAX_ORPHAN_TRANSACTION_COUNT)
         {
             s_logger.info("Orphan transaction limit reached. The transaction will be discarded. {}", transaction);
-            return;
+            return false;
         }
 
         if (m_orphanTransactions.containsKey(transaction.getTransactionId()))
-            return;
+            return false;
 
         try
         {
@@ -362,7 +361,10 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
         catch (ProtocolException e)
         {
             s_logger.error("Invalid transactions {}. Fee can not be negative.", transaction);
+            return false;
         }
+
+        return true;
     }
 
     /**
@@ -483,7 +485,7 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
     /**
      * Tried to un-orphan some transactions now that we have new outputs available.
      */
-    private void unorphanTransactions()
+    public void unorphanTransactions()
     {
         for (Map.Entry<Sha256Hash, TransactionPoolEntry> entry: m_orphanTransactions.entrySet())
         {
