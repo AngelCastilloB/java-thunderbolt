@@ -207,6 +207,19 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
      * Creates a transaction with the given amount (if the funds are enough) to the given wallet.
      *
      * @param amount  The amount to be transferred.
+     * @param address The address in string format where to transfer the funds to.
+     *
+     * @return The transaction.
+     */
+    public Transaction createTransaction(long amount, String address) throws IOException
+    {
+        return createTransaction(BigInteger.valueOf(amount), new Address(address));
+    }
+
+    /**
+     * Creates a transaction with the given amount (if the funds are enough) to the given wallet.
+     *
+     * @param amount  The amount to be transferred.
      * @param address The address where to transfer the funds to.
      *
      * @return The transaction.

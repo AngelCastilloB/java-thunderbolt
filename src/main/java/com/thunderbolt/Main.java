@@ -75,6 +75,7 @@ public class Main
     static private final Path   WALLET_PATH      = Paths.get(USER_HOME_PATH, "wallet.bin");
     static private final Path   WALLET_PATH_1    = Paths.get(USER_HOME_PATH, "wallet1.bin");
     static private final Path   WALLET_PATH_2    = Paths.get(USER_HOME_PATH, "wallet2.bin");
+    static private final Path   WALLET_PATH_3    = Paths.get(USER_HOME_PATH, "wallet3.bin");
 
     static private final String BLOCK_PATTERN    = "block%05d.bin";
     static private final String REVERT_PATTERN   = "revert%05d.bin";
@@ -84,9 +85,13 @@ public class Main
     private static Thread       s_miningThread = null;
 
     // Mining test.
-    private static Block s_miningChain = null; //TODO: remove
-    private static int s_height = 0;
-    private static StandardMiner s_miner = null;
+    private static Block         s_miningChain = null; //TODO: remove
+    private static int           s_height      = 0;
+    private static StandardMiner s_miner       = null;
+    static Wallet                s_wallet      = null;
+    static Wallet                s_wallet1     = null;
+    static Wallet                s_wallet2     = null;
+    static Wallet                s_wallet3     = null;
 
     /**
      * Application entry point.
@@ -104,14 +109,30 @@ public class Main
         INetworkAddressPool           addressPool            = new LevelDbNetworkAddressPool(ADDRESS_PATH);
 
         blockchain.addOutputsUpdateListener(memPool);
+        persistenceService.addChainHeadUpdateListener(head -> {
+            s_logger.debug("{} {}", s_wallet.getAddress(), s_wallet.getBalance());
+            s_logger.debug("{} {}", s_wallet1.getAddress(), s_wallet1.getBalance());
+            s_logger.debug("{} {}", s_wallet2.getAddress(), s_wallet2.getBalance());
+            s_logger.debug("{} {}", s_wallet3.getAddress(), s_wallet3.getBalance());
+        });
 
-        Wallet wallet = new Wallet(WALLET_PATH.toString(), "1234");
-        wallet.initialize(persistenceService);
 
-        s_logger.debug(wallet.getBalance().toString());
-        s_logger.debug(wallet.getAddress().toString());
+        s_wallet = new Wallet(WALLET_PATH.toString(), "1234");
+        s_wallet1 = new Wallet(WALLET_PATH_1.toString(), "1234");
+        s_wallet2 = new Wallet(WALLET_PATH_2.toString(), "1234");
+        s_wallet3 = new Wallet(WALLET_PATH_3.toString(), "1234");
 
-        s_miner = new StandardMiner(memPool, blockchain, wallet);
+        blockchain.addOutputsUpdateListener(s_wallet);
+        blockchain.addOutputsUpdateListener(s_wallet1);
+        blockchain.addOutputsUpdateListener(s_wallet2);
+        blockchain.addOutputsUpdateListener(s_wallet3);
+
+        s_wallet.initialize(persistenceService);
+        s_wallet1.initialize(persistenceService);
+        s_wallet2.initialize(persistenceService);
+        s_wallet3.initialize(persistenceService);
+
+        s_miner = new StandardMiner(memPool, blockchain, s_wallet);
 
         ProtocolMessageFactory.initialize(NetworkParameters.mainNet(), persistenceService);
 
@@ -133,7 +154,7 @@ public class Main
         Node node = new Node(NetworkParameters.mainNet(), blockchain, memPool, peerManager, persistenceService);
 
         // TODO: Remove this, only for testing purposes.
-        s_miningThread = new Thread(() -> { startMining(blockchain, 1000);});
+        s_miningThread = new Thread(() -> { startMining(blockchain, 1000, memPool);});
         s_miningChain = persistenceService.getBlock(persistenceService.getChainHead().getHash());
         s_height = (int)blockchain.getChainHead().getHeight();
 
@@ -163,8 +184,15 @@ public class Main
      * @param blockchain The current blockchain.
      * @param delayBetweenBlocks The delay between new blocks.
      */
-    private static void startMining(Blockchain blockchain, long delayBetweenBlocks)
+    private static void startMining(Blockchain blockchain, long delayBetweenBlocks, MemoryTransactionsPool pool)
     {
+        /*
+            0x10d2da46aee4a8272632daeaed1e5be6da627e8416ce3bdb61
+            0x101ebef893327fc9dbc95fd3df5774fe5bb3199a42eef0b721
+            0x105ce5c1e5fb677dede744b39653c3938f298912ab9f34fcc9
+            0x10f347ff887937346b8391e89055112fc42293f4ad053bb05e
+         */
+
         try
         {
             Thread.sleep(5000);
@@ -172,8 +200,19 @@ public class Main
         {
             e.printStackTrace();
         }
-        while (true)
+
+        while(true)
         {
+            try
+            {
+                pool.addTransaction(s_wallet.createTransaction(100L,"0x10f347ff887937346b8391e89055112fc42293f4ad053bb05e"));
+            } catch (IOException exception)
+            {
+                exception.printStackTrace();
+            }
+
+            if (pool.getCount() > 0)
+                s_logger.debug("Have transactions!");
             try
             {
                 Block newBlock = s_miner.mine(s_miningChain.getHeaderHash(), s_height);
@@ -195,5 +234,5 @@ public class Main
                 return;
             }
         }
-    }
+}
 }

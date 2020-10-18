@@ -149,7 +149,7 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
         entries.sort(Comparator.comparingLong(TransactionPoolEntry::getFeePerByte).reversed());
 
         if (entries.isEmpty())
-            return null;
+            return transactions;
 
         long currentSize = 0;
 

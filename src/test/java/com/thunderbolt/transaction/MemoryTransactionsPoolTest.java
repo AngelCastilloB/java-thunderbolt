@@ -197,7 +197,7 @@ public class MemoryTransactionsPoolTest
     }
 
     @Test
-    public void pickTransactions_poolHasNoTransactions_nullReturnedByPickTransactions()
+    public void pickTransactions_poolHasNoTransactions_emptyListReturnedByPickTransactions()
     {
         // arrange
         HashMap<Sha256Hash, TransactionPoolEntry> transactions = new HashMap<>();
@@ -207,7 +207,7 @@ public class MemoryTransactionsPoolTest
         when(pool.pickTransactions(anyLong())).thenCallRealMethod();
 
         //assert
-        assertNull(pool.pickTransactions(100L));
+        assertEquals(0, pool.pickTransactions(100L).size());
     }
 
     @Test
