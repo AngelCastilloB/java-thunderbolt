@@ -74,7 +74,7 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
     private final NetworkParameters        m_params;
     private final Blockchain               m_blockchain;
     private volatile boolean               m_isRunning;
-    private final ITransactionsPool m_memPool;
+    private final ITransactionsPool        m_memPool;
     private final IPersistenceService      m_persistenceService;
     private final PeerManager              m_peerManager;
     private NetworkAddress                 m_publicAddress       = null;
@@ -758,12 +758,14 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
             }
 
             // If 24 hours pass, we are going to broadcast our public address to all connected peers and
-            // ask then to relay to other peers. We are also going to clear all their known addresses.
+            // ask then to relay to other peers. We are also going to clear all their known addresses and perform
+            // cleanup on our mempool.
             if (m_addressBroadcastCd.getElapsedTime().getTotalHours() > RELAY_PUBLIC_ADDRESS_TIME
                     && !m_isInitialBlockDownload) // We don't advertise our address during initial download.
             {
                 broadcastPublicAddress();
                 m_addressBroadcastCd.restart();
+                m_memPool.cleanup();
             }
         }
     }

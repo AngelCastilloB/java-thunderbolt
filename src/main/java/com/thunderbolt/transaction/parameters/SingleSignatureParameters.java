@@ -133,7 +133,7 @@ public class SingleSignatureParameters implements ISerializable
      */
     public byte[] getPublicKeyHash()
     {
-        return Ripemd160Digester.digest(Sha256Digester.digest(m_publicKey).getData());
+        return Ripemd160Digester.digest(m_publicKey);
     }
 
     /**

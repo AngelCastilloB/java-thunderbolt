@@ -54,7 +54,7 @@ public class StandardBlockchainCommitter implements IBlockchainCommitter
 
     // Instance fields.
     private IPersistenceService          m_persistence;
-    private ITransactionsPool m_memPool;
+    private ITransactionsPool            m_memPool;
     private List<IOutputsUpdateListener> m_listeners = new ArrayList<IOutputsUpdateListener>();
 
     /**

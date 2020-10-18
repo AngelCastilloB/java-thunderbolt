@@ -257,6 +257,7 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
             }
         }
 
+        s_logger.debug(toString());
         return true;
     }
 

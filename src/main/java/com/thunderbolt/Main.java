@@ -96,7 +96,7 @@ public class Main
     public static void main(String[] args) throws IOException, StorageException, GeneralSecurityException
     {
         IPersistenceService           persistenceService     = createPersistenceService();
-        MemoryTransactionsPool memPool                = new MemoryTransactionsPool(persistenceService);
+        MemoryTransactionsPool        memPool                = new MemoryTransactionsPool(persistenceService);
         ITransactionValidator         transactionValidator   = new StandardTransactionValidator(persistenceService, NetworkParameters.mainNet());
         IBlockchainCommitter          committer              = new StandardBlockchainCommitter(persistenceService, memPool);
         Blockchain                    blockchain             = new Blockchain(NetworkParameters.mainNet(), transactionValidator, committer, persistenceService);
@@ -105,9 +105,9 @@ public class Main
 
         blockchain.addOutputsUpdateListener(memPool);
 
-        s_logger.debug(memPool.toString());
         Wallet wallet = new Wallet(WALLET_PATH.toString(), "1234");
         wallet.initialize(persistenceService);
+
         s_logger.debug(wallet.getBalance().toString());
         s_logger.debug(wallet.getAddress().toString());
 
@@ -133,14 +133,14 @@ public class Main
         Node node = new Node(NetworkParameters.mainNet(), blockchain, memPool, peerManager, persistenceService);
 
         // TODO: Remove this, only for testing purposes.
-        s_miningThread = new Thread(() -> { startMining(blockchain, 1000); });
+        s_miningThread = new Thread(() -> { startMining(blockchain, 1000);});
         s_miningChain = persistenceService.getBlock(persistenceService.getChainHead().getHash());
         s_height = (int)blockchain.getChainHead().getHeight();
 
-        if (true)
+        if (false)
             s_miningThread.start();
 
-        node.run();
+       node.run();
     }
 
     /**
@@ -163,7 +163,7 @@ public class Main
      * @param blockchain The current blockchain.
      * @param delayBetweenBlocks The delay between new blocks.
      */
-    private static void startMining(Blockchain blockchain, int delayBetweenBlocks)
+    private static void startMining(Blockchain blockchain, long delayBetweenBlocks)
     {
         try
         {

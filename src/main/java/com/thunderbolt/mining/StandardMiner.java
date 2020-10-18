@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import java.math.BigInteger;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -54,8 +55,8 @@ public class StandardMiner implements IMiner
     private static final Logger s_logger = LoggerFactory.getLogger(StandardMiner.class);
 
     private final ITransactionsPool m_pool;
-    private final Blockchain               m_blockchain;
-    private final Wallet                   m_wallet;
+    private final Blockchain        m_blockchain;
+    private final Wallet            m_wallet;
 
     /**
      * Creates a new instance of the StandardMiner class.
@@ -97,29 +98,12 @@ public class StandardMiner implements IMiner
             block.addTransaction(coinbase);
 
             // Tries to fill up the block with the transaction from the mem pool.
-            boolean reachMaxBlockSize = false;
-            while (!reachMaxBlockSize)
+            List<Transaction> transactions = m_pool.pickTransactions(m_blockchain.getNetworkParameters().getBlockMaxSize());
+
+            for (Transaction transaction : transactions)
             {
-                // The mem pool is empty
-                if (m_pool.getCount() == 0)
-                {
-                    reachMaxBlockSize = true;
-                    continue;
-                }
-
-                Transaction transaction = m_pool.pickTransaction();
-                long nextSize = block.serialize().length + transaction.serialize().length;
-
-                if (nextSize > m_blockchain.getNetworkParameters().getBlockMaxSize())
-                {
-                    reachMaxBlockSize = true;
-                }
-                else
-                {
-                    s_logger.debug("Added transaction {} to the block", transaction.getTransactionId());
-                    block.addTransaction(transaction);
-                    m_pool.removeTransaction(transaction.getTransactionId());
-                }
+                block.addTransaction(transaction);
+                s_logger.debug("Added transaction {} to the block", transaction.getTransactionId());
             }
 
             block.getHeader().setTimeStamp((int)OffsetDateTime.now(ZoneOffset.UTC).toEpochSecond());
@@ -174,29 +158,12 @@ public class StandardMiner implements IMiner
             block.addTransaction(coinbase);
 
             // Tries to fill up the block with the transaction from the mem pool.
-            boolean reachMaxBlockSize = false;
-            while (!reachMaxBlockSize)
+            List<Transaction> transactions = m_pool.pickTransactions(m_blockchain.getNetworkParameters().getBlockMaxSize());
+
+            for (Transaction transaction : transactions)
             {
-                // The mem pool is empty
-                if (m_pool.getCount() == 0)
-                {
-                    reachMaxBlockSize = true;
-                    continue;
-                }
-
-                Transaction transaction = m_pool.pickTransaction();
-                long nextSize = block.serialize().length + transaction.serialize().length;
-
-                if (nextSize > m_blockchain.getNetworkParameters().getBlockMaxSize())
-                {
-                    reachMaxBlockSize = true;
-                }
-                else
-                {
-                    s_logger.debug("Added transaction {} to the block", transaction.getTransactionId());
-                    block.addTransaction(transaction);
-                    m_pool.removeTransaction(transaction.getTransactionId());
-                }
+                block.addTransaction(transaction);
+                s_logger.debug("Added transaction {} to the block", transaction.getTransactionId());
             }
 
             block.getHeader().setTimeStamp((int)OffsetDateTime.now(ZoneOffset.UTC).toEpochSecond());

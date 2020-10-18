@@ -310,7 +310,7 @@ public class ProtocolMessageFactory
     public static ProtocolMessage createKnownTransactionsMessage(List<Sha256Hash> ids)
     {
         ProtocolMessage message = new ProtocolMessage(m_params.getPacketMagic());
-        message.setMessageType(MessageType.Transactions);
+        message.setMessageType(MessageType.KnownTransactions);
 
         KnownTransactionsPayload payload = new KnownTransactionsPayload();
 

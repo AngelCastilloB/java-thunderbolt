@@ -396,9 +396,11 @@ public class Transaction implements ISerializable
         stringBuilder.append(
                 String.format(
                     "{                        %n" +
+                    "  \"hash\":          %s, %n" +
                     "  \"version\":       %s, %n" +
                     "  \"lockTime\":      %s, %n" +
                     "  \"inputs\":",
+                    getTransactionId(),
                     m_version,
                     m_lockTime));
 
