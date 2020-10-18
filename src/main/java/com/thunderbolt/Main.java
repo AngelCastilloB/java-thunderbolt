@@ -34,6 +34,7 @@ import com.thunderbolt.mining.MiningException;
 import com.thunderbolt.mining.StandardMiner;
 import com.thunderbolt.network.Node;
 import com.thunderbolt.network.NetworkParameters;
+import com.thunderbolt.network.contracts.IBlockchainSyncFinishListener;
 import com.thunderbolt.network.contracts.IPeerDiscoverer;
 import com.thunderbolt.network.discovery.StandardPeerDiscoverer;
 import com.thunderbolt.network.messages.ProtocolMessageFactory;
@@ -116,7 +117,6 @@ public class Main
             s_logger.debug("{} {}", s_wallet3.getAddress(), s_wallet3.getBalance());
         });
 
-
         s_wallet = new Wallet(WALLET_PATH.toString(), "1234");
         s_wallet1 = new Wallet(WALLET_PATH_1.toString(), "1234");
         s_wallet2 = new Wallet(WALLET_PATH_2.toString(), "1234");
@@ -138,7 +138,7 @@ public class Main
 
         PeerManager peerManager = new PeerManager(
                 1,
-                4,
+                10,
                 3600000,// 1 hour
                 1200000, // 20 minutes
                 discoverer,
@@ -152,6 +152,14 @@ public class Main
         }
 
         Node node = new Node(NetworkParameters.mainNet(), blockchain, memPool, peerManager, persistenceService);
+
+        node.addBlockchainSyncFinishListener((blockchain1, persistenceService1) ->
+        {
+            s_logger.debug("{} {}", s_wallet.getAddress(), s_wallet.getBalance());
+            s_logger.debug("{} {}", s_wallet1.getAddress(), s_wallet1.getBalance());
+            s_logger.debug("{} {}", s_wallet2.getAddress(), s_wallet2.getBalance());
+            s_logger.debug("{} {}", s_wallet3.getAddress(), s_wallet3.getBalance());
+        });
 
         // TODO: Remove this, only for testing purposes.
         s_miningThread = new Thread(() -> { startMining(blockchain, 1000, memPool);});

@@ -31,6 +31,7 @@ import com.thunderbolt.blockchain.BlockHeader;
 import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.common.TimeSpan;
+import com.thunderbolt.network.contracts.IBlockchainSyncFinishListener;
 import com.thunderbolt.network.messages.payloads.*;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import com.thunderbolt.network.messages.ProtocolMessageFactory;
@@ -71,21 +72,23 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
     private static final Logger s_logger = LoggerFactory.getLogger(Node.class);
 
     // Instance fields
-    private final NetworkParameters        m_params;
-    private final Blockchain               m_blockchain;
-    private volatile boolean               m_isRunning;
-    private final ITransactionsPool        m_memPool;
-    private final IPersistenceService      m_persistenceService;
-    private final PeerManager              m_peerManager;
-    private NetworkAddress                 m_publicAddress       = null;
-    private final Stopwatch                m_addressBroadcastCd  = new Stopwatch();
-    private final Stopwatch                m_requestTransactions = new Stopwatch();
+    private final NetworkParameters                   m_params;
+    private final Blockchain                          m_blockchain;
+    private volatile boolean                          m_isRunning;
+    private final ITransactionsPool                   m_memPool;
+    private final IPersistenceService                 m_persistenceService;
+    private final PeerManager                         m_peerManager;
+    private NetworkAddress                            m_publicAddress       = null;
+    private final Stopwatch                           m_addressBroadcastCd  = new Stopwatch();
+    private final Stopwatch                           m_requestTransactions = new Stopwatch();
+    private final List<IBlockchainSyncFinishListener> m_ibdListeners        = new ArrayList<>();
 
     // Use during initial sync.
     private boolean         m_isInitialXtDownload    = false;
     private boolean         m_isInitialBlockDownload = false;
     private Peer            m_initialSyncingPeer     = null;
     private final Stopwatch m_elapsedSinceRequest    = new Stopwatch();
+
 
     /**
      * Initializes a new instance of the Node class.
@@ -137,7 +140,13 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
 
         // Cancel initial block download if not peers available.
         if (m_peerManager.peerCount() == 0)
+        {
             m_isInitialBlockDownload = false;
+
+            for (IBlockchainSyncFinishListener listener: m_ibdListeners)
+                listener.onBlockchainSyncFinishFinish(m_blockchain, m_persistenceService);
+        }
+
 
         m_isRunning = true;
         while (m_isRunning)
@@ -165,6 +174,17 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
 
             sendMessages();
         }
+    }
+
+    /**
+     * Adds a listener for the initial blockchain synchronization finish event.
+     *
+     * @param listener The listener.
+     */
+    public void addBlockchainSyncFinishListener(IBlockchainSyncFinishListener listener)
+    {
+        if (!m_ibdListeners.contains(listener))
+            m_ibdListeners.add(listener);
     }
 
     /**
@@ -507,6 +527,9 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
 
                             // We will request transactions to peers every 30 minutes if our mempool is empty.
                             m_requestTransactions.restart();
+
+                            for (IBlockchainSyncFinishListener listener: m_ibdListeners)
+                                listener.onBlockchainSyncFinishFinish(m_blockchain, m_persistenceService);
                         }
                     }
                     else

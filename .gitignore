@@ -21,6 +21,7 @@
 .idea/**/gradle.xml
 .idea/**/libraries
 deploy.sh
+deploy_local.sh
 # CMake
 cmake-build-debug/
 cmake-build-release/
