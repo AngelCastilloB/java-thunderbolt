@@ -286,7 +286,8 @@ public class PeerManager
             {
                 s_logger.debug("Peer {} is not connected. Removing it from the service.", peer);
                 it.remove();
-            } else
+            }
+            else
             {
                 try
                 {
@@ -483,12 +484,9 @@ public class PeerManager
 
                 s_logger.debug("{} is trying to connect...", peerSocket.getRemoteSocketAddress());
 
+                // If peer was already connected. Disconnect it and reconnect it again.
                 if (alreadyConnected(peerSocket.getInetAddress()))
-                {
-                    peerSocket.close();
                     disconnectPeer(peerSocket.getInetAddress());
-                    continue;
-                }
 
                 byte[] peerRawAddress = peerSocket.getInetAddress().getAddress();
                 // Check first that the peer is not banned.
