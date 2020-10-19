@@ -27,6 +27,7 @@ package com.thunderbolt.network.peers;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.Stopwatch;
+import com.thunderbolt.configuration.Configuration;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.ProtocolException;
 import com.thunderbolt.network.contracts.IPeerDiscoverer;
@@ -132,7 +133,7 @@ public class PeerManager
             m_cleanCooldown.start();
             m_connectCooldown.start();
 
-            m_serverSocket = new ServerSocket(m_params.getPort());
+            m_serverSocket = new ServerSocket(Configuration.getNodePort());
         }
         catch (IOException exception)
         {

@@ -26,6 +26,7 @@ package com.thunderbolt.network.discovery;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.configuration.Configuration;
 import com.thunderbolt.network.contracts.IPeerDiscoverer;
 import java.net.InetSocketAddress;
 import java.util.LinkedList;
@@ -38,8 +39,6 @@ import java.util.List;
  */
 public class StandardPeerDiscoverer implements IPeerDiscoverer
 {
-    private static final int DEFAULT_PORT = 9567;
-
     /**
      * Gets a list of the discovered peers.
      *
@@ -49,7 +48,7 @@ public class StandardPeerDiscoverer implements IPeerDiscoverer
     {
         List<InetSocketAddress> addresses = new LinkedList<>();
 
-        addresses.add(new InetSocketAddress("192.168.0.33", DEFAULT_PORT));
+        addresses.add(new InetSocketAddress("192.168.0.33", Configuration.getNodePort()));
 
         return addresses;
     }

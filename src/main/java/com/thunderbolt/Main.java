@@ -30,11 +30,11 @@ import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.blockchain.StandardBlockchainCommitter;
 import com.thunderbolt.blockchain.contracts.IBlockchainCommitter;
+import com.thunderbolt.configuration.Configuration;
 import com.thunderbolt.mining.MiningException;
 import com.thunderbolt.mining.StandardMiner;
 import com.thunderbolt.network.Node;
 import com.thunderbolt.network.NetworkParameters;
-import com.thunderbolt.network.contracts.IBlockchainSyncFinishListener;
 import com.thunderbolt.network.contracts.IPeerDiscoverer;
 import com.thunderbolt.network.discovery.StandardPeerDiscoverer;
 import com.thunderbolt.network.messages.ProtocolMessageFactory;
@@ -65,13 +65,14 @@ import java.security.GeneralSecurityException;
 public class Main
 {
     // Constants
-    static private final String USER_HOME_PATH   = System.getProperty("user.home");
-    static private final String DATA_FOLDER_NAME = ".thunderbolt";
-    static private final Path   DEFAULT_PATH     = Paths.get(USER_HOME_PATH, DATA_FOLDER_NAME);
-    static private final Path   BLOCKS_PATH      = Paths.get(DEFAULT_PATH.toString(), "blocks");
-    static private final Path   REVERT_PATH      = Paths.get(DEFAULT_PATH.toString(), "reverts");
-    static private final Path   METADATA_PATH    = Paths.get(DEFAULT_PATH.toString(), "metadata");
-    static private final Path   ADDRESS_PATH     = Paths.get(DEFAULT_PATH.toString(), "peers");
+    static private final String USER_HOME_PATH    = System.getProperty("user.home");
+    static private final String DATA_FOLDER_NAME  = ".thunderbolt";
+    static private final Path   DEFAULT_PATH      = Paths.get(USER_HOME_PATH, DATA_FOLDER_NAME);
+    static private final Path   BLOCKS_PATH       = Paths.get(DEFAULT_PATH.toString(), "blocks");
+    static private final Path   REVERT_PATH       = Paths.get(DEFAULT_PATH.toString(), "reverts");
+    static private final Path   METADATA_PATH     = Paths.get(DEFAULT_PATH.toString(), "metadata");
+    static private final Path   ADDRESS_PATH      = Paths.get(DEFAULT_PATH.toString(), "peers");
+    static private final Path   CONFIG_FILE_PATH  = Paths.get(DEFAULT_PATH.toString(), "thunderbolt.conf");
 
     static private final Path   WALLET_PATH      = Paths.get(USER_HOME_PATH, "wallet.bin");
     static private final Path   WALLET_PATH_1    = Paths.get(USER_HOME_PATH, "wallet1.bin");
@@ -109,6 +110,8 @@ public class Main
         IPeerDiscoverer               discoverer             = new StandardPeerDiscoverer();
         INetworkAddressPool           addressPool            = new LevelDbNetworkAddressPool(ADDRESS_PATH);
 
+        Configuration.initialize(CONFIG_FILE_PATH.toString());
+
         blockchain.addOutputsUpdateListener(memPool);
         persistenceService.addChainHeadUpdateListener(head -> {
             s_logger.debug("{} {}", s_wallet.getAddress(), s_wallet.getBalance());
@@ -117,7 +120,12 @@ public class Main
             s_logger.debug("{} {}", s_wallet3.getAddress(), s_wallet3.getBalance());
         });
 
-        s_wallet = new Wallet(WALLET_PATH.toString(), "1234");
+        String walletPath = Configuration.getWalletPath().isEmpty() ?
+                WALLET_PATH.toString() : Configuration.getWalletPath();
+
+        s_logger.info("Loading wallet file from {}", walletPath);
+
+        s_wallet = new Wallet(walletPath, "1234");
         s_wallet1 = new Wallet(WALLET_PATH_1.toString(), "1234");
         s_wallet2 = new Wallet(WALLET_PATH_2.toString(), "1234");
         s_wallet3 = new Wallet(WALLET_PATH_3.toString(), "1234");
@@ -137,10 +145,10 @@ public class Main
         ProtocolMessageFactory.initialize(NetworkParameters.mainNet(), persistenceService);
 
         PeerManager peerManager = new PeerManager(
-                1,
-                10,
-                3600000,// 1 hour
-                1200000, // 20 minutes
+                Configuration.getNodeMinConnections(),
+                Configuration.getNodeMaxConnections(),
+                Configuration.getPeerInactiveTime(),
+                Configuration.getPeerHeartbeat(),
                 discoverer,
                 NetworkParameters.mainNet(),
                 addressPool);

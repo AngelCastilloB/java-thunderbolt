@@ -31,6 +31,7 @@ import com.thunderbolt.blockchain.BlockHeader;
 import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.common.TimeSpan;
+import com.thunderbolt.configuration.Configuration;
 import com.thunderbolt.network.contracts.IBlockchainSyncFinishListener;
 import com.thunderbolt.network.messages.payloads.*;
 import com.thunderbolt.network.messages.ProtocolMessage;
@@ -266,14 +267,14 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
                         if (m_publicAddress == null)
                         {
                             m_publicAddress = payload.getReceiveAddress();
-                            m_publicAddress.setPort(m_params.getPort());
+                            m_publicAddress.setPort(Configuration.getNodePort());
                         }
                     }
                     else
                     {
                         // if we are client, we are going to take the public address from the server message.
                         m_publicAddress = payload.getReceiveAddress();
-                        m_publicAddress.setPort(m_params.getPort());
+                        m_publicAddress.setPort(Configuration.getNodePort());
                     }
 
                     peer.sendMessage(ProtocolMessageFactory.createVerackMessage());

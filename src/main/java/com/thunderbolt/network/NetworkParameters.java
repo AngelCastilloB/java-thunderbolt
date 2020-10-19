@@ -33,7 +33,6 @@ import org.bouncycastle.util.encoders.Hex;
 import java.io.IOException;
 import java.io.Serializable;
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 
 /* IMPLEMENTATION ************************************************************/
 
