@@ -181,5 +181,10 @@
             <artifactId>maven-surefire-plugin</artifactId>
             <version>3.0.0-M5</version>
         </dependency>
+        <dependency>
+            <groupId>com.github.arteam</groupId>
+            <artifactId>simple-json-rpc-server</artifactId>
+            <version>1.2</version>
+        </dependency>
     </dependencies>
 </project>

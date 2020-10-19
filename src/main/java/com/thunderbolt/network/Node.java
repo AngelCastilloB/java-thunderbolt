@@ -115,6 +115,76 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
     }
 
     /**
+     * Gets the persistence service.
+     *
+     * @return The persistence service.
+     */
+    public IPersistenceService getPersistenceService()
+    {
+        return m_persistenceService;
+    }
+
+    /**
+     * Gets the blockchain instance.
+     *
+     * @return The blockchain.
+     */
+    public Blockchain getBlockchain()
+    {
+        return m_blockchain;
+    }
+
+    /**
+     * Gets whether this node is running or not.
+     *
+     * @return true if is running; otherwise; false.
+     */
+    public boolean isRunning()
+    {
+        return m_isRunning;
+    }
+
+    /**
+     * Gets the transaction pool.
+     *
+     * @return The transaction pool.
+     */
+    public ITransactionsPool getTransactionsPool()
+    {
+        return m_memPool;
+    }
+
+    /**
+     * Gets the peer manager.
+     *
+     * @return The peer manager.
+     */
+    public PeerManager getPeerManager()
+    {
+        return m_peerManager;
+    }
+
+    /**
+     * Gets out current public address.
+     *
+     * @return Our public address.
+     */
+    public NetworkAddress getPublicAddress()
+    {
+        return m_publicAddress;
+    }
+
+    /**
+     * Gets whether we are still performing initial block download.
+     *
+     * @return true if performing initial block download; otherwise; false.
+     */
+    public boolean isInitialBlockDownload()
+    {
+        return m_isInitialBlockDownload;
+    }
+
+    /**
      * Shuts down the node
      */
     public void shutdown()
@@ -267,14 +337,14 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
                         if (m_publicAddress == null)
                         {
                             m_publicAddress = payload.getReceiveAddress();
-                            m_publicAddress.setPort(Configuration.getNodePort());
+                            m_publicAddress.setPort(m_params.getPort());
                         }
                     }
                     else
                     {
                         // if we are client, we are going to take the public address from the server message.
                         m_publicAddress = payload.getReceiveAddress();
-                        m_publicAddress.setPort(Configuration.getNodePort());
+                        m_publicAddress.setPort(m_params.getPort());
                     }
 
                     peer.sendMessage(ProtocolMessageFactory.createVerackMessage());

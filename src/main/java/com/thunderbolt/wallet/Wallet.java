@@ -66,6 +66,21 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
     private Map<Sha256Hash, UnspentTransactionOutput> m_unspentOutputs = new HashMap<>();
     private EllipticCurveKeyPair                      m_keys           = new EllipticCurveKeyPair();
     private EncryptedPrivateKey                       m_encryptedKey   = null;
+    private boolean                                   m_isUnlocked     = false;
+    private Path                                      m_walletPath     = null;
+
+    /**
+     * Initializes a new instance of the Wallet class.
+     *
+     * Creates a new key pair.
+     *
+     * @param path The path to the wallet file.
+     */
+    public Wallet(Path path)
+    {
+        m_isUnlocked = false;
+        m_walletPath = path;
+    }
 
     /**
      * Initializes a new instance of the Wallet class.
@@ -77,6 +92,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
     public Wallet(String password) throws GeneralSecurityException
     {
         m_encryptedKey = new EncryptedPrivateKey(m_keys.getPrivateKey(), password);
+        m_isUnlocked = true;
     }
 
     /**
@@ -89,6 +105,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
     {
         m_keys = keyPair;
         m_encryptedKey = new EncryptedPrivateKey(m_keys.getPrivateKey(), password);
+        m_isUnlocked = true;
     }
 
     /**
@@ -101,6 +118,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
     {
         m_encryptedKey = encryptedKey;
         m_keys = new EllipticCurveKeyPair(m_encryptedKey.getPrivateKey(password));
+        m_isUnlocked = true;
     }
 
     /**
@@ -113,6 +131,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
     {
         m_encryptedKey = new EncryptedPrivateKey(buffer.array());
         m_keys = new EllipticCurveKeyPair(m_encryptedKey.getPrivateKey(password));
+        m_isUnlocked = true;
     }
 
     /**
@@ -138,6 +157,51 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
             m_encryptedKey = new EncryptedPrivateKey(m_keys.getPrivateKey(), password);
             save(path);
         }
+        m_isUnlocked = true;
+    }
+
+    /**
+     * Unlocks the wallet.
+     *
+     * @param password The password to unlock the wallet.
+     */
+    public boolean unlock(String password) throws IOException
+    {
+        Path filepath = m_walletPath;
+
+        try
+        {
+            if (Files.exists(filepath))
+            {
+                byte[] data = Files.readAllBytes(m_walletPath);
+                ByteBuffer buffer = ByteBuffer.wrap(data);
+                m_encryptedKey = new EncryptedPrivateKey(buffer.array());
+                m_keys = new EllipticCurveKeyPair(m_encryptedKey.getPrivateKey(password));
+            }
+            else
+            {
+                m_encryptedKey = new EncryptedPrivateKey(m_keys.getPrivateKey(), password);
+                save(m_walletPath.toString());
+            }
+            m_isUnlocked = true;
+        }
+        catch (GeneralSecurityException exception)
+        {
+            s_logger.error("There was an error while unlocking the file.", exception);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Gets whether the wallet is unlocked or not.
+     *
+     * @return true if the wallet is locked; otherwise; false.
+     */
+    public boolean isUnlocked()
+    {
+        return m_isUnlocked;
     }
 
     /**
@@ -149,6 +213,12 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
      */
     public boolean initialize(IPersistenceService service)
     {
+        if (!m_isUnlocked)
+        {
+            s_logger.error("Wallet is locked. You must unlock it first.");
+            return false;
+        }
+
         try
         {
             List<UnspentTransactionOutput> outputs = service.getUnspentOutputsForAddress(getAddress());
@@ -171,6 +241,12 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
      */
     public Address getAddress()
     {
+        if (!m_isUnlocked)
+        {
+            s_logger.error("Wallet is locked. You must unlock it first.");
+            return null;
+        }
+
        return new Address(NetworkParameters.mainNet().getSingleSignatureAddressHeader(), m_keys.getPublicKey());
     }
 
@@ -181,6 +257,12 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
      */
     public EllipticCurveKeyPair getKeyPair()
     {
+        if (!m_isUnlocked)
+        {
+            s_logger.error("Wallet is locked. You must unlock it first.");
+            return null;
+        }
+
         return m_keys;
     }
 
@@ -191,6 +273,12 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
      */
     public BigInteger getBalance()
     {
+        if (!m_isUnlocked)
+        {
+            s_logger.error("Wallet is locked. You must unlock it first.");
+            return BigInteger.valueOf(0);
+        }
+
         BigInteger total = BigInteger.ZERO;
 
         for (Map.Entry<Sha256Hash, UnspentTransactionOutput> entry : m_unspentOutputs.entrySet())
@@ -213,6 +301,12 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
      */
     public Transaction createTransaction(long amount, String address) throws IOException
     {
+        if (!m_isUnlocked)
+        {
+            s_logger.error("Wallet is locked. You must unlock it first.");
+            return null;
+        }
+
         return createTransaction(BigInteger.valueOf(amount), new Address(address));
     }
 
@@ -226,6 +320,12 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
      */
     public Transaction createTransaction(BigInteger amount, Address address) throws IOException
     {
+        if (!m_isUnlocked)
+        {
+            s_logger.error("Wallet is locked. You must unlock it first.");
+            return null;
+        }
+
         Transaction transaction = new Transaction();
 
         BigInteger currentBalance = getBalance();
@@ -296,6 +396,12 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
     @Override
     public byte[] serialize()
     {
+        if (!m_isUnlocked)
+        {
+            s_logger.error("Wallet is locked. You must unlock it first.");
+            return null;
+        }
+
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
         try
@@ -319,6 +425,12 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
      */
     public boolean save(String path)
     {
+        if (!m_isUnlocked)
+        {
+            s_logger.error("Wallet is locked. You must unlock it first.");
+            return false;
+        }
+
         boolean result = true;
 
         try (FileOutputStream fos = new FileOutputStream(path))
@@ -342,6 +454,12 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
      */
     public void onOutputsUpdate(List<UnspentTransactionOutput> toAdd, List<Sha256Hash> toRemove)
     {
+        if (!m_isUnlocked)
+        {
+            s_logger.error("Wallet is locked. You must unlock it first.");
+            return;
+        }
+
         for (Sha256Hash sha256Hash : toRemove)
             m_unspentOutputs.remove(sha256Hash);
 

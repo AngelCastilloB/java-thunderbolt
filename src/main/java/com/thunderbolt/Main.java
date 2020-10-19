@@ -26,13 +26,13 @@ package com.thunderbolt;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.blockchain.Block;
+import com.sun.net.httpserver.BasicAuthenticator;
+import com.sun.net.httpserver.HttpContext;
+import com.sun.net.httpserver.HttpServer;
 import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.blockchain.StandardBlockchainCommitter;
 import com.thunderbolt.blockchain.contracts.IBlockchainCommitter;
 import com.thunderbolt.configuration.Configuration;
-import com.thunderbolt.mining.MiningException;
-import com.thunderbolt.mining.StandardMiner;
 import com.thunderbolt.network.Node;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.contracts.IPeerDiscoverer;
@@ -45,6 +45,7 @@ import com.thunderbolt.persistence.contracts.IMetadataProvider;
 import com.thunderbolt.persistence.contracts.INetworkAddressPool;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.storage.*;
+import com.thunderbolt.rpc.NodeHttpHandler;
 import com.thunderbolt.transaction.MemoryTransactionsPool;
 import com.thunderbolt.transaction.StandardTransactionValidator;
 import com.thunderbolt.transaction.contracts.ITransactionValidator;
@@ -53,9 +54,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.GeneralSecurityException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -65,82 +68,47 @@ import java.security.GeneralSecurityException;
 public class Main
 {
     // Constants
-    static private final String USER_HOME_PATH    = System.getProperty("user.home");
-    static private final String DATA_FOLDER_NAME  = ".thunderbolt";
-    static private final Path   DEFAULT_PATH      = Paths.get(USER_HOME_PATH, DATA_FOLDER_NAME);
-    static private final Path   BLOCKS_PATH       = Paths.get(DEFAULT_PATH.toString(), "blocks");
-    static private final Path   REVERT_PATH       = Paths.get(DEFAULT_PATH.toString(), "reverts");
-    static private final Path   METADATA_PATH     = Paths.get(DEFAULT_PATH.toString(), "metadata");
-    static private final Path   ADDRESS_PATH      = Paths.get(DEFAULT_PATH.toString(), "peers");
-    static private final Path   CONFIG_FILE_PATH  = Paths.get(DEFAULT_PATH.toString(), "thunderbolt.conf");
-
+    static private final String USER_HOME_PATH   = System.getProperty("user.home");
+    static private final String DATA_FOLDER_NAME = ".thunderbolt";
+    static private final Path   DEFAULT_PATH     = Paths.get(USER_HOME_PATH, DATA_FOLDER_NAME);
+    static private final Path   BLOCKS_PATH      = Paths.get(DEFAULT_PATH.toString(), "blocks");
+    static private final Path   REVERT_PATH      = Paths.get(DEFAULT_PATH.toString(), "reverts");
+    static private final Path   METADATA_PATH    = Paths.get(DEFAULT_PATH.toString(), "metadata");
+    static private final Path   ADDRESS_PATH     = Paths.get(DEFAULT_PATH.toString(), "peers");
+    static private final Path   CONFIG_FILE_PATH = Paths.get(DEFAULT_PATH.toString(), "thunderbolt.conf");
     static private final Path   WALLET_PATH      = Paths.get(USER_HOME_PATH, "wallet.bin");
-    static private final Path   WALLET_PATH_1    = Paths.get(USER_HOME_PATH, "wallet1.bin");
-    static private final Path   WALLET_PATH_2    = Paths.get(USER_HOME_PATH, "wallet2.bin");
-    static private final Path   WALLET_PATH_3    = Paths.get(USER_HOME_PATH, "wallet3.bin");
-
     static private final String BLOCK_PATTERN    = "block%05d.bin";
     static private final String REVERT_PATTERN   = "revert%05d.bin";
+    private static final int    RPC_THREAD_COUNT = 2;
 
     // Static variables
     private static final Logger s_logger = LoggerFactory.getLogger(Main.class);
-    private static Thread       s_miningThread = null;
-
-    // Mining test.
-    private static Block         s_miningChain = null; //TODO: remove
-    private static int           s_height      = 0;
-    private static StandardMiner s_miner       = null;
-    static Wallet                s_wallet      = null;
-    static Wallet                s_wallet1     = null;
-    static Wallet                s_wallet2     = null;
-    static Wallet                s_wallet3     = null;
 
     /**
      * Application entry point.
      *
      * @param args Arguments.
      */
-    public static void main(String[] args) throws IOException, StorageException, GeneralSecurityException
+    public static void main(String[] args) throws IOException, StorageException
     {
-        IPersistenceService           persistenceService     = createPersistenceService();
-        MemoryTransactionsPool        memPool                = new MemoryTransactionsPool(persistenceService);
-        ITransactionValidator         transactionValidator   = new StandardTransactionValidator(persistenceService, NetworkParameters.mainNet());
-        IBlockchainCommitter          committer              = new StandardBlockchainCommitter(persistenceService, memPool);
-        Blockchain                    blockchain             = new Blockchain(NetworkParameters.mainNet(), transactionValidator, committer, persistenceService);
-        IPeerDiscoverer               discoverer             = new StandardPeerDiscoverer();
-        INetworkAddressPool           addressPool            = new LevelDbNetworkAddressPool(ADDRESS_PATH);
-
         Configuration.initialize(CONFIG_FILE_PATH.toString());
 
+        IPersistenceService           persistenceService   = createPersistenceService();
+        MemoryTransactionsPool        memPool              = new MemoryTransactionsPool(persistenceService);
+        ITransactionValidator         transactionValidator = new StandardTransactionValidator(persistenceService, NetworkParameters.mainNet());
+        IBlockchainCommitter          committer            = new StandardBlockchainCommitter(persistenceService, memPool);
+        Blockchain                    blockchain           = new Blockchain(NetworkParameters.mainNet(), transactionValidator, committer, persistenceService);
+        IPeerDiscoverer               discoverer           = new StandardPeerDiscoverer();
+        INetworkAddressPool           addressPool          = new LevelDbNetworkAddressPool(ADDRESS_PATH);
+
         blockchain.addOutputsUpdateListener(memPool);
-        persistenceService.addChainHeadUpdateListener(head -> {
-            s_logger.debug("{} {}", s_wallet.getAddress(), s_wallet.getBalance());
-            s_logger.debug("{} {}", s_wallet1.getAddress(), s_wallet1.getBalance());
-            s_logger.debug("{} {}", s_wallet2.getAddress(), s_wallet2.getBalance());
-            s_logger.debug("{} {}", s_wallet3.getAddress(), s_wallet3.getBalance());
-        });
 
-        String walletPath = Configuration.getWalletPath().isEmpty() ?
-                WALLET_PATH.toString() : Configuration.getWalletPath();
+        Path walletPath = Configuration.getWalletPath().isEmpty() ?
+                WALLET_PATH : Paths.get(Configuration.getWalletPath());
 
-        s_logger.info("Loading wallet file from {}", walletPath);
+        s_logger.info("Wallet file {}. Will be loaded, but right now is still locked.", walletPath);
 
-        s_wallet = new Wallet(walletPath, "1234");
-        s_wallet1 = new Wallet(WALLET_PATH_1.toString(), "1234");
-        s_wallet2 = new Wallet(WALLET_PATH_2.toString(), "1234");
-        s_wallet3 = new Wallet(WALLET_PATH_3.toString(), "1234");
-
-        blockchain.addOutputsUpdateListener(s_wallet);
-        blockchain.addOutputsUpdateListener(s_wallet1);
-        blockchain.addOutputsUpdateListener(s_wallet2);
-        blockchain.addOutputsUpdateListener(s_wallet3);
-
-        s_wallet.initialize(persistenceService);
-        s_wallet1.initialize(persistenceService);
-        s_wallet2.initialize(persistenceService);
-        s_wallet3.initialize(persistenceService);
-
-        s_miner = new StandardMiner(memPool, blockchain, s_wallet);
+        Wallet wallet = new Wallet(walletPath);
 
         ProtocolMessageFactory.initialize(NetworkParameters.mainNet(), persistenceService);
 
@@ -161,23 +129,8 @@ public class Main
 
         Node node = new Node(NetworkParameters.mainNet(), blockchain, memPool, peerManager, persistenceService);
 
-        node.addBlockchainSyncFinishListener((blockchain1, persistenceService1) ->
-        {
-            s_logger.debug("{} {}", s_wallet.getAddress(), s_wallet.getBalance());
-            s_logger.debug("{} {}", s_wallet1.getAddress(), s_wallet1.getBalance());
-            s_logger.debug("{} {}", s_wallet2.getAddress(), s_wallet2.getBalance());
-            s_logger.debug("{} {}", s_wallet3.getAddress(), s_wallet3.getBalance());
-        });
-
-        // TODO: Remove this, only for testing purposes.
-        s_miningThread = new Thread(() -> { startMining(blockchain, 1000, memPool);});
-        s_miningChain = persistenceService.getBlock(persistenceService.getChainHead().getHash());
-        s_height = (int)blockchain.getChainHead().getHeight();
-
-        if (false)
-            s_miningThread.start();
-
-       node.run();
+        startRpcService(node, wallet);
+        node.run();
     }
 
     /**
@@ -195,60 +148,42 @@ public class Main
     }
 
     /**
-     * Start mining new blocks.
+     * Starts the RPC service.
      *
-     * @param blockchain The current blockchain.
-     * @param delayBetweenBlocks The delay between new blocks.
+     * @param node The node instance.
+     * @param wallet The wallet instance.
      */
-    private static void startMining(Blockchain blockchain, long delayBetweenBlocks, MemoryTransactionsPool pool)
+    private static void startRpcService(Node node, Wallet wallet)
     {
-        /*
-            0x10d2da46aee4a8272632daeaed1e5be6da627e8416ce3bdb61
-            0x101ebef893327fc9dbc95fd3df5774fe5bb3199a42eef0b721
-            0x105ce5c1e5fb677dede744b39653c3938f298912ab9f34fcc9
-            0x10f347ff887937346b8391e89055112fc42293f4ad053bb05e
-         */
-
-        try
-        {
-            Thread.sleep(5000);
-        } catch (InterruptedException e)
-        {
-            e.printStackTrace();
-        }
-
-        while(true)
+        new Thread(() ->
         {
             try
             {
-                pool.addTransaction(s_wallet.createTransaction(100L,"0x10f347ff887937346b8391e89055112fc42293f4ad053bb05e"));
-            } catch (IOException exception)
-            {
-                exception.printStackTrace();
-            }
+                ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(RPC_THREAD_COUNT);
+                HttpServer server = HttpServer
+                        .create(new InetSocketAddress("localhost", Configuration.getRpcPort()), 0);
 
-            if (pool.getCount() > 0)
-                s_logger.debug("Have transactions!");
-            try
-            {
-                Block newBlock = s_miner.mine(s_miningChain.getHeaderHash(), s_height);
-                ++s_height;
+                HttpContext context = server.createContext("/", new NodeHttpHandler(node, wallet));
 
-                s_miningChain = newBlock;
-                blockchain.add(newBlock);
+                context.setAuthenticator(new BasicAuthenticator("post")
+                {
+                    @Override
+                    public boolean checkCredentials(String user, String pwd) {
+                        return user.equals(Configuration.getRpcUser()) && pwd.equals(Configuration.getRpcPassword());
+                    }
+                });
 
-                Thread.sleep(delayBetweenBlocks);
+                server.setExecutor(threadPoolExecutor);
+
+                s_logger.debug("RPC service listening on port: {}", Configuration.getRpcPort());
+                server.start();
             }
-            catch (MiningException | StorageException e)
+            catch (IOException exception)
             {
-                s_logger.error("An error has occur while mining the new block: ", e);
+                s_logger.error("There was an error during the reading or writing of an RPC message.", exception);
+                s_logger.error("The RPC server is down. Shutting down node.", exception);
+                node.shutdown();
             }
-            catch (InterruptedException e)
-            {
-                // The thread was interrupted, exiting...
-                s_logger.error("Thread interrupted");
-                return;
-            }
-        }
-}
+        }).start();
+    }
 }
