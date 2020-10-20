@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2018 Angel Castillo.
+ * Copyright (c) 2020 Angel Castillo.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,27 +21,61 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
 package com.thunderbolt.mining.contracts;
-
-/* IMPORTS *******************************************************************/
-
-import com.thunderbolt.blockchain.Block;
-import com.thunderbolt.mining.MiningException;
 
 /* IMPLEMENTATION ************************************************************/
 
+import com.thunderbolt.mining.Job;
+
 /**
- * Validate new transactions and attempts to generate new blocks to record them on the blockchain. The miner "solves"
- * a block by presenting a solution proves that they have done a certain amount of computational work. Such “proof-of-work”
- * allows a miner to add a block of newly processed transactions to the blockchain, collecting fees from the subject
- * transactions as well as “block rewards”.
+ * Cryptocurrency miner interface. This objects apply SHA-256 to the given workload until they find the nonce
+ * that solves the block.
  */
 public interface IMiner
 {
     /**
-     * Mines a new block.
+     * Starts the miner.
      *
-     * @return The newly mined block.
+     * @return true if the miner was started successfully; otherwise; false.
      */
-    Block mine() throws MiningException;
+    boolean start();
+
+    /**
+     * Stops the miner.
+     */
+    void stop();
+
+    /**
+     * Gets whether this miner is running or not.
+     *
+     * @return true if is running; otherwise; false.
+     */
+    boolean isRunning();
+
+    /**
+     * Cancels all current jobs
+     */
+    void cancelAllJobs();
+
+    /**
+     * Queue work on the miner.
+     *
+     * @param job The job to be work on.
+     */
+    void queueJob(Job job);
+
+    /**
+     * Adds an event listener to be notified when a Job is done.
+     *
+     * @param listener The event listener.
+     */
+    void addJobFinishListener(IJobFinishListener listener);
+
+    /**
+     * Removes an event listener.
+     *
+     * @param listener The event listener to be removed.
+     */
+    void removeJobFinishListener(IJobFinishListener listener);
 }

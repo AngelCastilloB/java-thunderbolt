@@ -7,8 +7,11 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="Thunderbolt" />
-        <module name="java-thunderbolt" />
+        <module name="thunderbolt-wallet" />
+        <module name="thunderbolt-miner" />
+        <module name="thunderbolt-node" />
+        <module name="thunderbolt-core" />
+        <module name="thunderbolt-cli" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel target="11" />
