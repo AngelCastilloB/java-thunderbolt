@@ -33,7 +33,6 @@ import com.github.arteam.simplejsonrpc.core.annotation.JsonRpcService;
 import com.google.inject.internal.Nullable;
 import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.common.NumberSerializer;
-import com.thunderbolt.mining.MiningException;
 import com.thunderbolt.network.Node;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
@@ -60,10 +59,10 @@ import java.util.List;
  * Sample RPC service.
  */
 @JsonRpcService
-public class NodeRpcService
+public class RpcService
 {
     // Static variables
-    private static final Logger s_logger = LoggerFactory.getLogger(NodeRpcService.class);
+    private static final Logger s_logger = LoggerFactory.getLogger(RpcService.class);
 
     private final Node   m_node;
     private final Wallet m_wallet;
@@ -74,7 +73,7 @@ public class NodeRpcService
      * @param node The node instance.
      * @param wallet The current wallet.
      */
-    public NodeRpcService(Node node, Wallet wallet)
+    public RpcService(Node node, Wallet wallet)
     {
         m_node = node;
         m_wallet = wallet;
@@ -277,7 +276,7 @@ public class NodeRpcService
      *
      * @return The information necessary to generate a new block.
      */
-    @JsonRpcMethod("getPrivateKey")
+    @JsonRpcMethod("getWork")
     public MinerWork getWork()
     {
         MinerWork work = new MinerWork();

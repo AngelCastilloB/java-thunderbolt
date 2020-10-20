@@ -57,6 +57,7 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.GeneralSecurityException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -111,6 +112,13 @@ public class Main
         Wallet wallet = new Wallet(walletPath);
         memPool.addTransactionsChangedListener(wallet);
         blockchain.addBlockchainUpdateListener(wallet);
+
+        try {
+            wallet.createKeys("1234");
+        } catch (GeneralSecurityException e) {
+            e.printStackTrace();
+        }
+        wallet.unlock("1234");
 
         ProtocolMessageFactory.initialize(NetworkParameters.mainNet(), persistenceService);
 

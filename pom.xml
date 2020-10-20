@@ -186,5 +186,15 @@
             <artifactId>simple-json-rpc-server</artifactId>
             <version>1.2</version>
         </dependency>
+        <dependency>
+            <groupId>com.github.arteam</groupId>
+            <artifactId>simple-json-rpc-client</artifactId>
+            <version>1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.13</version>
+        </dependency>
     </dependencies>
 </project>

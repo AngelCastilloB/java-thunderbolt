@@ -52,7 +52,7 @@ public class NodeHttpHandler implements HttpHandler
     private static final Logger s_logger = LoggerFactory.getLogger(NodeHttpHandler.class);
 
     // Private Fields
-    private final NodeRpcService m_nodeService;
+    private final RpcService m_nodeService;
     private final JsonRpcServer  m_rpcServer;
 
     /**
@@ -63,7 +63,7 @@ public class NodeHttpHandler implements HttpHandler
      */
     public NodeHttpHandler(Node node, Wallet wallet)
     {
-        m_nodeService = new NodeRpcService(node, wallet);
+        m_nodeService = new RpcService(node, wallet);
         m_rpcServer   = new JsonRpcServer();
     }
 
