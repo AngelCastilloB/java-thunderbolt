@@ -28,8 +28,6 @@ package com.thunderbolt.rpc;
 
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.Transaction;
-
-import java.time.LocalDateTime;
 import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
