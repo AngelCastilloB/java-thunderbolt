@@ -31,7 +31,6 @@ import com.thunderbolt.blockchain.BlockHeader;
 import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.common.TimeSpan;
-import com.thunderbolt.configuration.Configuration;
 import com.thunderbolt.network.contracts.IBlockchainSyncFinishListener;
 import com.thunderbolt.network.messages.payloads.*;
 import com.thunderbolt.network.messages.ProtocolMessage;
@@ -47,7 +46,7 @@ import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.Transaction;
-import com.thunderbolt.transaction.contracts.ITransactionAddedListener;
+import com.thunderbolt.transaction.contracts.ITransactionsChangeListener;
 import com.thunderbolt.transaction.contracts.ITransactionsPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +59,7 @@ import java.util.*;
 /**
  * Network node. Handles all the messages exchanges between this instance and the peers.
  */
-public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
+public class Node implements IChainHeadUpdateListener, ITransactionsChangeListener
 {
     // Constants
     private static final int MAIN_LOOP_DELAY                = 100; // ms
@@ -111,7 +110,7 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
         m_memPool = transactionsPoolService;
         m_peerManager = peerManager;
         m_persistenceService.addChainHeadUpdateListener(this);
-        m_memPool.addTransactionAddedListener(this);
+        m_memPool.addTransactionsChangedListener(this);
     }
 
     /**
@@ -947,5 +946,16 @@ public class Node implements IChainHeadUpdateListener, ITransactionAddedListener
 
             peer.queueTransactionIdForBroadcast(transaction.getTransactionId());
         }
+    }
+
+    /**
+     * Called when a transaction is removed to the transaction pool.
+     *
+     * @param transaction The transaction that was removed.
+     */
+    @Override
+    public void onTransactionRemoved(Transaction transaction)
+    {
+        // We do not care about this event.
     }
 }

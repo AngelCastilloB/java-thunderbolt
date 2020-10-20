@@ -31,14 +31,21 @@ import com.thunderbolt.transaction.Transaction;
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Triggers an event everytime a transaction is added to the mempool.
+ * Triggers an event everytime a transaction is added or removed from the transaction pool.
  */
-public interface ITransactionAddedListener
+public interface ITransactionsChangeListener
 {
     /**
-     * Called when a change on the available unspent outputs occur.
+     * Called when a transaction is added to the transaction pool.
      *
      * @param transaction The transaction that was added.
      */
     void onTransactionAdded(Transaction transaction);
+
+    /**
+     * Called when a transaction is removed to the transaction pool.
+     *
+     * @param transaction The transaction that was removed.
+     */
+    void onTransactionRemoved(Transaction transaction);
 }

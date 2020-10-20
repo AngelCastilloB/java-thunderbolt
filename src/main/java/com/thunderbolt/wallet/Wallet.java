@@ -25,7 +25,10 @@ package com.thunderbolt.wallet;
 
 // IMPORTS *******************************************************************/
 
+import com.thunderbolt.blockchain.Block;
+import com.thunderbolt.blockchain.contracts.IBlockchainUpdateListener;
 import com.thunderbolt.blockchain.contracts.IOutputsUpdateListener;
+import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
@@ -49,6 +52,7 @@ import com.thunderbolt.transaction.OutputLockType;
 import com.thunderbolt.transaction.Transaction;
 import com.thunderbolt.transaction.TransactionInput;
 import com.thunderbolt.transaction.TransactionOutput;
+import com.thunderbolt.transaction.contracts.ITransactionsChangeListener;
 import com.thunderbolt.transaction.parameters.SingleSignatureParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,15 +63,18 @@ import org.slf4j.LoggerFactory;
  * Keeps track of the unspent outputs spendable by the keys in the wallet file. This class also contains useful functions
  * for tracking available balance, sending and verifying the received payments.
  */
-public class Wallet implements ISerializable, IOutputsUpdateListener
+public class Wallet implements ISerializable, IOutputsUpdateListener, ITransactionsChangeListener, IBlockchainUpdateListener
 {
     private static final Logger s_logger = LoggerFactory.getLogger(Wallet.class);
 
-    private Map<Sha256Hash, UnspentTransactionOutput> m_unspentOutputs = new HashMap<>();
-    private EllipticCurveKeyPair                      m_keys           = new EllipticCurveKeyPair();
-    private EncryptedPrivateKey                       m_encryptedKey   = null;
-    private boolean                                   m_isUnlocked     = false;
-    private Path                                      m_walletPath     = null;
+    private Map<Sha256Hash, UnspentTransactionOutput> m_unspentOutputs      = new HashMap<>();
+    private EllipticCurveKeyPair                      m_keys                = new EllipticCurveKeyPair();
+    private EncryptedPrivateKey                       m_encryptedKey        = null;
+    private boolean                                   m_isUnlocked          = false;
+    private Path                                      m_walletPath          = null;
+    private final List<Transaction>                   m_transactions        = new ArrayList<>();
+    private final List<Transaction>                   m_pendingTransactions = new ArrayList<>();
+    private Sha256Hash                                m_syncedUpTo          = new Sha256Hash();
 
     /**
      * Initializes a new instance of the Wallet class.
@@ -161,12 +168,40 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
     }
 
     /**
+     * Gets whether this wallet was just created.
+     *
+     * @return true if the wallet was just created; otherwise; false.
+     */
+    public boolean isWalletNew()
+    {
+        return !Files.exists(m_walletPath);
+    }
+
+    /**
+     * Creates the keys for the new wallet.
+     *
+     * @param password The password to be used.
+     */
+    public void createKeys(String password) throws GeneralSecurityException
+    {
+        if (!isWalletNew())
+            return;
+
+        m_encryptedKey = new EncryptedPrivateKey(m_keys.getPrivateKey(), password);
+        m_isUnlocked = true;
+        save(m_walletPath.toString());
+    }
+
+    /**
      * Unlocks the wallet.
      *
      * @param password The password to unlock the wallet.
      */
     public boolean unlock(String password) throws IOException
     {
+        if (m_isUnlocked)
+            return true;
+
         Path filepath = m_walletPath;
 
         try
@@ -216,6 +251,22 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
         if (!m_isUnlocked)
         {
             s_logger.error("Wallet is locked. You must unlock it first.");
+            return false;
+        }
+
+        try
+        {
+            List<UnspentTransactionOutput> outputs = service.getUnspentOutputsForAddress(getAddress());
+
+            for (UnspentTransactionOutput output: outputs)
+                m_unspentOutputs.put(output.getHash(), output);
+
+            List<Transaction> transactions = service.getTransactionsForAddress(getAddress(), m_syncedUpTo);
+            m_syncedUpTo = service.getChainHead().getHash();
+            getTransactions().addAll(transactions);
+        }
+        catch (Exception e)
+        {
             return false;
         }
 
@@ -468,5 +519,106 @@ public class Wallet implements ISerializable, IOutputsUpdateListener
             if (Arrays.equals(output.getOutput().getLockingParameters(), getAddress().getPublicHash()))
                 m_unspentOutputs.put(output.getHash(), output);
         }
+    }
+
+    /**
+     * Called when a change on the available unspent outputs occur.
+     *
+     * @param transaction The transaction that was added.
+     */
+    @Override
+    synchronized public void onTransactionAdded(Transaction transaction)
+    {
+        if (!m_pendingTransactions.contains(transaction))
+            m_pendingTransactions.add(transaction);
+    }
+
+    /**
+     * Called when a transaction is removed to the transaction pool.
+     *
+     * @param transaction The transaction that was removed.
+     */
+    @Override
+    synchronized public void onTransactionRemoved(Transaction transaction)
+    {
+        m_pendingTransactions.remove(transaction);
+    }
+
+    /**
+     * Gets the list of transactions associated with this wallet.
+     *
+     * @return The list of transactions.
+     */
+    public List<Transaction> getTransactions()
+    {
+        return m_transactions;
+    }
+
+    /**
+     * Gets the list of pending transactions.
+     *
+     * @return The list of pending transactions.
+     */
+    public List<Transaction> getPendingTransactions()
+    {
+        return m_pendingTransactions;
+    }
+
+    /**
+     * Called when a new block is added to the active chain.
+     *
+     * @param block The new added block.
+     */
+    @Override
+    public void onBlockAdded(Block block)
+    {
+        List<Transaction> transactions = block.getTransactions();
+
+        for (Transaction transaction: transactions)
+        {
+            boolean detected = false;
+            for (TransactionOutput output : transaction.getOutputs())
+            {
+                if (Arrays.equals(output.getLockingParameters(), getAddress().getPublicHash()))
+                {
+                    if (!m_transactions.contains(transaction))
+                        m_transactions.add(transaction);
+
+                    detected = true;
+                    break;
+                }
+            }
+
+            // We already know this transaction mention us, so we do not need to keep looking forward.
+            if (detected)
+                continue;
+
+            for (TransactionInput input : transaction.getInputs())
+            {
+                SingleSignatureParameters params = new SingleSignatureParameters(input.getUnlockingParameters());
+
+                if (Arrays.equals(params.getPublicKeyHash(), getAddress().getPublicHash()))
+                {
+                    if (!m_transactions.contains(transaction))
+                        m_transactions.add(transaction);
+
+                    break;
+                }
+            }
+        }
+    }
+
+    /**
+     * Called when a block is removed from the active chain.
+     *
+     * @param block The removed block.
+     */
+    @Override
+    public void onBlockRemoved(Block block)
+    {
+        List<Transaction> transactions = block.getTransactions();
+
+        for (Transaction transaction: transactions)
+            m_transactions.remove(transaction);
     }
 }

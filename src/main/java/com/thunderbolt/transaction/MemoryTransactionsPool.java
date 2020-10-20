@@ -30,7 +30,7 @@ import com.thunderbolt.network.ProtocolException;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Sha256Hash;
-import com.thunderbolt.transaction.contracts.ITransactionAddedListener;
+import com.thunderbolt.transaction.contracts.ITransactionsChangeListener;
 import com.thunderbolt.transaction.contracts.ITransactionsPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,7 +58,7 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
     private final HashMap<Sha256Hash, TransactionPoolEntry> m_memPool            = new HashMap<>();
     private final HashMap<Sha256Hash, TransactionPoolEntry> m_orphanTransactions = new HashMap<>();
     private BigInteger                                      m_size               = BigInteger.ZERO;
-    private final List<ITransactionAddedListener>           m_listeners          = new ArrayList<>();
+    private final List<ITransactionsChangeListener>           m_listeners          = new ArrayList<>();
 
     /**
      * Initializes a new instance of the MemoryTransactionsPoolService class.
@@ -239,7 +239,7 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
 
         if (notify)
         {
-            for (ITransactionAddedListener listener : m_listeners)
+            for (ITransactionsChangeListener listener : m_listeners)
                 listener.onTransactionAdded(transaction);
         }
 
@@ -316,7 +316,7 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
      * @param listener The new listener to be added.
      */
     @Override
-    public void addTransactionAddedListener(ITransactionAddedListener listener)
+    public void addTransactionsChangedListener(ITransactionsChangeListener listener)
     {
         m_listeners.add(listener);
     }

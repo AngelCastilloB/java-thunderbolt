@@ -26,6 +26,7 @@ package com.thunderbolt.blockchain;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.blockchain.contracts.IBlockchainCommitter;
+import com.thunderbolt.blockchain.contracts.IBlockchainUpdateListener;
 import com.thunderbolt.blockchain.contracts.IOutputsUpdateListener;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.network.NetworkParameters;
@@ -50,10 +51,11 @@ public class Blockchain
 {
     private static final Logger s_logger = LoggerFactory.getLogger(Blockchain.class);
 
-    private final NetworkParameters     m_params;
-    private final ITransactionValidator m_transactionValidator;
-    private final IBlockchainCommitter  m_committer;
-    private final IPersistenceService   m_persistence;
+    private final NetworkParameters               m_params;
+    private final ITransactionValidator           m_transactionValidator;
+    private final IBlockchainCommitter            m_committer;
+    private final IPersistenceService             m_persistence;
+    private final List<IBlockchainUpdateListener> m_listeners = new ArrayList<>();
 
     /**
      * Creates a new instance of the blockchain.
@@ -78,9 +80,23 @@ public class Blockchain
 
             m_persistence.setChainHead(metadata);
             m_committer.commit(m_persistence.getChainHead());
+
+            for (IBlockchainUpdateListener listener : m_listeners)
+                listener.onBlockAdded(m_persistence.getBlock(metadata.getHash()));
         }
 
         s_logger.debug(String.format("Current blockchain tip: %s", m_persistence.getChainHead().getHeader().getHash().toString()));
+    }
+
+    /**
+     * Adds a new listener to the blockchain.
+     *
+     * @param listener The new listener.
+     */
+    public void addBlockchainUpdateListener(IBlockchainUpdateListener listener)
+    {
+        if (!m_listeners.contains(listener))
+            m_listeners.add(listener);
     }
 
     /**
@@ -240,6 +256,9 @@ public class Blockchain
             s_logger.trace("Chain is now {} blocks high", m_persistence.getChainHead().getHeight());
 
             m_committer.commit(newBlock);
+
+            for (IBlockchainUpdateListener listener : m_listeners)
+                listener.onBlockAdded(m_persistence.getBlock(newBlock.getHash()));
         }
         else
         {
@@ -399,11 +418,21 @@ public class Blockchain
 
         // Rollback all (now) side chain blocks.
         for (BlockMetadata metadata : oldBlocks)
+        {
             m_committer.rollback(metadata);
+
+            for (IBlockchainUpdateListener listener : m_listeners)
+                listener.onBlockRemoved(m_persistence.getBlock(newChainHead.getHash()));
+        }
 
         // Commit all new blocks to the state.
         for (BlockMetadata metadata : newBlocks)
+        {
             m_committer.commit(metadata);
+
+            for (IBlockchainUpdateListener listener : m_listeners)
+                listener.onBlockAdded(m_persistence.getBlock(newChainHead.getHash()));
+        }
 
         // Update the pointer to the best known block.
         m_persistence.setChainHead(newChainHead);

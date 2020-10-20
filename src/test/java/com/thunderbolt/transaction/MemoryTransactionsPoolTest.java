@@ -32,7 +32,7 @@ import com.thunderbolt.network.ProtocolException;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Sha256Hash;
-import com.thunderbolt.transaction.contracts.ITransactionAddedListener;
+import com.thunderbolt.transaction.contracts.ITransactionsChangeListener;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.internal.util.reflection.Whitebox;
@@ -475,7 +475,7 @@ public class MemoryTransactionsPoolTest
         HashMap<Sha256Hash, TransactionPoolEntry> orphanTransactions = new HashMap<>();
         HashMap<Sha256Hash, TransactionPoolEntry> transactions       = new HashMap<>();
         BigInteger                                size               = BigInteger.ZERO;
-        List<ITransactionAddedListener>           listeners          = new ArrayList<>();
+        List<ITransactionsChangeListener>           listeners          = new ArrayList<>();
 
         //arrange
         when(pool.getMinersFee(any(Transaction.class))).thenReturn(5000L);

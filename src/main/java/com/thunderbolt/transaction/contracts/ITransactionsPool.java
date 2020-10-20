@@ -25,7 +25,6 @@ package com.thunderbolt.transaction.contracts;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.Transaction;
 
@@ -127,7 +126,7 @@ public interface ITransactionsPool
      *
      * @param listener The new listener to be added.
      */
-    void addTransactionAddedListener(ITransactionAddedListener listener);
+    void addTransactionsChangedListener(ITransactionsChangeListener listener);
 
     /**
      * Gets all the transactions currently living in the mem pool.

@@ -45,8 +45,8 @@ public class EllipticCurveKeyPair
     private static final SecureRandom s_secureRandom = new SecureRandom();
 
     // Instance fields.
-    private BigInteger m_private;
-    private byte[]     m_public;
+    private final BigInteger m_private;
+    private final byte[]     m_public;
 
     /**
      * Generates a fresh elliptic curve key pair.

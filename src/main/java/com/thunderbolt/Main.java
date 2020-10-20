@@ -109,6 +109,8 @@ public class Main
         s_logger.info("Wallet file {}. Will be loaded, but right now is still locked.", walletPath);
 
         Wallet wallet = new Wallet(walletPath);
+        memPool.addTransactionsChangedListener(wallet);
+        blockchain.addBlockchainUpdateListener(wallet);
 
         ProtocolMessageFactory.initialize(NetworkParameters.mainNet(), persistenceService);
 

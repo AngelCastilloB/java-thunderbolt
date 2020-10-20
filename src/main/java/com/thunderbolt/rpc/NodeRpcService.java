@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.security.GeneralSecurityException;
 import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
@@ -68,6 +69,29 @@ public class NodeRpcService
     {
         m_node = node;
         m_wallet = wallet;
+    }
+
+    /**
+     * Gets whether the wallet is new or not.
+     *
+     * @return true if the wallet is new; otherwise; false.
+     */
+    @JsonRpcMethod("isWalletNew")
+    public boolean isWalletNew()
+    {
+        return m_wallet.isWalletNew();
+    }
+
+    /**
+     * Gets whether the wallet is new or not.
+     *
+     * @return true if the wallet is new; otherwise; false.
+     */
+    @JsonRpcMethod("createKeys")
+    public boolean createKeys(@JsonRpcParam("password") final String password) throws GeneralSecurityException
+    {
+        m_wallet.createKeys(password);
+        return true;
     }
 
     /**
@@ -163,5 +187,75 @@ public class NodeRpcService
         }
 
         return m_node.getTransactionsPool().addTransaction(transaction);
+    }
+
+    /**
+     * Gets all the transactions related to the current wallet.
+     *
+     * @return The list of transactions for the given wallet.
+     */
+    @JsonRpcMethod("getConfirmedTransactions")
+    public List<Transaction> getConfirmedTransactions() throws WalletLockedException
+    {
+        if (!m_wallet.isUnlocked())
+            throw new WalletLockedException();
+
+        return m_wallet.getTransactions();
+    }
+
+    /**
+     * Gets all the pending transactions related to the current wallet.
+     *
+     * @return The list of pending transactions for the given wallet.
+     */
+    @JsonRpcMethod("getPendingTransactions")
+    public List<Transaction> getPendingTransactions() throws WalletLockedException
+    {
+        if (!m_wallet.isUnlocked())
+            throw new WalletLockedException();
+
+        return m_wallet.getPendingTransactions();
+    }
+
+    /**
+     * Gets the address of the wallet.
+     *
+     * @return The address.
+     */
+    @JsonRpcMethod("getAddress")
+    public String getAddress() throws WalletLockedException
+    {
+        if (!m_wallet.isUnlocked())
+            throw new WalletLockedException();
+
+        return m_wallet.getAddress().toString();
+    }
+
+    /**
+     * Gets the public key of the wallet.
+     *
+     * @return the public key.
+     */
+    @JsonRpcMethod("getPublicKey")
+    public byte[] getPublicKey() throws WalletLockedException
+    {
+        if (!m_wallet.isUnlocked())
+            throw new WalletLockedException();
+
+        return m_wallet.getKeyPair().getPublicKey();
+    }
+
+    /**
+     * Gets the private key of the wallet.
+     *
+     * @return the private key.
+     */
+    @JsonRpcMethod("getPrivateKey")
+    public byte[] getPrivateKey() throws WalletLockedException
+    {
+        if (!m_wallet.isUnlocked())
+            throw new WalletLockedException();
+
+        return m_wallet.getKeyPair().getPrivateKey().toByteArray();
     }
 }

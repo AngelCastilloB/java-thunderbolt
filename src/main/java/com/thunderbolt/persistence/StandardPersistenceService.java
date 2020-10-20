@@ -35,9 +35,12 @@ import com.thunderbolt.persistence.storage.*;
 import com.thunderbolt.persistence.structures.BlockMetadata;
 import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
+import com.thunderbolt.security.Ripemd160Digester;
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.Transaction;
 import com.thunderbolt.transaction.TransactionInput;
+import com.thunderbolt.transaction.TransactionOutput;
+import com.thunderbolt.transaction.parameters.SingleSignatureParameters;
 import com.thunderbolt.wallet.Address;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +49,7 @@ import java.io.*;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
@@ -250,6 +254,64 @@ public class StandardPersistenceService implements IPersistenceService
         Block block = new Block(ByteBuffer.wrap(rawBlock));
 
         return block.getTransaction(metadata.getTransactionPosition());
+    }
+
+    /**
+     * Gets all the transactions incoming or outgoing from this address.
+     *
+     * @param address The address of the wallet to get the transactions for.
+     * @param fromBlock from which block to start importing the transactions.
+     *
+     * @return An array with all the addresses related to a given public address.
+     */
+    public List<Transaction> getTransactionsForAddress(Address address, Sha256Hash fromBlock) throws StorageException
+    {
+        List<Transaction> result = new ArrayList<>();
+
+        BlockMetadata cursor = getChainHead();
+
+        // While we have not reach the block hash provided by the wallet, or have not reach genesis block.
+        while (!cursor.getHash().equals(fromBlock) && !cursor.getHeader().getParentBlockHash().equals(new Sha256Hash()))
+        {
+            Block block = getBlock(cursor.getHash());
+            List<Transaction> transactions = block.getTransactions();
+
+            for (Transaction transaction: transactions)
+            {
+                boolean detected = false;
+                for (TransactionOutput output : transaction.getOutputs())
+                {
+                    if (Arrays.equals(output.getLockingParameters(), address.getPublicHash()))
+                    {
+                        result.add(transaction);
+                        detected = true;
+                        break;
+                    }
+                }
+
+                // We already know this transaction mention us, so we do not need to keep looking forward.
+                if (detected)
+                    continue;
+
+                for (TransactionInput input : transaction.getInputs())
+                {
+                    if (input.isCoinBase())
+                        continue;
+
+                    SingleSignatureParameters params = new SingleSignatureParameters(input.getUnlockingParameters());
+
+                    if (Arrays.equals(params.getPublicKeyHash(), address.getPublicHash()))
+                    {
+                        result.add(transaction);
+                        break;
+                    }
+                }
+            }
+
+            cursor = getBlockMetadata(cursor.getHeader().getParentBlockHash());
+        }
+
+        return result;
     }
 
     /**

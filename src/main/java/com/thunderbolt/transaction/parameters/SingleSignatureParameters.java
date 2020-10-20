@@ -77,6 +77,16 @@ public class SingleSignatureParameters implements ISerializable
     /**
      * Initializes a new instance of the SingleSignatureParameters class.
      *
+     * @param buffer A buffer contained a serialized SingleSignatureParameters.
+     */
+    public SingleSignatureParameters(byte[] buffer)
+    {
+        this(ByteBuffer.wrap(buffer));
+    }
+
+    /**
+     * Initializes a new instance of the SingleSignatureParameters class.
+     *
      * @param publicKey The public key.
      * @param signature The signature.
      */
