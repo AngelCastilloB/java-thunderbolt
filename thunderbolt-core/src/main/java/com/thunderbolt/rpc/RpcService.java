@@ -281,7 +281,7 @@ public class RpcService
     {
         MinerWork work = new MinerWork();
 
-        int height = (int) (m_node.getPersistenceService().getChainHead().getHeight() + 1);
+        long height = m_node.getPersistenceService().getChainHead().getHeight() + 1;
 
         // Coinbase transaction
         Transaction coinbase = new Transaction();
@@ -303,7 +303,7 @@ public class RpcService
         work.setHeight(height);
         work.setCoinbaseTransaction(coinbase);
         work.setTransactions(transactions);
-        work.setDifficulty(m_node.getBlockchain().computeTargetDifficulty());
+        work.setDifficulty(0x1ffffff8 /*m_node.getBlockchain().computeTargetDifficulty()*/);
         work.setParentBlock(m_node.getPersistenceService().getChainHead().getHash());
         work.setTimeStamp((int) OffsetDateTime.now(ZoneOffset.UTC).toEpochSecond());
 

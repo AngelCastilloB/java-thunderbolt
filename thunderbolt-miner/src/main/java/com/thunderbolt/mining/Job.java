@@ -270,7 +270,8 @@ public class Job
 
     /**
      * Gets the time elapsed since the job started until it finishes.
-     * @return
+     *
+     * @return The elapsed time since the job started.
      */
     public TimeSpan getElapsed()
     {

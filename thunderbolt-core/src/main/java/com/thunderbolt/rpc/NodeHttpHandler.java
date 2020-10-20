@@ -26,6 +26,9 @@ package com.thunderbolt.rpc;
 
 /* IMPORTS *******************************************************************/
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.github.arteam.simplejsonrpc.server.JsonRpcServer;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -63,8 +66,12 @@ public class NodeHttpHandler implements HttpHandler
      */
     public NodeHttpHandler(Node node, Wallet wallet)
     {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
+
         m_nodeService = new RpcService(node, wallet);
-        m_rpcServer   = new JsonRpcServer();
+        m_rpcServer   = JsonRpcServer.withMapper(objectMapper);
     }
 
     /**

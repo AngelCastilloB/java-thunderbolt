@@ -244,8 +244,14 @@ public class CpuMiner implements IMiner
 
                 s_logger.info("Job {}: Solved with hash: {}", job.getId(), Convert.toHexString(job.getHash().getData()));
 
+                job.finish();
+                s_logger.info("Job {} ended.", job.getId());
+                m_active.addAndGet(-1);
+
                 for (IJobFinishListener listener: m_listeners)
                     listener.onJobFinish(job);
+
+                return;
             }
             // Copy new nonce.
             ++currentNonce;
