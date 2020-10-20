@@ -31,10 +31,17 @@ import com.github.arteam.simplejsonrpc.core.annotation.JsonRpcOptional;
 import com.github.arteam.simplejsonrpc.core.annotation.JsonRpcParam;
 import com.github.arteam.simplejsonrpc.core.annotation.JsonRpcService;
 import com.google.inject.internal.Nullable;
+import com.thunderbolt.blockchain.Block;
+import com.thunderbolt.common.NumberSerializer;
+import com.thunderbolt.mining.MiningException;
 import com.thunderbolt.network.Node;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
+import com.thunderbolt.security.Sha256Hash;
+import com.thunderbolt.transaction.OutputLockType;
 import com.thunderbolt.transaction.Transaction;
+import com.thunderbolt.transaction.TransactionInput;
+import com.thunderbolt.transaction.TransactionOutput;
 import com.thunderbolt.wallet.Address;
 import com.thunderbolt.wallet.Wallet;
 import org.slf4j.Logger;
@@ -43,6 +50,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.GeneralSecurityException;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
@@ -113,6 +122,8 @@ public class NodeRpcService
 
         return unlocked;
     }
+
+    // Wallet RPC Methods
 
     /**
      * Gets whther the wallet is unlocked or not.
@@ -258,4 +269,103 @@ public class NodeRpcService
 
         return m_wallet.getKeyPair().getPrivateKey().toByteArray();
     }
+
+    // Mining RPC Methods
+
+    /**
+     * Gets the required information to mine.
+     *
+     * @return The information necessary to generate a new block.
+     */
+    @JsonRpcMethod("getPrivateKey")
+    public MinerWork getWork()
+    {
+        MinerWork work = new MinerWork();
+
+        int height = (int) (m_node.getPersistenceService().getChainHead().getHeight() + 1);
+
+        // Coinbase transaction
+        Transaction coinbase = new Transaction();
+        byte[] newHeight = NumberSerializer.serialize(height);
+        TransactionInput coinbaseInput = new TransactionInput(new Sha256Hash(), Integer.MAX_VALUE);
+        coinbaseInput.setUnlockingParameters(newHeight);
+
+
+        coinbase.getInputs().add(coinbaseInput);
+
+        coinbase.getOutputs().add(
+                new TransactionOutput(m_node.getBlockchain().getNetworkParameters().getBlockSubsidy(height),
+                        OutputLockType.SingleSignature, m_wallet.getAddress().getPublicHash()));
+
+        // Get the max amount of transactions but reserve some space for the coinbase transaction.
+        List<Transaction> transactions = m_node.getTransactionsPool().pickTransactions(
+                m_node.getBlockchain().getNetworkParameters().getBlockMaxSize() - coinbase.serialize().length);
+
+        work.setHeight(height);
+        work.setCoinbaseTransaction(coinbase);
+        work.setTransactions(transactions);
+        work.setDifficulty(m_node.getBlockchain().computeTargetDifficulty());
+        work.setParentBlock(m_node.getPersistenceService().getChainHead().getHash());
+        work.setTimeStamp((int) OffsetDateTime.now(ZoneOffset.UTC).toEpochSecond());
+
+        return work;
+    }
+
+    /**
+     * Gets the current height of the chain.
+     *
+     * @return the current height of the chain.
+     */
+    @JsonRpcMethod("getBlockchainHeight")
+    public long getBlockchainHeight()
+    {
+        return m_node.getPersistenceService().getChainHead().getHeight();
+    }
+
+    /**
+     * Gets the hash of the block on the tip.
+     *
+     * @return the hash of the block on the tip.
+     */
+    @JsonRpcMethod("getChainHeadHash")
+    public Sha256Hash getChainHeadHash()
+    {
+        return m_node.getPersistenceService().getChainHead().getHash();
+    }
+
+    /**
+     * Gets the number of transactions currently sitting in the transaction pool.
+     *
+     * @return the transaction pool count.
+     */
+    @JsonRpcMethod("getTransactionPoolCount")
+    public long getTransactionPoolCount()
+    {
+        return m_node.getTransactionsPool().getCount();
+    }
+
+    /**
+     * Submits a solved block.
+     *
+     * @return The submitted block.
+     */
+    @JsonRpcMethod("submitBlock")
+    public boolean submitBlock(@JsonRpcParam("block") Block block)
+    {
+        if (!block.isValid())
+            return false;
+
+        try
+        {
+            return m_node.getBlockchain().add(block);
+        }
+        catch (StorageException e)
+        {
+            s_logger.error("there was an error adding the block to the blockchain.", e);
+        }
+
+        return false;
+    }
+
+    // Network RPC methods.
 }
