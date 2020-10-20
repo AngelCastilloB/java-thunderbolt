@@ -27,11 +27,6 @@ package com.thunderbolt.mining;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.Convert;
-import com.thunderbolt.common.NumberSerializer;
-import com.thunderbolt.common.contracts.ISerializable;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.math.BigInteger;
 
 /* IMPLEMENTATION ************************************************************/
@@ -40,7 +35,7 @@ import java.math.BigInteger;
  * The difficulty is a measure of how difficult it is to mine a block, or in more technical terms, to find a hash below
  * a given target. A high difficulty means that it will take more computing power to mine the same number of blocks.
  */
-public class Difficulty implements Comparable<Difficulty>, ISerializable
+public class Difficulty implements Comparable<Difficulty>
 {
     private BigInteger m_target           = BigInteger.valueOf(0x1d00ffffL);
     private long       m_compressedTarget = 0x1d00ffff;
@@ -120,28 +115,6 @@ public class Difficulty implements Comparable<Difficulty>, ISerializable
     public String toString()
     {
         return Convert.toHexString(m_target.toByteArray()) +" (0x"+new BigInteger(""+ m_compressedTarget).toString(16) +")";
-    }
-
-    /**
-     * Serializes an object in raw byte format.
-     *
-     * @return The serialized object.
-     */
-    @Override
-    public byte[] serialize()
-    {
-        ByteArrayOutputStream data = new ByteArrayOutputStream();
-
-        try
-        {
-            data.write(NumberSerializer.serialize(m_compressedTarget));
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-
-        return data.toByteArray();
     }
 
     /**

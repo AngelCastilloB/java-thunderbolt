@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2018 Angel Castillo.
+ * Copyright (c) 2020 Angel Castillo.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,42 +22,22 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.mining;
+package com.thunderbolt.mining.contracts;
 
 /* IMPLEMENTATION ************************************************************/
 
+import com.thunderbolt.mining.Job;
+
 /**
- * Signals that an exception has occurred while mining the new block.
+ * Event listener that triggers when work is finish by a miner. A job is consider finish when a valid nonce is found
+ * or if all the nonce range was explored and a solution was never found.
  */
-@SuppressWarnings("serial")
-public class MiningException extends Exception
+public interface IJobFinishListener
 {
     /**
-     * Constructs an MiningException with null as its error detail message.
-     */
-    public MiningException()
-    {
-        super();
-    }
-
-    /**
-     * Constructs an MiningException with the specified detail message.
+     * Event handler for when a Job finish.
      *
-     * @param message The detail message (which is saved for later retrieval by the Throwable.getMessage() method)
+     * @param job The Job that was being executed.
      */
-    public MiningException(String message)
-    {
-        super(message);
-    }
-
-    /**
-     * Constructs an MiningException with the specified detail message and cause.
-     *
-     * @param message The message.
-     * @param cause   The cause.
-     */
-    public MiningException(String message, Throwable cause)
-    {
-        super(message, cause);
-    }
+    void onJobFinish(Job job);
 }

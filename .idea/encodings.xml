@@ -2,6 +2,10 @@
 <project version="4">
   <component name="Encoding">
     <file url="file://$PROJECT_DIR$" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/thunderbolt-cli/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/thunderbolt-core/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/thunderbolt-miner/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/thunderbolt-node/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/thunderbolt-wallet/src/main/java" charset="UTF-8" />
   </component>
 </project>
