@@ -28,6 +28,8 @@ package com.thunderbolt.mining;
 
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.NumberSerializer;
+import com.thunderbolt.common.Stopwatch;
+import com.thunderbolt.common.TimeSpan;
 import com.thunderbolt.security.Sha256Digester;
 import com.thunderbolt.security.Sha256Hash;
 import org.slf4j.Logger;
@@ -58,6 +60,7 @@ public class Job
     private long       m_nonce    = 0;
     private long       m_target   = 0;
     private Sha256Hash m_hash     = new Sha256Hash();
+    private Stopwatch  m_watch    = new Stopwatch();
 
     /**
      * Initializes a new instance of the Job class.
@@ -248,4 +251,30 @@ public class Job
     {
         m_hash = hash;
     }
+
+    /**
+     * The job starts.
+     */
+    public void start()
+    {
+        m_watch.restart();
+    }
+
+    /**
+     * the job jas finish.
+     */
+    public void finish()
+    {
+        m_watch.stop();
+    }
+
+    /**
+     * Gets the time elapsed since the job started until it finishes.
+     * @return
+     */
+    public TimeSpan getElapsed()
+    {
+        return m_watch.getElapsedTime();
+    }
+
 }

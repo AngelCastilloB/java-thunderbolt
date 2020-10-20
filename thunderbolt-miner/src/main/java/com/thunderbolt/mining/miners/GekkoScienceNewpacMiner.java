@@ -268,6 +268,7 @@ public class GekkoScienceNewpacMiner implements IMiner
                             Convert.reverse(Convert.reverseEndian(data)),
                             Convert.reverse(Convert.reverseEndian(midstate)));
 
+                    job.start();
                     m_runningJobs.put(job.getId(), job);
                 }
 
@@ -299,6 +300,7 @@ public class GekkoScienceNewpacMiner implements IMiner
                         Job job = m_runningJobs.get(jobId);
                         job.setNonce(nonce);
                         job.setSolved(true);
+                        job.finish();
 
                         for (IJobFinishListener listener: m_listeners)
                             listener.onJobFinish(job);

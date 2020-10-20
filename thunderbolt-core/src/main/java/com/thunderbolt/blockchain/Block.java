@@ -181,6 +181,17 @@ public class Block implements ISerializable
     }
 
     /**
+     * Sets the blocks transactions.
+     *
+     * @param transactions The transactions to be added to this block.
+     */
+    public void addTransactions(List<Transaction> transactions)
+    {
+        m_transactions.addAll(transactions);
+        m_header.setMarkleRoot(calculateMerkleRoot());
+    }
+
+    /**
      * Gets the hash of the block header.
      *
      * @return The hash of this block's header.

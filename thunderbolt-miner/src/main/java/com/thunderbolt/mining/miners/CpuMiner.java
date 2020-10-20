@@ -80,7 +80,7 @@ public class CpuMiner implements IMiner
         m_thread = new Thread(this::run);
         m_thread.start();
 
-        s_logger.debug("CPU Miner Waiting for jobs.");
+        s_logger.info("CPU Miner Waiting for jobs.");
         return true;
     }
 
@@ -186,7 +186,7 @@ public class CpuMiner implements IMiner
                 if (m_jobQueue.size() > 0 && m_active.get() < THREAD_POOL_SIZE)
                 {
                     Job job = m_jobQueue.take();
-                    s_logger.debug("Starting Job {}:\n - Midstate: {}\n - Data:     {}\n - Target:   {}",
+                    s_logger.info("Starting Job {}:\n - Midstate: {}\n - Data:     {}\n - Target:   {}",
                             job.getId(),
                             Convert.toHexString(job.getMidstate()),
                             Convert.toHexString(job.getData()),
@@ -218,6 +218,8 @@ public class CpuMiner implements IMiner
     {
         m_active.addAndGet(1);
 
+        job.start();
+
         boolean solved          = false;
         byte[]  data            = job.getData();
         byte[]  midstate        = job.getMidstate();
@@ -240,7 +242,7 @@ public class CpuMiner implements IMiner
                 job.setSolved(true);
                 job.setNonce(currentNonce);
 
-                s_logger.debug("Job {}: Solved with hash: {}", job.getId(), Convert.toHexString(job.getHash().getData()));
+                s_logger.info("Job {}: Solved with hash: {}", job.getId(), Convert.toHexString(job.getHash().getData()));
 
                 for (IJobFinishListener listener: m_listeners)
                     listener.onJobFinish(job);
@@ -254,7 +256,8 @@ public class CpuMiner implements IMiner
             System.arraycopy(serializedNonce, 0, data, 12, serializedNonce.length);
         }
 
-        s_logger.debug("Job {} ended.", job.getId());
+        job.finish();
+        s_logger.info("Job {} ended.", job.getId());
         m_active.addAndGet(-1);
     }
 }
