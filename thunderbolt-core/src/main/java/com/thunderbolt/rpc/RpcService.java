@@ -33,13 +33,17 @@ import com.github.arteam.simplejsonrpc.core.annotation.JsonRpcService;
 import com.google.inject.internal.Nullable;
 import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.blockchain.BlockHeader;
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.common.TimeSpan;
 import com.thunderbolt.configuration.Configuration;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.Node;
+import com.thunderbolt.network.messages.structures.NetworkAddress;
+import com.thunderbolt.network.peers.Peer;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.BlockMetadata;
+import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.OutputLockType;
@@ -53,9 +57,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.net.UnknownHostException;
 import java.security.GeneralSecurityException;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
@@ -66,6 +74,9 @@ import java.util.List;
 @JsonRpcService
 public class RpcService
 {
+    // Constants
+    private static final double FRACTIONAL_COIN_FACTOR = 0.00000001;
+
     // Static variables
     private static final Logger s_logger = LoggerFactory.getLogger(RpcService.class);
 
@@ -92,7 +103,7 @@ public class RpcService
     @JsonRpcMethod("getInfo")
     public String getInfo() throws StorageException
     {
-        String status = String.format(
+        return String.format(
                 "{\n" +
                 "  \"protocolVersion\" : %s,\n" +
                 "  \"balance\" : %s,\n" +
@@ -102,13 +113,21 @@ public class RpcService
                 "  \"payTxFee\" : %s\n" +
                 "}",
                 NetworkParameters.mainNet().getProtocol(),
-                getBalance(null),
+                Convert.stripTrailingZeros(getBalance(null) * FRACTIONAL_COIN_FACTOR),
                 m_node.getBlockchain().getChainHead().getHeight(),
                 m_node.getPeerManager().peerCount(),
-                m_node.getBlockchain().computeTargetDifficulty() /*TODO: Calculate difficulty as multiple of max difficulty*/,
-                Configuration.getPayTransactionFee());
+                m_node.getBlockchain()
+                        .computeDifficultyAsMultiple(m_node.getBlockchain().computeTargetDifficulty()),
+                Convert.stripTrailingZeros(Configuration.getPayTransactionFee()));
+    }
 
-        return status;
+    /**
+     * Returns the proof-of-work difficulty as a multiple of the minimum difficulty.
+     */
+    @JsonRpcMethod("getDifficulty")
+    public double getDifficulty()
+    {
+        return m_node.getBlockchain().computeDifficultyAsMultiple(m_node.getBlockchain().computeTargetDifficulty());
     }
 
     /**
@@ -158,9 +177,9 @@ public class RpcService
     }
 
     /**
-     * Lock wallet method.
+     * Locks wallet method.
      */
-    @JsonRpcMethod("unlockWallet")
+    @JsonRpcMethod("lockWallet")
     public void unlockWallet()
     {
         m_wallet.lock();
@@ -197,7 +216,7 @@ public class RpcService
      * @return The balance.
      */
     @JsonRpcMethod("getBalance")
-    public long getBalance(@JsonRpcOptional @JsonRpcParam("address") @Nullable String address)
+    public double getBalance(@JsonRpcOptional @JsonRpcParam("address") @Nullable String address)
             throws StorageException
     {
         if (address == null)
@@ -216,7 +235,7 @@ public class RpcService
             total = total.add(value);
         }
 
-        return total.longValue();
+        return total.longValue() * FRACTIONAL_COIN_FACTOR;
     }
 
     /**
@@ -238,7 +257,7 @@ public class RpcService
 
         try
         {
-            transaction = m_wallet.createTransaction(amount, address);
+            transaction = m_wallet.createTransaction((long)(amount / FRACTIONAL_COIN_FACTOR), address);
         }
         catch(IllegalArgumentException exception)
         {
@@ -305,6 +324,19 @@ public class RpcService
             throw new WalletLockedException();
 
         return m_wallet.getKeyPair().getPrivateKey().toByteArray();
+    }
+
+    /**
+     * Backups your wallet file.
+     *
+     * @return The new path for the wallet.
+     */
+    @JsonRpcMethod("backupWallet")
+    public boolean backupWallet(@JsonRpcParam("path") String path)
+    {
+        m_wallet.save(path);
+
+        return true;
     }
 
     // Mining RPC Methods
@@ -465,6 +497,247 @@ public class RpcService
         return m_node.getPersistenceService().getTransaction(new Sha256Hash(hash));
     }
 
-
     // Network RPC methods.
+
+    /**
+     * Gets out current public address.
+     *
+     * @return Our public address.
+     */
+    @JsonRpcMethod("getNetworkAddress")
+    public String getNetworkAddress()
+    {
+        return String.format("%s:%s", m_node.getPublicAddress().getAddress().toString(),
+                m_node.getPublicAddress().getPort());
+    }
+
+    /**
+     * Adds a new address to the pool. If the pool previously contained the address,
+     * the old value is replaced by the specified value.
+     *
+     * @param url The URI of the network address.
+     *
+     * @return true if the address was added; otherwise; false.
+     */
+    @JsonRpcMethod("addPeer")
+    public boolean addPeer(@JsonRpcParam("url") String url)
+    {
+        try
+        {
+            NetworkAddress address = new NetworkAddress(url);
+            NetworkAddressMetadata metadata = new NetworkAddressMetadata(LocalDateTime.now(), address);
+            m_node.getPeerManager().getAddressPool().upsertAddress(metadata);
+        }
+        catch (StorageException | UnknownHostException e)
+        {
+            s_logger.error("There was an error adding the Peer address.", e);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Removes an address from the storage.
+     *
+     * @param url The URI of the network address.
+     */
+    @JsonRpcMethod("removePeer")
+    public boolean removeNode(@JsonRpcParam("url") String url) throws UnknownHostException
+    {
+        try
+        {
+            NetworkAddress address = new NetworkAddress(url);
+            NetworkAddressMetadata metadata = new NetworkAddressMetadata(LocalDateTime.now(), address);
+            m_node.getPeerManager().getAddressPool().removeAddress(metadata);
+        }
+        catch (StorageException e)
+        {
+            s_logger.error("There was an error removing the Peer address.", e);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Disconnects a currently connect peer from the node.
+     *
+     * @param url The URL of the peer to be disconnected.
+     *
+     * @return true if the peer was disconnected; otherwise; false.
+     */
+    @JsonRpcMethod("disconnectPeer")
+    public boolean disconnectPeer(@JsonRpcParam("url") String url) throws UnknownHostException
+    {
+        NetworkAddress address = new NetworkAddress(url);
+
+        Iterator<Peer> it =  m_node.getPeerManager().getPeers();
+        while (it.hasNext())
+        {
+            Peer peer = it.next();
+
+            if (peer.getNetworkAddress().equals(address))
+            {
+                peer.disconnect();
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Bans a peer for 24 hours.
+     *
+     * @param url The URI of the peer to be banned.
+     *
+     * @return true if the peer was banned; otherwise; false.
+     */
+    @JsonRpcMethod("banPeer")
+    public boolean banPeer(@JsonRpcParam("url") String url) throws UnknownHostException
+    {
+        NetworkAddress address = new NetworkAddress(url);
+
+        Iterator<Peer> it =  m_node.getPeerManager().getPeers();
+        while (it.hasNext())
+        {
+            Peer peer = it.next();
+
+            if (peer.getNetworkAddress().equals(address))
+            {
+                peer.addBanScore(100);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Lift a ban from a peer.
+     *
+     * @param url The URL of the peer to unban.
+     *
+     * @return true if the peer was unbanned; otherwise; false.
+     */
+    @JsonRpcMethod("unbanPeer")
+    public boolean unbanPeer(@JsonRpcParam("url") String url) throws UnknownHostException, StorageException
+    {
+        NetworkAddress address = new NetworkAddress(url);
+
+        NetworkAddressMetadata metadata = m_node.getPeerManager().getAddressPool().getAddress(address.getRawAddress());
+
+        if (metadata == null)
+        {
+            s_logger.info("Address {} not found", address);
+            return false;
+        }
+
+        metadata.setIsBanned(false);
+        metadata.setBanScore((byte)0);
+        m_node.getPeerManager().getAddressPool().upsertAddress(metadata);
+
+        return true;
+    }
+
+    /**
+     * Gets a list of all banned peers.
+     *
+     * @return The banned peers.
+     */
+    @JsonRpcMethod("listBannedPeers")
+    public List<String> getBannedPeers()
+    {
+        List<String> bannedPeers = new ArrayList<>();
+
+        List<NetworkAddressMetadata> metadataList = m_node.getPeerManager().getAddressPool().getAddresses();
+
+        for (NetworkAddressMetadata metadata: metadataList)
+        {
+            if (metadata.isBanned())
+            {
+                String info = String.format("IP: %s - Port: %s - Banned Until: %s",
+                        metadata.getNetworkAddress().getAddress(),
+                        metadata.getNetworkAddress().getPort(),
+                        metadata.getBanDate().plusHours(24));
+
+                bannedPeers.add(info);
+            }
+        }
+
+        return bannedPeers;
+    }
+
+    /**
+     * Gets the amount of peers currently in the pool.
+     *
+     * @return The amount of peers connected to this node.
+     */
+    @JsonRpcMethod("getPeerCount")
+    public int getPeerCount()
+    {
+        return m_node.getPeerManager().peerCount();
+    }
+
+    /**
+     * List all currently connected peers.
+     *
+     * @return The list of connected peers.
+     */
+    @JsonRpcMethod("listPeers")
+    public List<String> listConnectedPeers()
+    {
+        List<String> peers = new ArrayList<>();
+
+        Iterator<Peer> it =  m_node.getPeerManager().getPeers();
+        while (it.hasNext())
+        {
+            Peer peer = it.next();
+
+            String info = String.format("IP: %s, Port: %s, BanScore: %s, Inactive Time: %s, Best Known Block: %s",
+                    peer.getNetworkAddress().getAddress(),
+                    peer.getNetworkAddress().getPort(),
+                    Convert.padLeft(Integer.toString(peer.getBanScore()), 3, '0'),
+                    peer.getInactiveTime(),
+                    peer.getBestKnownBlock());
+
+            peers.add(info);
+        }
+
+        return peers;
+    }
+
+    /**
+     * Gets all the information regarding a peer.
+     *
+     * @return The peer information.
+     */
+    @JsonRpcMethod("getPeerInfo")
+    public String getPeerInfo(@JsonRpcParam("url") String url) throws UnknownHostException
+    {
+        NetworkAddress address = new NetworkAddress(url);
+
+        Iterator<Peer> it =  m_node.getPeerManager().getPeers();
+        String info = "";
+
+        while (it.hasNext())
+        {
+            Peer peer = it.next();
+
+            if (peer.getNetworkAddress().equals(address))
+            {
+                info = String.format("IP: %s, Port: %s, BanScore: %s, Inactive Time: %s, Best Known Block: %s",
+                        peer.getNetworkAddress().getAddress(),
+                        peer.getNetworkAddress().getPort(),
+                        Convert.padLeft(Integer.toString(peer.getBanScore()), 3, '0'),
+                        peer.getInactiveTime(),
+                        peer.getBestKnownBlock());
+
+                return info;
+            }
+        }
+
+        return String.format("Peer %s not found.", url);
+    }
 }

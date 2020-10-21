@@ -43,9 +43,9 @@ import java.util.Map;
  */
 public class CommandFactory
 {
-    private static Map<String, Class<? extends ICommand>> s_commands = new HashMap<>();
-    private static final Logger                           s_logger = LoggerFactory.getLogger(CommandFactory.class);
-    private static RpcClient                              s_client = null;
+    private static Map<String, ICommand> s_commands = new HashMap<>();
+    private static final Logger          s_logger   = LoggerFactory.getLogger(CommandFactory.class);
+    private static RpcClient             s_client   = null;
 
     /**
      * Initializes the CommandFactory.
@@ -60,12 +60,21 @@ public class CommandFactory
     /**
      * Registers a type in the factory.
      *
-     * @param name The name of the command to register.
      * @param type The command concrete type.
      */
-    public static void register(String name, Class<? extends ICommand> type)
+    public static void register(Class<? extends ICommand> type)
     {
-        s_commands.put(name, type);
+        try
+        {
+            Constructor<?> constructor = type.getConstructor(RpcClient.class);
+
+            ICommand command = (ICommand)constructor.newInstance(s_client);
+            s_commands.put(command.getName(), command);
+        }
+        catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e)
+        {
+            throw new IllegalStateException(e);
+        }
     }
 
     /**
@@ -75,8 +84,7 @@ public class CommandFactory
      *
      * @return The command instance.
      */
-    public static ICommand create(String name) throws NoSuchMethodException, IllegalAccessException,
-            InvocationTargetException, InstantiationException
+    public static ICommand create(String name)
     {
         if (!s_commands.containsKey(name))
         {
@@ -84,16 +92,14 @@ public class CommandFactory
             printAvailableCommands();
             return null;
         }
-        Constructor<?> ctor = s_commands.get(name).getConstructor(RpcClient.class);
 
-        return (ICommand)ctor.newInstance(s_client);
+        return s_commands.get(name);
     }
 
     /**
      * Prints the help of the CLI application.
      */
-    public static void printAvailableCommands() throws InvocationTargetException, NoSuchMethodException,
-            InstantiationException, IllegalAccessException
+    public static void printAvailableCommands()
     {
         System.out.println("Send commands to the Thunderbolt Node");
         System.out.println();
@@ -107,7 +113,6 @@ public class CommandFactory
             System.out.println();
             System.out.println(command.getName());
             System.out.println(command.getDescription());
-            System.out.println();
         }
     }
 }

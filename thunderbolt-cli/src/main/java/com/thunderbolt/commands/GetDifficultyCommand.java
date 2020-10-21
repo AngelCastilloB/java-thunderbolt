@@ -26,22 +26,23 @@ package com.thunderbolt.commands;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.contracts.ICommand;
 import com.thunderbolt.rpc.RpcClient;
 
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Gets the node information.
+ * Returns the proof-of-work difficulty as a multiple of the minimum difficulty.
  */
-public class GetInfoCommand implements ICommand
+public class GetDifficultyCommand implements ICommand
 {
     private RpcClient s_client = null;
 
     /**
      * Initializes an instance of the GetInfoCommand class.
      */
-    public GetInfoCommand(RpcClient client)
+    public GetDifficultyCommand(RpcClient client)
     {
         s_client = client;
     }
@@ -54,13 +55,13 @@ public class GetInfoCommand implements ICommand
     @Override
     public boolean execute(String[] args)
     {
-        String result = s_client.createRequest()
+        double result = s_client.createRequest()
                 .method(getName())
                 .id(1)
-                .returnAs(String.class)
+                .returnAs(Double.class)
                 .execute();
 
-        System.out.println(result);
+        System.out.println(Convert.stripTrailingZeros(result));
         return true;
     }
 
@@ -72,7 +73,7 @@ public class GetInfoCommand implements ICommand
     @Override
     public String getName()
     {
-        return "getInfo";
+        return "getDifficulty";
     }
 
     /**
@@ -83,6 +84,6 @@ public class GetInfoCommand implements ICommand
     @Override
     public String getDescription()
     {
-        return "  Returns an object containing various state info.";
+        return "  Returns the proof-of-work difficulty as a multiple of the minimum difficulty..";
     }
 }

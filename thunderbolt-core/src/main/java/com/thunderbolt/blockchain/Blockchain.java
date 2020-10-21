@@ -193,7 +193,7 @@ public class Blockchain
      *
      * @return the proof-of-work difficulty as a multiple of the minimum difficulty.
      */
-    public double computeDifficulty(long target)
+    public double computeDifficultyAsMultiple(long target)
     {
         BigDecimal result = BigDecimal.ZERO;
         BigDecimal targetDifficulty = BigDecimal.valueOf(target);

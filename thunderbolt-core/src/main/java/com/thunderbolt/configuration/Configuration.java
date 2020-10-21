@@ -26,6 +26,7 @@ package com.thunderbolt.configuration;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.Convert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,7 +113,7 @@ public class Configuration
             props.put("rpc-password", m_rpcPassword);
             props.put("rpc-port", Short.toString(m_rpcPort));
             props.put("wallet", m_walletPath);
-            props.put("pay-tx-fee", Double.toString(m_payTransactionFee));
+            props.put("pay-tx-fee", Convert.stripTrailingZeros(m_payTransactionFee));
 
             FileOutputStream outputStrem = new FileOutputStream(path);
             props.store(outputStrem, "Thunderbolt configuration file.");

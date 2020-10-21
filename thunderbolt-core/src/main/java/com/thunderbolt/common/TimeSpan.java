@@ -310,4 +310,19 @@ public class TimeSpan
 
         return (int) (temp ^ (temp >>> 32));
     }
+
+    /**
+     * Creates a string representation of this object.
+     *
+     * @return The string representation.
+     */
+    @Override
+    public String toString()
+    {
+        return String.format("%s:%s:%s.%s",
+                Convert.padLeft(Integer.toString((getDays() * 24 + getHours())), 2, '0'),
+                Convert.padLeft(Integer.toString(getMinutes()), 2, '0'),
+                Convert.padLeft(Integer.toString(getSeconds()), 2, '0'),
+                Convert.padLeft(Integer.toString(getMilliseconds()), 2, '0'));
+    }
 }

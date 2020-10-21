@@ -69,28 +69,31 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class Main
 {
     // Constants
-    static private final String USER_HOME_PATH   = System.getProperty("user.home");
-    static private final String DATA_FOLDER_NAME = ".thunderbolt";
-    static private final Path   DEFAULT_PATH     = Paths.get(USER_HOME_PATH, DATA_FOLDER_NAME);
-    static private final Path   BLOCKS_PATH      = Paths.get(DEFAULT_PATH.toString(), "blocks");
-    static private final Path   REVERT_PATH      = Paths.get(DEFAULT_PATH.toString(), "reverts");
-    static private final Path   METADATA_PATH    = Paths.get(DEFAULT_PATH.toString(), "metadata");
-    static private final Path   ADDRESS_PATH     = Paths.get(DEFAULT_PATH.toString(), "peers");
-    static private final Path   CONFIG_FILE_PATH = Paths.get(DEFAULT_PATH.toString(), "thunderbolt.conf");
-    static private final Path   WALLET_PATH      = Paths.get(USER_HOME_PATH, "wallet.bin");
-    static private final String BLOCK_PATTERN    = "block%05d.bin";
-    static private final String REVERT_PATTERN   = "revert%05d.bin";
-    private static final int    RPC_THREAD_COUNT = 2;
+    static private final String USER_HOME_PATH    = System.getProperty("user.home");
+    static private final String DATA_FOLDER_NAME  = ".thunderbolt";
+    static private final Path   DEFAULT_PATH      = Paths.get(USER_HOME_PATH, DATA_FOLDER_NAME);
+    static private final Path   BLOCKS_PATH       = Paths.get(DEFAULT_PATH.toString(), "blocks");
+    static private final Path   REVERT_PATH       = Paths.get(DEFAULT_PATH.toString(), "reverts");
+    static private final Path   METADATA_PATH     = Paths.get(DEFAULT_PATH.toString(), "metadata");
+    static private final Path   ADDRESS_PATH      = Paths.get(DEFAULT_PATH.toString(), "peers");
+    static private final Path   CONFIG_FILE_PATH  = Paths.get(DEFAULT_PATH.toString(), "thunderbolt.conf");
+    static private final Path   WALLET_PATH       = Paths.get(USER_HOME_PATH, "wallet.bin");
+    static private final String BLOCK_PATTERN     = "block%05d.bin";
+    static private final String REVERT_PATTERN    = "revert%05d.bin";
+    private static final int    RPC_THREAD_COUNT  = 2;
+    private static final int    HTTP_CLOSE_DELAY  = 1000; //ms
+    private static final int    EXIT_CODE_SUCCESS = 0; //ms
 
     // Static variables
-    private static final Logger s_logger = LoggerFactory.getLogger(Main.class);
+    private static final Logger s_logger     = LoggerFactory.getLogger(Main.class);
+    private static HttpServer   s_httpServer = null;
 
     /**
      * Application entry point.
      *
      * @param args Arguments.
      */
-    public static void main(String[] args) throws IOException, StorageException
+    public static void main(String[] args) throws IOException, StorageException, InterruptedException
     {
         Configuration.initialize(CONFIG_FILE_PATH.toString());
 
@@ -135,6 +138,10 @@ public class Main
 
         startRpcService(node, wallet);
         node.run();
+
+        s_httpServer.stop(HTTP_CLOSE_DELAY);
+        s_logger.info("Node has stopped.");
+        System.exit(EXIT_CODE_SUCCESS);
     }
 
     /**
@@ -164,10 +171,10 @@ public class Main
             try
             {
                 ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(RPC_THREAD_COUNT);
-                HttpServer server = HttpServer
+                s_httpServer = HttpServer
                         .create(new InetSocketAddress("localhost", Configuration.getRpcPort()), 0);
 
-                HttpContext context = server.createContext("/", new NodeHttpHandler(node, wallet));
+                HttpContext context = s_httpServer.createContext("/", new NodeHttpHandler(node, wallet));
 
                 context.setAuthenticator(new BasicAuthenticator("post")
                 {
@@ -177,10 +184,10 @@ public class Main
                     }
                 });
 
-                server.setExecutor(threadPoolExecutor);
+                s_httpServer.setExecutor(threadPoolExecutor);
 
                 s_logger.debug("RPC service listening on port: {}", Configuration.getRpcPort());
-                server.start();
+                s_httpServer.start();
             }
             catch (IOException exception)
             {

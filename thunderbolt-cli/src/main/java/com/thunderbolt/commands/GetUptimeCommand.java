@@ -26,22 +26,23 @@ package com.thunderbolt.commands;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.TimeSpan;
 import com.thunderbolt.contracts.ICommand;
 import com.thunderbolt.rpc.RpcClient;
 
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Gets the node information.
+ * Returns the total uptime of the server.
  */
-public class GetInfoCommand implements ICommand
+public class GetUptimeCommand implements ICommand
 {
     private RpcClient s_client = null;
 
     /**
      * Initializes an instance of the GetInfoCommand class.
      */
-    public GetInfoCommand(RpcClient client)
+    public GetUptimeCommand(RpcClient client)
     {
         s_client = client;
     }
@@ -54,13 +55,13 @@ public class GetInfoCommand implements ICommand
     @Override
     public boolean execute(String[] args)
     {
-        String result = s_client.createRequest()
+        TimeSpan result = s_client.createRequest()
                 .method(getName())
                 .id(1)
-                .returnAs(String.class)
+                .returnAs(TimeSpan.class)
                 .execute();
 
-        System.out.println(result);
+        System.out.println(result.toString());
         return true;
     }
 
@@ -72,7 +73,7 @@ public class GetInfoCommand implements ICommand
     @Override
     public String getName()
     {
-        return "getInfo";
+        return "getUptime";
     }
 
     /**
@@ -83,6 +84,6 @@ public class GetInfoCommand implements ICommand
     @Override
     public String getDescription()
     {
-        return "  Returns an object containing various state info.";
+        return "  Returns the total uptime of the server.";
     }
 }

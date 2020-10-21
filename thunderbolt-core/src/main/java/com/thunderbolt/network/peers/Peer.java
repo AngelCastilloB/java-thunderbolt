@@ -413,7 +413,7 @@ public class Peer
     }
 
     /**
-     * Creates a string representation of the hash value of this object.
+     * Creates a string representation of this object.
      *
      * @return The string representation.
      */
@@ -684,6 +684,4 @@ public class Peer
     {
         return m_lastCommonBlock;
     }
-
-
 }

@@ -69,6 +69,26 @@ public class NetworkAddress implements ISerializable
     /**
      * Creates a new instance of the NetworkAddress class.
      *
+     * @param url A network address url, I.E 200.32.0.1:9000
+     */
+    public NetworkAddress(String url) throws UnknownHostException
+    {
+        String[] urlParts = url.split(":");
+
+        if (urlParts.length != 2)
+            throw new IllegalArgumentException(String.format("Network address invalid format. %s", url));
+
+        InetAddress ip = InetAddress.getByName(urlParts[0]);
+        m_port = Integer.parseInt(urlParts[1]);
+        m_address = ip.getAddress();
+
+        // TODO: In the future add services as part of the URL.
+        m_services = NodeServices.Network;
+    }
+
+    /**
+     * Creates a new instance of the NetworkAddress class.
+     *
      * @param buffer A buffer containing the NetworkAddress object.
      */
     public NetworkAddress(ByteBuffer buffer)

@@ -172,6 +172,7 @@ public class PeerManager
 
         m_cleanCooldown.stop();
         m_cleanCooldown.reset();
+
         try
         {
             if (m_listenThread != null)
@@ -462,6 +463,7 @@ public class PeerManager
     private void listen()
     {
         s_logger.debug("Waiting for new peers on port: {}...", m_serverSocket.getLocalPort());
+
         while (m_isRunning)
         {
             if (peerCount() >= m_maxPeers)
@@ -481,6 +483,7 @@ public class PeerManager
 
             try
             {
+                m_serverSocket.setSoTimeout(5000);
                 peerSocket = m_serverSocket.accept();
 
                 s_logger.debug("{} is trying to connect...", peerSocket.getRemoteSocketAddress());
@@ -518,6 +521,8 @@ public class PeerManager
                 return;
             }
         }
+
+        s_logger.debug("Stop listening for new peers on port: {}...", m_serverSocket.getLocalPort());
     }
 
     /**

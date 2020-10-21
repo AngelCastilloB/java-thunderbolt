@@ -25,6 +25,7 @@ package com.thunderbolt.common;
 
 /* IMPLEMENTATION ************************************************************/
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -226,5 +227,19 @@ public class Convert
         sb.append(originalString);
 
         return sb.toString();
+    }
+
+    /**
+     * Converts a double value to its string representation stripping trailing zeroes.
+     *
+     * @param value the double value to be printed as a string.
+     *
+     * @return The string representation of the double value.
+     */
+    public static String stripTrailingZeros(double value)
+    {
+        BigDecimal decimal = new BigDecimal(Double.toString(value)).stripTrailingZeros();
+
+        return decimal.toPlainString();
     }
 }

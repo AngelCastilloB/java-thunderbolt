@@ -32,30 +32,34 @@ import com.thunderbolt.rpc.RpcClient;
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Dummy command to test the CLI.
+ * Stops the node.
  */
-public class TestCommand implements ICommand
+public class StopCommand implements ICommand
 {
-    private RpcClient m_client = null;
+    private RpcClient s_client = null;
 
     /**
-     * Executes the given command.
+     * Initializes an instance of the GetInfoCommand class.
      */
-    public TestCommand(RpcClient client)
+    public StopCommand(RpcClient client)
     {
-        m_client = client;
+        s_client = client;
     }
 
     /**
-     * Gets the name of the command.
+     * Executes the command.
      *
-     * @return the name of the command.
+     * @return true if the command was executed correctly; otherwise; false.
      */
     @Override
     public boolean execute(String[] args)
     {
-        System.out.println(args[1]);
+        s_client.createRequest()
+                .method(getName())
+                .id(1)
+                .executeNullable();
 
+        System.out.println("Node shutting down.");
         return true;
     }
 
@@ -67,7 +71,7 @@ public class TestCommand implements ICommand
     @Override
     public String getName()
     {
-        return "-test";
+        return "stop";
     }
 
     /**
@@ -78,6 +82,6 @@ public class TestCommand implements ICommand
     @Override
     public String getDescription()
     {
-        return "  Test Command";
+        return "  Stops the server.";
     }
 }
