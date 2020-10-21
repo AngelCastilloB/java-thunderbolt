@@ -105,7 +105,7 @@ public class NonceRange
     public String toString()
     {
         return String.format("[%s:%s]",
-                Convert.toHexString(NumberSerializer.serialize(m_lowerBound)),
-                Convert.toHexString(NumberSerializer.serialize(m_lowerBound)));
+                Convert.toHexString(NumberSerializer.serialize((int)m_lowerBound)),
+                Convert.toHexString(NumberSerializer.serialize((int)m_higherBound)));
     }
 }

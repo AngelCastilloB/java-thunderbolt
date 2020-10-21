@@ -60,10 +60,10 @@ public class Main
     private static IMiner       s_miner         = null;
     static NonceRange[]         s_noneRanges    = new NonceRange[]
     {
-        new NonceRange(0x00000000L, 0x3FFFFFFF),
-        new NonceRange(0x40000000L, 0x7FFFFFFE),
-        new NonceRange(0x7FFFFFFFL, 0xC0000000),
-        new NonceRange(0xC0000001L, 0xFFFFFFFF)
+        new NonceRange(0x00000000L, 0x3FFFFFFFL),
+        new NonceRange(0x40000000L, 0x7FFFFFFEL),
+        new NonceRange(0x7FFFFFFFL, 0xC0000000L),
+        new NonceRange(0xC0000001L, 0xFFFFFFFFL)
     };
 
     /**

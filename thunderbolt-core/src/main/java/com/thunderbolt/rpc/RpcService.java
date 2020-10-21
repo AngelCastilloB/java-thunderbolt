@@ -280,7 +280,7 @@ public class RpcService
         work.setHeight(height);
         work.setCoinbaseTransaction(coinbase);
         work.setTransactions(transactions);
-        work.setDifficulty(0x1ffffff8 /*m_node.getBlockchain().computeTargetDifficulty()*/);
+        work.setDifficulty(m_node.getBlockchain().computeTargetDifficulty());
         work.setParentBlock(m_node.getPersistenceService().getChainHead().getHash());
         work.setTimeStamp((int) OffsetDateTime.now(ZoneOffset.UTC).toEpochSecond());
 
