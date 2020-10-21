@@ -31,7 +31,11 @@ import java.util.Arrays;
  */
 public class Sha256Hash
 {
-    private byte[] m_data = new byte[32];
+    // Constants
+    private static final int HASH_SIZE = 32;
+
+    // Private Fields
+    private byte[] m_data = new byte[HASH_SIZE];
 
     /**
      * Creates a hash instance.
@@ -59,7 +63,8 @@ public class Sha256Hash
      */
     public Sha256Hash(ByteBuffer buffer)
     {
-        buffer.get(m_data, 0, m_data.length);
+        m_data = new byte[HASH_SIZE];
+        buffer.get(m_data);
     }
 
     /**

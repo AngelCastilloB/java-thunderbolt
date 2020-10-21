@@ -46,6 +46,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
+import java.security.PublicKey;
 import java.util.*;
 
 import com.thunderbolt.transaction.OutputLockType;
@@ -65,28 +66,55 @@ import org.slf4j.LoggerFactory;
  */
 public class Wallet implements ISerializable, IOutputsUpdateListener, ITransactionsChangeListener, IBlockchainUpdateListener
 {
+    private static final int PUBLIC_KEY_SIZE            = 33;
+    private static final int PRIVATE_KEY_SIZE           = 32;
+    private static final int ENCRYPTED_PRIVATE_KEY_SIZE = 80;
+
     private static final Logger s_logger = LoggerFactory.getLogger(Wallet.class);
 
-    private Map<Sha256Hash, UnspentTransactionOutput> m_unspentOutputs      = new HashMap<>();
-    private EllipticCurveKeyPair                      m_keys                = new EllipticCurveKeyPair();
     private EncryptedPrivateKey                       m_encryptedKey        = null;
+    private byte[]                                    m_publicKey           = new byte[PUBLIC_KEY_SIZE];
+    private BigInteger                                m_privateKey          = null;
     private boolean                                   m_isUnlocked          = false;
-    private Path                                      m_walletPath          = null;
+    private boolean                                   m_isEncrypted         = false;
     private final List<Transaction>                   m_transactions        = new ArrayList<>();
     private final List<Transaction>                   m_pendingTransactions = new ArrayList<>();
+    private Map<Sha256Hash, UnspentTransactionOutput> m_unspentOutputs      = new HashMap<>();
     private Sha256Hash                                m_syncedUpTo          = new Sha256Hash();
+    private String                                    m_walletPath          = "";
 
     /**
      * Initializes a new instance of the Wallet class.
      *
      * Creates a new key pair.
      *
-     * @param path The path to the wallet file.
+     * @param filepath The path to the wallet file.
      */
-    public Wallet(Path path)
+    public Wallet(Path filepath) throws IOException
     {
+        if (Files.exists(filepath))
+        {
+            byte[] data = Files.readAllBytes(filepath);
+            ByteBuffer buffer = ByteBuffer.wrap(data);
+            deserialize(buffer);
+            m_walletPath = filepath.toString();
+        }
+        else
+        {
+            // Create a new unencrypted wallet.
+            EllipticCurveKeyPair keyPair = new EllipticCurveKeyPair();
+
+            m_privateKey   = keyPair.getPrivateKey();
+            m_publicKey    = keyPair.getPublicKey();
+            m_encryptedKey = new EncryptedPrivateKey(new byte[ENCRYPTED_PRIVATE_KEY_SIZE]);
+            m_isEncrypted  = false;
+            m_isUnlocked   = true;
+
+            m_walletPath = filepath.toString();
+            save(filepath.toString());
+        }
+
         m_isUnlocked = false;
-        m_walletPath = path;
     }
 
     /**
@@ -98,7 +126,11 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
      */
     public Wallet(String password) throws GeneralSecurityException
     {
-        m_encryptedKey = new EncryptedPrivateKey(m_keys.getPrivateKey(), password);
+        EllipticCurveKeyPair keyPair = new EllipticCurveKeyPair();
+        m_encryptedKey = new EncryptedPrivateKey(keyPair.getPrivateKey(), password);
+        m_publicKey = keyPair.getPublicKey();
+        m_privateKey = keyPair.getPrivateKey();
+
         m_isUnlocked = true;
     }
 
@@ -106,12 +138,14 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
      * Initializes a new instance of the Wallet class.
      *
      * @param keyPair The key pair to initialize this wallet with.
-     * @param password     The password to decrypt the key.
+     * @param password The password to decrypt the key.
      */
     public Wallet(EllipticCurveKeyPair keyPair, String password) throws GeneralSecurityException
     {
-        m_keys = keyPair;
-        m_encryptedKey = new EncryptedPrivateKey(m_keys.getPrivateKey(), password);
+        m_encryptedKey = new EncryptedPrivateKey(keyPair.getPrivateKey(), password);
+        m_publicKey = keyPair.getPublicKey();
+        m_privateKey = keyPair.getPrivateKey();
+
         m_isUnlocked = true;
     }
 
@@ -124,7 +158,10 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
     public Wallet(EncryptedPrivateKey encryptedKey, String password) throws GeneralSecurityException
     {
         m_encryptedKey = encryptedKey;
-        m_keys = new EllipticCurveKeyPair(m_encryptedKey.getPrivateKey(password));
+        EllipticCurveKeyPair keys = new EllipticCurveKeyPair(m_encryptedKey.getPrivateKey(password));
+        m_publicKey = keys.getPublicKey();
+        m_privateKey = keys.getPrivateKey();
+
         m_isUnlocked = true;
     }
 
@@ -136,8 +173,9 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
      */
     public Wallet(ByteBuffer buffer, String password) throws GeneralSecurityException
     {
-        m_encryptedKey = new EncryptedPrivateKey(buffer.array());
-        m_keys = new EllipticCurveKeyPair(m_encryptedKey.getPrivateKey(password));
+        deserialize(buffer);
+
+        m_privateKey = m_encryptedKey.getPrivateKey(password);
         m_isUnlocked = true;
     }
 
@@ -154,42 +192,47 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
 
         if (Files.exists(filepath))
         {
-            byte[] data = Files.readAllBytes(Path.of(path));
+            byte[] data = Files.readAllBytes(filepath);
             ByteBuffer buffer = ByteBuffer.wrap(data);
-            m_encryptedKey = new EncryptedPrivateKey(buffer.array());
-            m_keys = new EllipticCurveKeyPair(m_encryptedKey.getPrivateKey(password));
+            deserialize(buffer);
+
+            if (!m_isEncrypted)
+                throw new GeneralSecurityException("User tried to decrypt the wallet. However the wallet was not encrypted");
+
+            m_privateKey = m_encryptedKey.getPrivateKey(password);
         }
         else
         {
-            m_encryptedKey = new EncryptedPrivateKey(m_keys.getPrivateKey(), password);
-            save(path);
+            // Create a new unencrypted wallet.
+            EllipticCurveKeyPair keyPair = new EllipticCurveKeyPair();
+            m_encryptedKey = new EncryptedPrivateKey(keyPair.getPrivateKey(), password);
+            m_privateKey   = new BigInteger(new byte[PRIVATE_KEY_SIZE]);
+            m_publicKey    = keyPair.getPublicKey();
+            m_isEncrypted  = true;
+
+            m_walletPath = filepath.toString();
+            save(filepath.toString());
         }
+
         m_isUnlocked = true;
     }
 
     /**
-     * Gets whether this wallet was just created.
-     *
-     * @return true if the wallet was just created; otherwise; false.
-     */
-    public boolean isWalletNew()
-    {
-        return !Files.exists(m_walletPath);
-    }
-
-    /**
-     * Creates the keys for the new wallet.
+     * Encrypts the new wallet.
      *
      * @param password The password to be used.
      */
-    public void createKeys(String password) throws GeneralSecurityException
+    public void encrypt(String password) throws GeneralSecurityException
     {
-        if (!isWalletNew())
+        if (m_isEncrypted)
             return;
 
-        m_encryptedKey = new EncryptedPrivateKey(m_keys.getPrivateKey(), password);
+        m_encryptedKey = new EncryptedPrivateKey(m_privateKey, password);
+        m_isEncrypted  = true;
+
         m_isUnlocked = true;
-        save(m_walletPath.toString());
+
+        save(m_walletPath);
     }
 
     /**
@@ -197,36 +240,23 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
      *
      * @param password The password to unlock the wallet.
      */
-    public boolean unlock(String password) throws IOException
+    public void unlock(String password) throws GeneralSecurityException
     {
-        if (m_isUnlocked)
-            return true;
+        if (m_isUnlocked || !m_isEncrypted)
+            return;
 
-        Path filepath = m_walletPath;
+        m_privateKey = m_encryptedKey.getPrivateKey(password);
+        m_isUnlocked = true;
+    }
 
-        try
-        {
-            if (Files.exists(filepath))
-            {
-                byte[] data = Files.readAllBytes(m_walletPath);
-                ByteBuffer buffer = ByteBuffer.wrap(data);
-                m_encryptedKey = new EncryptedPrivateKey(buffer.array());
-                m_keys = new EllipticCurveKeyPair(m_encryptedKey.getPrivateKey(password));
-            }
-            else
-            {
-                m_encryptedKey = new EncryptedPrivateKey(m_keys.getPrivateKey(), password);
-                save(m_walletPath.toString());
-            }
-            m_isUnlocked = true;
-        }
-        catch (GeneralSecurityException exception)
-        {
-            s_logger.error("There was an error while unlocking the file.", exception);
-            return false;
-        }
-
-        return true;
+    /**
+     * Gets whether the wallet is encrypted or not.
+     *
+     * @return true if the wallet is encrypted; otherwise; false.
+     */
+    public boolean isEncrypted()
+    {
+        return m_isEncrypted;
     }
 
     /**
@@ -236,7 +266,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
      */
     public boolean isUnlocked()
     {
-        return m_isUnlocked;
+        return m_isUnlocked || !m_isEncrypted;
     }
 
     /**
@@ -248,12 +278,6 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
      */
     public boolean initialize(IPersistenceService service)
     {
-        if (!m_isUnlocked)
-        {
-            s_logger.error("Wallet is locked. You must unlock it first.");
-            return false;
-        }
-
         try
         {
             List<UnspentTransactionOutput> outputs = service.getUnspentOutputsForAddress(getAddress());
@@ -292,13 +316,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
      */
     public Address getAddress()
     {
-        if (!m_isUnlocked)
-        {
-            s_logger.error("Wallet is locked. You must unlock it first.");
-            return null;
-        }
-
-       return new Address(NetworkParameters.mainNet().getSingleSignatureAddressHeader(), m_keys.getPublicKey());
+       return new Address(NetworkParameters.mainNet().getSingleSignatureAddressHeader(), m_publicKey);
     }
 
     /**
@@ -314,7 +332,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
             return null;
         }
 
-        return m_keys;
+        return new EllipticCurveKeyPair(m_privateKey);
     }
 
     /**
@@ -417,9 +435,9 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
 
             // The signature in DER format is the unlocking parameter of the referenced output. We need to add this to the unlocking parameters
             // list of the transaction at the same position at which we added the transaction.
-            byte[] derSignature = EllipticCurveProvider.sign(signatureData.toByteArray(), m_keys.getPrivateKey());
+            byte[] derSignature = EllipticCurveProvider.sign(signatureData.toByteArray(), m_privateKey);
 
-            SingleSignatureParameters singleParam = new SingleSignatureParameters(m_keys.getPublicKey(), derSignature);
+            SingleSignatureParameters singleParam = new SingleSignatureParameters(m_publicKey, derSignature);
 
             // At this point this input transaction is spendable.
             input.setUnlockingParameters(singleParam.serialize());
@@ -440,6 +458,29 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
     }
 
     /**
+     * Deserializes the wallet object from a byte buffer.
+     *
+     * @param buffer Serialized data.
+     */
+    public void deserialize(ByteBuffer buffer)
+    {
+        m_isEncrypted = buffer.get() == 0x01;
+        m_encryptedKey = new EncryptedPrivateKey(buffer);
+        byte[] privateKeyData = new byte[PRIVATE_KEY_SIZE];
+        buffer.get(privateKeyData);
+
+        m_privateKey = new BigInteger(privateKeyData);
+
+        buffer.get(m_publicKey);
+        m_syncedUpTo = new Sha256Hash(buffer);
+
+        int transactionsSize = buffer.getInt();
+
+        for (int i = 0; i < transactionsSize; ++i)
+            m_transactions.add(new Transaction(buffer));
+    }
+
+    /**
      * Serializes an object in ray byte format.
      *
      * @return The serialized object.
@@ -447,17 +488,29 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
     @Override
     public byte[] serialize()
     {
-        if (!m_isUnlocked)
-        {
-            s_logger.error("Wallet is locked. You must unlock it first.");
-            return null;
-        }
-
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
         try
         {
+            data.write((byte)(m_isEncrypted ? 0x01 :0x00));
             data.write(m_encryptedKey.serialize());
+
+            // Write all zeroes
+            if (m_isEncrypted)
+            {
+                data.write(new byte[PRIVATE_KEY_SIZE]);
+            }
+            else
+            {
+                data.write(m_privateKey.toByteArray());
+            }
+
+            data.write(m_publicKey);
+            data.write(m_syncedUpTo.serialize());
+            data.write(NumberSerializer.serialize(m_transactions.size()));
+
+            for (Transaction transaction: m_transactions)
+                data.write(transaction.serialize());
         }
         catch (Exception exception)
         {
@@ -476,12 +529,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
      */
     public boolean save(String path)
     {
-        if (!m_isUnlocked)
-        {
-            s_logger.error("Wallet is locked. You must unlock it first.");
-            return false;
-        }
-
+        m_walletPath = path;
         boolean result = true;
 
         try (FileOutputStream fos = new FileOutputStream(path))

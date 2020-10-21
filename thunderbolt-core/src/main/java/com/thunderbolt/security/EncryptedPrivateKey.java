@@ -25,6 +25,7 @@ package com.thunderbolt.security;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.common.contracts.ISerializable;
 import org.bouncycastle.crypto.BufferedBlockCipher;
 import org.bouncycastle.crypto.engines.AESEngine;
@@ -105,16 +106,26 @@ public class EncryptedPrivateKey implements ISerializable
      *
      * @throws RuntimeException End-of-data while processing serialized data
      */
+    public EncryptedPrivateKey(ByteBuffer encryptedKey) throws RuntimeException
+    {
+        encryptedKey.get(m_iv);
+        encryptedKey.get(m_salt);
+
+        int encryptedSize = encryptedKey.getInt();
+        m_encKeyBytes = new byte[encryptedSize];
+        encryptedKey.get(m_encKeyBytes);
+    }
+
+    /**
+     * Creates a new EncryptedPrivateKey from the serialized data.
+     *
+     * @param encryptedKey Serialized key
+     *
+     * @throws RuntimeException End-of-data while processing serialized data
+     */
     public EncryptedPrivateKey(byte[] encryptedKey) throws RuntimeException
     {
-        int encryptedDataLength = encryptedKey.length - IV_LENGTH - SALT_LENGTH;
-
-        m_encKeyBytes = new byte[encryptedDataLength];
-
-        ByteBuffer wrapped = ByteBuffer.wrap(encryptedKey);
-        wrapped.get(m_iv);
-        wrapped.get(m_salt);
-        wrapped.get(m_encKeyBytes);
+        this(ByteBuffer.wrap(encryptedKey));
     }
 
     /**
@@ -131,6 +142,7 @@ public class EncryptedPrivateKey implements ISerializable
         {
             data.write(m_iv);
             data.write(m_salt);
+            data.write(NumberSerializer.serialize(m_encKeyBytes.length));
             data.write(m_encKeyBytes);
         }
         catch (IOException e)

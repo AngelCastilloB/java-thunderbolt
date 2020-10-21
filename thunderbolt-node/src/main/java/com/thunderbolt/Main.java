@@ -107,18 +107,12 @@ public class Main
         Path walletPath = Configuration.getWalletPath().isEmpty() ?
                 WALLET_PATH : Paths.get(Configuration.getWalletPath());
 
-        s_logger.info("Wallet file {}. Will be loaded, but right now is still locked.", walletPath);
-
         Wallet wallet = new Wallet(walletPath);
+        wallet.initialize(persistenceService);
         memPool.addTransactionsChangedListener(wallet);
         blockchain.addBlockchainUpdateListener(wallet);
 
-        try {
-            wallet.createKeys("1234");
-        } catch (GeneralSecurityException e) {
-            e.printStackTrace();
-        }
-        wallet.unlock("1234");
+        s_logger.info("Wallet file {}. Encrypted: {}, Unlocked: {}", walletPath, wallet.isEncrypted(), wallet.isUnlocked());
 
         ProtocolMessageFactory.initialize(NetworkParameters.mainNet(), persistenceService);
 

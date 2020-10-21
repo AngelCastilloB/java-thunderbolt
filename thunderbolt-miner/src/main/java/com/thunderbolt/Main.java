@@ -113,7 +113,6 @@ public class Main
             while (blockchainHeight == work.getHeight())
                 Thread.sleep(100);
 
-
             Block block = new Block();
             block.addTransaction(work.getCoinbaseTransaction());
             block.addTransactions(work.getTransactions());

@@ -79,26 +79,15 @@ public class RpcService
         m_wallet = wallet;
     }
 
-    /**
-     * Gets whether the wallet is new or not.
-     *
-     * @return true if the wallet is new; otherwise; false.
-     */
-    @JsonRpcMethod("isWalletNew")
-    public boolean isWalletNew()
-    {
-        return m_wallet.isWalletNew();
-    }
+    // Wallet RPC Methods
 
     /**
-     * Gets whether the wallet is new or not.
-     *
-     * @return true if the wallet is new; otherwise; false.
+     * Encrypts the wallet.
      */
-    @JsonRpcMethod("createKeys")
-    public boolean createKeys(@JsonRpcParam("password") final String password) throws GeneralSecurityException
+    @JsonRpcMethod("encryptWallet")
+    public boolean encryptWallet(@JsonRpcParam("password") final String password) throws GeneralSecurityException
     {
-        m_wallet.createKeys(password);
+        m_wallet.encrypt(password);
         return true;
     }
 
@@ -110,22 +99,14 @@ public class RpcService
      * @return true if it could be added successfully.
      */
     @JsonRpcMethod("unlockWallet")
-    public boolean unlockWallet(@JsonRpcParam("password") final String password) throws IOException
+    public boolean unlockWallet(@JsonRpcParam("password") final String password) throws GeneralSecurityException
     {
-        boolean unlocked =  m_wallet.unlock(password);
-
-        unlocked &= m_wallet.initialize(m_node.getPersistenceService());
-
-        if (unlocked)
-            m_node.getBlockchain().addOutputsUpdateListener(m_wallet);
-
-        return unlocked;
+        m_wallet.unlock(password);
+        return true;
     }
 
-    // Wallet RPC Methods
-
     /**
-     * Gets whther the wallet is unlocked or not.
+     * Gets whether the wallet is unlocked or not.
      *
      * @return true if is unlocked; otherwise; false.
      */
@@ -133,6 +114,17 @@ public class RpcService
     public boolean isWalletUnlocked()
     {
         return m_wallet.isUnlocked();
+    }
+
+    /**
+     * Gets whether the wallet is encrypted or not.
+     *
+     * @return true if is encrypted; otherwise; false.
+     */
+    @JsonRpcMethod("isWalletEncrypted")
+    public boolean isWalletEncrypted()
+    {
+        return m_wallet.isEncrypted();
     }
 
     /**
@@ -145,11 +137,8 @@ public class RpcService
      */
     @JsonRpcMethod("getBalance")
     public long getBalance(@JsonRpcOptional @JsonRpcParam("address") @Nullable String address)
-            throws WalletLockedException, StorageException
+            throws StorageException
     {
-        if (!m_wallet.isUnlocked())
-            throw new WalletLockedException();
-
         if (address == null)
         {
             return m_wallet.getBalance().longValue();
@@ -205,11 +194,8 @@ public class RpcService
      * @return The list of transactions for the given wallet.
      */
     @JsonRpcMethod("getConfirmedTransactions")
-    public List<Transaction> getConfirmedTransactions() throws WalletLockedException
+    public List<Transaction> getConfirmedTransactions()
     {
-        if (!m_wallet.isUnlocked())
-            throw new WalletLockedException();
-
         return m_wallet.getTransactions();
     }
 
@@ -219,11 +205,8 @@ public class RpcService
      * @return The list of pending transactions for the given wallet.
      */
     @JsonRpcMethod("getPendingTransactions")
-    public List<Transaction> getPendingTransactions() throws WalletLockedException
+    public List<Transaction> getPendingTransactions()
     {
-        if (!m_wallet.isUnlocked())
-            throw new WalletLockedException();
-
         return m_wallet.getPendingTransactions();
     }
 
@@ -233,11 +216,8 @@ public class RpcService
      * @return The address.
      */
     @JsonRpcMethod("getAddress")
-    public String getAddress() throws WalletLockedException
+    public String getAddress()
     {
-        if (!m_wallet.isUnlocked())
-            throw new WalletLockedException();
-
         return m_wallet.getAddress().toString();
     }
 
@@ -247,11 +227,8 @@ public class RpcService
      * @return the public key.
      */
     @JsonRpcMethod("getPublicKey")
-    public byte[] getPublicKey() throws WalletLockedException
+    public byte[] getPublicKey()
     {
-        if (!m_wallet.isUnlocked())
-            throw new WalletLockedException();
-
         return m_wallet.getKeyPair().getPublicKey();
     }
 
