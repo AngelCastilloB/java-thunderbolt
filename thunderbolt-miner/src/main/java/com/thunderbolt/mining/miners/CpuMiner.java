@@ -54,7 +54,6 @@ public class CpuMiner implements IMiner
     // Constants
     private static final int  THREAD_POOL_SIZE  = Runtime.getRuntime().availableProcessors();
     private static final int  BUSY_WAIT_DELAY   = 100; //ms
-    private static final long MAX_UNSIGNED_INT  = 4294967295L;
 
     // Static fields.
     private static final Logger s_logger = LoggerFactory.getLogger(CpuMiner.class);
@@ -104,6 +103,16 @@ public class CpuMiner implements IMiner
     }
 
     /**
+     * Gets the number of active jobs.
+     *
+     * @return The number of active jobs.
+     */
+    public int getActiveJobs()
+    {
+        return m_active.get();
+    }
+
+    /**
      * Gets whether this miner is running or not.
      *
      * @return true if is running; otherwise; false.
@@ -143,6 +152,7 @@ public class CpuMiner implements IMiner
     @Override
     public void queueJob(Job job)
     {
+        m_cancelAll = false;
         m_jobQueue.add(job);
     }
 
@@ -223,7 +233,7 @@ public class CpuMiner implements IMiner
         boolean solved          = false;
         byte[]  data            = job.getData();
         byte[]  midstate        = job.getMidstate();
-        long    currentNonce    = job.getNonce();
+        long    currentNonce    = job.getNonceRange().getLowerBound();
         byte[]  serializedNonce = NumberSerializer.serialize((int)currentNonce);
 
         System.arraycopy(serializedNonce, 0, data, 12, serializedNonce.length);
@@ -231,7 +241,7 @@ public class CpuMiner implements IMiner
         s_logger.debug(Convert.toHexString(serializedNonce));
         s_logger.debug(Convert.toHexString(data));
         s_logger.debug(Convert.toHexString(midstate));
-        while (!solved && !m_cancelAll && !Thread.interrupted())
+        while (!m_cancelAll && !Thread.interrupted())
         {
             Sha256Digester digester = new Sha256Digester();
             Sha256Hash hash = Sha256Digester.digest(digester.continuePreviousHash(midstate, data)).reverse();
@@ -253,10 +263,14 @@ public class CpuMiner implements IMiner
 
                 return;
             }
+
             // Copy new nonce.
             ++currentNonce;
-            if (currentNonce > MAX_UNSIGNED_INT)
+            if (currentNonce > job.getNonceRange().getHigherBound())
+            {
+                s_logger.info("All nonces explored and no solution found. Range {}", job.getNonceRange().toString());
                 break;
+            }
 
             serializedNonce = NumberSerializer.serialize((int)currentNonce);
             System.arraycopy(serializedNonce, 0, data, 12, serializedNonce.length);

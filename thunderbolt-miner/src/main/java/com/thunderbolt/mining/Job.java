@@ -26,6 +26,7 @@ package com.thunderbolt.mining;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.common.Stopwatch;
@@ -61,18 +62,22 @@ public class Job
     private long       m_target   = 0;
     private Sha256Hash m_hash     = new Sha256Hash();
     private Stopwatch  m_watch    = new Stopwatch();
+    private NonceRange m_range    = new NonceRange();
+    private Block      m_block    = null;
 
     /**
      * Initializes a new instance of the Job class.
      *
      * @param midstate The midstate of the hash block header.
      * @param data     The remaining data to be hashed.
+     * @param block    The block we are working on.
      * @param id       The id assigned to this Job.
      */
-    public Job(byte[] midstate, byte[] data, short id)
+    public Job(byte[] midstate, byte[] data, Block block, int id)
     {
         m_midstate = midstate;
         m_data = data;
+        m_block = block;
         setId(id);
 
         ByteBuffer dataBuffer = ByteBuffer.wrap(m_data);
@@ -166,9 +171,9 @@ public class Job
      *
      * @param id The id.
      */
-    public void setId(short id)
+    public void setId(int id)
     {
-        m_id = id;
+        m_id = (short)id;
     }
 
     /**
@@ -278,4 +283,44 @@ public class Job
         return m_watch.getElapsedTime();
     }
 
+    /**
+     * Gets the nonce range to be explored by this job.
+     *
+     * @return The nonce range.
+     */
+    public NonceRange getNonceRange()
+    {
+        return m_range;
+    }
+
+    /**
+     * Sets the nonce range to be explored by this job.
+     *
+     * @param range The nonce range.
+     */
+    public void setNonceRange(NonceRange range)
+    {
+        m_range = range;
+    }
+
+    /**
+     * Sets the nonce range to be explored by this job.
+     *
+     * @param lowerBound The lower bound (Inclusive).
+     * @param higherBound The higher bound (Inclusive).
+     */
+    public void setNonceRange(long lowerBound, long higherBound)
+    {
+        m_range = new NonceRange(lowerBound, higherBound);
+    }
+
+    /**
+     * Gets the block currently being work by this job.
+     *
+     * @return The block.
+     */
+    public Block getBlock()
+    {
+        return m_block;
+    }
 }

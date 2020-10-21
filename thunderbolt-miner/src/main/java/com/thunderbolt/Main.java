@@ -24,10 +24,13 @@ import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.configuration.Configuration;
 import com.thunderbolt.mining.Job;
+import com.thunderbolt.mining.NonceRange;
+import com.thunderbolt.mining.contracts.IMiner;
 import com.thunderbolt.mining.miners.CpuMiner;
 import com.thunderbolt.rpc.MinerWork;
 import com.thunderbolt.rpc.RpcClient;
 import com.thunderbolt.security.Sha256Digester;
+import org.apache.http.conn.HttpHostConnectException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +41,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
-
 
 /**
  * Application main class.
@@ -52,7 +54,17 @@ public class Main
     static private final Path   CONFIG_FILE_PATH = Paths.get(DEFAULT_PATH.toString(), "thunderbolt.conf");
 
     // Static variables
-    private static final Logger s_logger = LoggerFactory.getLogger(Main.class);
+    private static final Logger s_logger        = LoggerFactory.getLogger(Main.class);
+    private static long         s_currentHeight = 0;
+    private static RpcClient    s_client        = null;
+    private static IMiner       s_miner         = null;
+    static NonceRange[]         s_noneRanges    = new NonceRange[]
+    {
+        new NonceRange(0x00000000L, 0x3FFFFFFF),
+        new NonceRange(0x40000000L, 0x7FFFFFFE),
+        new NonceRange(0x7FFFFFFFL, 0xC0000000),
+        new NonceRange(0xC0000001L, 0xFFFFFFFF)
+    };
 
     /**
      * Application entry point.
@@ -63,87 +75,129 @@ public class Main
     {
         Configuration.initialize(CONFIG_FILE_PATH.toString());
 
-        RpcClient client = new RpcClient(Configuration.getRpcUser(), Configuration.getRpcPassword(),
+        s_client = new RpcClient(Configuration.getRpcUser(), Configuration.getRpcPassword(),
                 String.format("http://localhost:%s", Configuration.getRpcPort()));
 
-        CpuMiner miner = new CpuMiner();
+        s_currentHeight = s_client.createRequest()
+                .method("getBlockchainHeight")
+                .id(1)
+                .returnAs(Long.class)
+                .execute();
 
-        miner.addJobFinishListener(ended ->
+        s_miner = new CpuMiner();
+        s_miner.addJobFinishListener(Main::onJobFinish);
+        s_miner.start();
+
+        while (true)
         {
-            s_logger.info("Block {}.", ended.isSolved() ? "Solved" : "Not Solved");
+            List<Job> jobs = getWork();
 
-            // Nonce must be provided to the application as big endian. Since it will be reverted before hashing
-            // so we need to make sure that when it is reverted the hash matches.
-            s_logger.info("Nonce: {} ({})",
-                    Convert.toHexString(NumberSerializer.serialize(Integer.reverseBytes((int)ended.getNonce()))),
-                    Integer.reverseBytes((int)ended.getNonce()));
-            s_logger.info("Hash:  {}",
-                    Convert.toHexString(ended.getHash().getData()));
-            s_logger.info("Time Elapsed:  {} seconds", ended.getElapsed().getTotalSeconds());
+            // If no new jobs, sleep tight.
+            if (jobs.isEmpty())
+            {
+                Thread.sleep(1000);
+                continue;
+            }
 
-            if (ended.isSolved())
-                miner.cancelAllJobs();
+            s_miner.cancelAllJobs();
 
-         /*   block.getHeader().setNonce(ended.getNonce());
-            Boolean result = client.createRequest()
-                    .method("submitBlock")
-                    .id(1)
-                    .param("block", block)
-                    .returnAs(Boolean.class)
-                    .execute();*/
+            for (Job job: jobs)
+                s_miner.queueJob(job);
 
-          //  s_logger.info("Block Accepted: {}", result);
-        });
+            Thread.sleep(1000);
+        }
+    }
 
-        miner.start();
-
+    /**
+     * Gets the batch of work.
+     *
+     * @return The list of new jobs; of an empty list if no new jobs are needed.
+     */
+    private static List<Job> getWork()
+    {
         List<Job> jobs = new ArrayList<>();
 
-        while(true)
+        long blockchainTip = s_client.createRequest()
+                .method("getBlockchainHeight")
+                .id(1)
+                .returnAs(Long.class)
+                .execute();
+
+        // If we detect that the tip of the blockchain changed, we need to scrap the old jobs and starting working
+        // on the new jobs asap.
+        if (s_currentHeight == blockchainTip && s_miner.getActiveJobs() != 0)
+            return jobs;
+
+        if (s_currentHeight != blockchainTip)
         {
-            MinerWork work = client.createRequest()
-                    .method("getWork")
-                    .id(1)
-                    .returnAs(MinerWork.class)
-                    .execute();
-
-            int blockchainHeight = 0;
-
-            // If the tip hasn't change, we keep working.
-            while (blockchainHeight == work.getHeight())
-                Thread.sleep(100);
-
-            Block block = new Block();
-            block.addTransaction(work.getCoinbaseTransaction());
-            block.addTransactions(work.getTransactions());
-            BlockHeader header = block.getHeader();
-            header.setParentBlockHash(work.getParentBlock());
-            header.setTimeStamp(work.getTimeStamp());
-            header.setTargetDifficulty(work.getDifficulty());
-
-            Sha256Digester digester = new Sha256Digester();
-            digester.hash(Convert.reverseEndian(header.serialize()));
-
-            byte[] midstate = digester.getMidstate(0);
-            byte[] data     = digester.getBlock(1);
-
-            Job job  = new Job(midstate, data, (short) 1);
-            job.setNonce(0);
-            miner.queueJob(job);
-
-            Job job2  = new Job(midstate, data, (short) 2);
-            job.setNonce(1073741823);
-            miner.queueJob(job2);
-
-            Job job3 = new Job(midstate, data, (short) 3);
-            job.setNonce(1073741823 * 2);
-            miner.queueJob(job3);
-
-            Job job4  = new Job(midstate, data, (short) 4);
-            job.setNonce(1073741823 * 3);
-            miner.queueJob(job4);
-
-            Thread.sleep(100);
+            s_logger.info("A new tip of the blockchain has been detected. Previous: {}, Current: {}.",
+                    s_currentHeight, blockchainTip);
+            s_currentHeight = blockchainTip;
         }
+
+        s_logger.info("Rescheduling work.");
+
+        MinerWork work = s_client.createRequest()
+                .method("getWork")
+                .id(1)
+                .returnAs(MinerWork.class)
+                .execute();
+
+        // Create a new block with the information given by the node.
+        Block block = new Block();
+        block.addTransaction(work.getCoinbaseTransaction());
+        block.addTransactions(work.getTransactions());
+        BlockHeader header = block.getHeader();
+        header.setParentBlockHash(work.getParentBlock());
+        header.setTimeStamp(work.getTimeStamp());
+        header.setTargetDifficulty(work.getDifficulty());
+
+        Sha256Digester digester = new Sha256Digester();
+        digester.hash(Convert.reverseEndian(header.serialize()));
+
+        byte[] midstate = digester.getMidstate(0);
+        byte[] data     = digester.getBlock(1);
+
+        for (int i = 0; i < s_noneRanges.length; ++i)
+        {
+            Job job  = new Job(midstate, data, block, i + 1);
+            job.setNonceRange(s_noneRanges[i]);
+            jobs.add(job);
+        }
+
+        return jobs;
+    }
+
+    /**
+     * Event handler for when the job is finish.
+     *
+     * @param job The job that just finish.
+     */
+    static void onJobFinish(Job job)
+    {
+        s_logger.info("Block {}.", job.isSolved() ? "Solved" : "Not Solved");
+
+        // Nonce must be provided to the application as big endian. Since it will be reverted before hashing
+        // so we need to make sure that when it is reverted the hash matches.
+        s_logger.info("Nonce: {} ({})",
+                Convert.toHexString(NumberSerializer.serialize(Integer.reverseBytes(job.getNonce()))),
+                Integer.reverseBytes(job.getNonce()));
+        s_logger.info("Hash:  {}",
+                Convert.toHexString(job.getHash().getData()));
+        s_logger.info("Time Elapsed:  {} seconds", job.getElapsed().getTotalSeconds());
+
+        if (job.isSolved())
+            s_miner.cancelAllJobs();
+
+        job.getBlock().getHeader().setNonce(job.getNonce());
+
+        Boolean result = s_client.createRequest()
+                .method("submitBlock")
+                .id(1)
+                .param("block", job.getBlock())
+                .returnAs(Boolean.class)
+                .execute();
+
+        s_logger.info("Block Accepted: {}", result);
     }
 }

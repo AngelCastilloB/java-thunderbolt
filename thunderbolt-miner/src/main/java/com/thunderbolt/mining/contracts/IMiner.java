@@ -47,6 +47,13 @@ public interface IMiner
     void stop();
 
     /**
+     * Gets the number of active jobs.
+     *
+     * @return The number of active jobs.
+     */
+    int getActiveJobs();
+
+    /**
      * Gets whether this miner is running or not.
      *
      * @return true if is running; otherwise; false.

@@ -178,6 +178,16 @@ public class GekkoScienceNewpacMiner implements IMiner
     }
 
     /**
+     * Gets the number of active jobs.
+     *
+     * @return The number of active jobs.
+     */
+    public int getActiveJobs()
+    {
+        return m_runningJobs.size();
+    }
+
+    /**
      * Gets whether this miner is running or not.
      *
      * @return true if is running; otherwise; false.
