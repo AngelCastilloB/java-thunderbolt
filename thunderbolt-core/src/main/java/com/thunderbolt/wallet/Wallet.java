@@ -342,12 +342,6 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
      */
     public BigInteger getBalance()
     {
-        if (!m_isUnlocked)
-        {
-            s_logger.error("Wallet is locked. You must unlock it first.");
-            return BigInteger.valueOf(0);
-        }
-
         BigInteger total = BigInteger.ZERO;
 
         for (Map.Entry<Sha256Hash, UnspentTransactionOutput> entry : m_unspentOutputs.entrySet())

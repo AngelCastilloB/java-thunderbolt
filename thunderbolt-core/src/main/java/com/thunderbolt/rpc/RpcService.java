@@ -33,6 +33,8 @@ import com.github.arteam.simplejsonrpc.core.annotation.JsonRpcService;
 import com.google.inject.internal.Nullable;
 import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.common.NumberSerializer;
+import com.thunderbolt.configuration.Configuration;
+import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.Node;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
@@ -77,6 +79,36 @@ public class RpcService
     {
         m_node = node;
         m_wallet = wallet;
+    }
+
+    // General RPC methods
+
+
+    /**
+     * Gets the node information.
+     */
+    @JsonRpcMethod("getInfo")
+    public String getInfo() throws StorageException
+    {
+        String status = String.format(
+                "{\n" +
+                "  \"protocolVersion\" : %s,\n" +
+                "  \"walletVersion\" : %s,\n" +
+                "  \"balance\" : %s,\n" +
+                "  \"blocks\" : %s,\n" +
+                "  \"connections\" : %s,\n" +
+                "  \"difficulty\" : %s,\n" +
+                "  \"payTxFee\" : %s\n" +
+                "}",
+                NetworkParameters.mainNet().getProtocol(),
+                /*m_wallet.getVersion()*/ 0, /*TODO: Add wallet version*/
+                getBalance(null),
+                m_node.getBlockchain().getChainHead().getHeight(),
+                m_node.getPeerManager().peerCount(),
+                m_node.getBlockchain().computeTargetDifficulty() /*TODO: Calculate difficulty as multiple of max difficulty*/,
+                Configuration.getPayTransactionFee());
+
+        return status;
     }
 
     // Wallet RPC Methods
@@ -265,7 +297,6 @@ public class RpcService
         byte[] newHeight = NumberSerializer.serialize(height);
         TransactionInput coinbaseInput = new TransactionInput(new Sha256Hash(), Integer.MAX_VALUE);
         coinbaseInput.setUnlockingParameters(newHeight);
-
 
         coinbase.getInputs().add(coinbaseInput);
 

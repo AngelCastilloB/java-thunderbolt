@@ -27,6 +27,7 @@ package com.thunderbolt;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.commands.CommandFactory;
+import com.thunderbolt.commands.GetInfoCommand;
 import com.thunderbolt.commands.TestCommand;
 import com.thunderbolt.configuration.Configuration;
 import com.thunderbolt.contracts.ICommand;
@@ -34,10 +35,18 @@ import com.thunderbolt.rpc.RpcClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Enumeration;
+import java.util.Properties;
+import java.util.jar.Attributes;
+import java.util.jar.Manifest;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -49,6 +58,7 @@ public class Main
     static
     {
         CommandFactory.register("-test", TestCommand.class);
+        CommandFactory.register("-getinfo", GetInfoCommand.class);
     }
 
     // Constants
@@ -58,7 +68,6 @@ public class Main
     static private final Path   CONFIG_FILE_PATH = Paths.get(DEFAULT_PATH.toString(), "thunderbolt.conf");
 
     // Static variables
-    private static final Logger s_logger = LoggerFactory.getLogger(Main.class);
     private static RpcClient    s_client = null;
 
     /**
@@ -85,6 +94,9 @@ public class Main
         ICommand command = CommandFactory.create(args[0]);
 
         if (command != null)
-            command.execute(args);
+        {
+            if (!command.execute(args))
+                CommandFactory.printAvailableCommands();
+        }
     }
 }

@@ -43,8 +43,6 @@ import java.util.Map;
  */
 public class CommandFactory
 {
-    private static final String PACKAGE_NAME = "com.thunderbolt.commands.";
-
     private static Map<String, Class<? extends ICommand>> s_commands = new HashMap<>();
     private static final Logger                           s_logger = LoggerFactory.getLogger(CommandFactory.class);
     private static RpcClient                              s_client = null;

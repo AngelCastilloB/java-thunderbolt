@@ -34,7 +34,7 @@ public interface ICommand
     /**
      * Executes the given command.
      */
-    void execute(String[] args);
+    boolean execute(String[] args);
 
     /**
      * Gets the name of the command.

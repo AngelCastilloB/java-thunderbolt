@@ -32,30 +32,35 @@ import com.thunderbolt.rpc.RpcClient;
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Dummy command to test the CLI.
+ * Gets the node information.
  */
-public class TestCommand implements ICommand
+public class GetInfoCommand implements ICommand
 {
-    private RpcClient m_client = null;
+    private RpcClient s_client = null;
 
     /**
-     * Executes the given command.
+     * Initializes an instance of the GetInfoCommand class.
      */
-    public TestCommand(RpcClient client)
+    public GetInfoCommand(RpcClient client)
     {
-        m_client = client;
+        s_client = client;
     }
 
     /**
-     * Gets the name of the command.
+     * Executes the command.
      *
-     * @return the name of the command.
+     * @return true if the command was executed correctly; otherwise; false.
      */
     @Override
     public boolean execute(String[] args)
     {
-        System.out.println(args[1]);
+        String result = s_client.createRequest()
+                .method("getInfo")
+                .id(1)
+                .returnAs(String.class)
+                .execute();
 
+        System.out.println(result);
         return true;
     }
 
@@ -67,7 +72,7 @@ public class TestCommand implements ICommand
     @Override
     public String getName()
     {
-        return "-test";
+        return "-getinfo";
     }
 
     /**
@@ -78,6 +83,6 @@ public class TestCommand implements ICommand
     @Override
     public String getDescription()
     {
-        return "  Test Command";
+        return "  Returns an object containing various state info.";
     }
 }
