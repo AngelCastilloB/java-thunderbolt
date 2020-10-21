@@ -35,9 +35,6 @@ import com.thunderbolt.security.Sha256Digester;
 import com.thunderbolt.security.Sha256Hash;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -274,10 +271,7 @@ public class CpuMiner implements IMiner
                 break;
             }
 
-            serializedNonce       = NumberSerializer.serialize((int)currentNonce);
-            byte[] serializedTime = NumberSerializer.serialize((int) OffsetDateTime.now(ZoneOffset.UTC).toEpochSecond());
-
-            System.arraycopy(serializedTime, 0, data, 4, serializedTime.length);
+            serializedNonce = NumberSerializer.serialize((int)currentNonce);
             System.arraycopy(serializedNonce, 0, data, 12, serializedNonce.length);
         }
 
