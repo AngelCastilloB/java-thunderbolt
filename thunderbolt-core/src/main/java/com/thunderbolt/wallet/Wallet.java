@@ -236,6 +236,18 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
     }
 
     /**
+     * Lock the wallet.
+     */
+    public void lock()
+    {
+        if (!m_isUnlocked || !m_isEncrypted)
+            return;
+
+        m_privateKey = m_privateKey.subtract(m_privateKey);
+        m_isUnlocked = false;
+    }
+
+    /**
      * Unlocks the wallet.
      *
      * @param password The password to unlock the wallet.

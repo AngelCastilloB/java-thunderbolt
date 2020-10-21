@@ -44,7 +44,21 @@ public class Sha256Hash
     {
     }
 
-    /** Creates a hash instance from the given data.
+    /**
+     * Creates a hash instance from the given data.
+     *
+     * @param hash 32-byte hash digest.
+     */
+    public Sha256Hash(String hash)
+    {
+        if (hash.length() != 32)
+            throw new IllegalArgumentException("Hash must be 32 bytes long.");
+
+        m_data = Convert.hexStringToByteArray(hash);
+    }
+
+    /**
+     * Creates a hash instance from the given data.
      *
      * @param data 32-byte hash digest.
      */

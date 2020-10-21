@@ -53,6 +53,7 @@ public class NetworkParameters implements Serializable
     static private final BigInteger MAIN_NET_SUBSIDY_STARTING_VALUE       = BigInteger.valueOf(5000000000L);
     public static final long        MAIN_NET_COINBASE_MATURITY            = 0; // TODO: Add back the normal maturity. 100
     public static final long        MAIN_NET_MAX_BLOCK_SIZE               = 5242880; //5 mb
+    public static final long        MAIN_NET_MAX_DIFFICULTY               = 0x1D00FFFFL;
 
     // Instance fields
     private Block      m_genesisBlock;

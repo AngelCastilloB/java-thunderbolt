@@ -82,6 +82,7 @@ public class Node implements IChainHeadUpdateListener, ITransactionsChangeListen
     private final Stopwatch                           m_addressBroadcastCd  = new Stopwatch();
     private final Stopwatch                           m_requestTransactions = new Stopwatch();
     private final List<IBlockchainSyncFinishListener> m_ibdListeners        = new ArrayList<>();
+    private final Stopwatch                           m_uptimeWatch         = new Stopwatch();
 
     // Use during initial sync.
     private boolean         m_isInitialXtDownload    = false;
@@ -111,6 +112,16 @@ public class Node implements IChainHeadUpdateListener, ITransactionsChangeListen
         m_peerManager = peerManager;
         m_persistenceService.addChainHeadUpdateListener(this);
         m_memPool.addTransactionsChangedListener(this);
+    }
+
+    /**
+     * Gets the uptime time of the server.
+     *
+     * @return The uptime time.
+     */
+    public TimeSpan getUptime()
+    {
+        return m_uptimeWatch.getElapsedTime();
     }
 
     /**
@@ -203,6 +214,7 @@ public class Node implements IChainHeadUpdateListener, ITransactionsChangeListen
      */
     public void run()
     {
+        m_uptimeWatch.start();
         m_isInitialBlockDownload = true;
         m_isInitialXtDownload = true;
         m_peerManager.allowInboundConnections();

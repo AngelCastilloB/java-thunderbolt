@@ -78,7 +78,7 @@ public class Main
                 String.format("http://localhost:%s", Configuration.getRpcPort()));
 
         s_currentHeight = s_client.createRequest()
-                .method("getBlockchainHeight")
+                .method("getBlockCount")
                 .id(1)
                 .returnAs(Long.class)
                 .execute();
@@ -117,7 +117,7 @@ public class Main
         List<Job> jobs = new ArrayList<>();
 
         long blockchainTip = s_client.createRequest()
-                .method("getBlockchainHeight")
+                .method("getBlockCount")
                 .id(1)
                 .returnAs(Long.class)
                 .execute();

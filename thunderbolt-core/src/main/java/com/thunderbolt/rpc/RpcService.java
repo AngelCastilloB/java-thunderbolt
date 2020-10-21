@@ -32,11 +32,14 @@ import com.github.arteam.simplejsonrpc.core.annotation.JsonRpcParam;
 import com.github.arteam.simplejsonrpc.core.annotation.JsonRpcService;
 import com.google.inject.internal.Nullable;
 import com.thunderbolt.blockchain.Block;
+import com.thunderbolt.blockchain.BlockHeader;
 import com.thunderbolt.common.NumberSerializer;
+import com.thunderbolt.common.TimeSpan;
 import com.thunderbolt.configuration.Configuration;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.Node;
 import com.thunderbolt.persistence.storage.StorageException;
+import com.thunderbolt.persistence.structures.BlockMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.OutputLockType;
@@ -83,7 +86,6 @@ public class RpcService
 
     // General RPC methods
 
-
     /**
      * Gets the node information.
      */
@@ -93,7 +95,6 @@ public class RpcService
         String status = String.format(
                 "{\n" +
                 "  \"protocolVersion\" : %s,\n" +
-                "  \"walletVersion\" : %s,\n" +
                 "  \"balance\" : %s,\n" +
                 "  \"blocks\" : %s,\n" +
                 "  \"connections\" : %s,\n" +
@@ -101,7 +102,6 @@ public class RpcService
                 "  \"payTxFee\" : %s\n" +
                 "}",
                 NetworkParameters.mainNet().getProtocol(),
-                /*m_wallet.getVersion()*/ 0, /*TODO: Add wallet version*/
                 getBalance(null),
                 m_node.getBlockchain().getChainHead().getHeight(),
                 m_node.getPeerManager().peerCount(),
@@ -109,6 +109,26 @@ public class RpcService
                 Configuration.getPayTransactionFee());
 
         return status;
+    }
+
+    /**
+     * Stops the node.
+     */
+    @JsonRpcMethod("stop")
+    public void stop()
+    {
+        m_node.shutdown();
+    }
+
+    /**
+     * Gets the totla time this node has been running.
+     *
+     * @return The uptime.
+     */
+    @JsonRpcMethod("getUptime")
+    public TimeSpan getUptime()
+    {
+        return m_node.getUptime();
     }
 
     // Wallet RPC Methods
@@ -135,6 +155,15 @@ public class RpcService
     {
         m_wallet.unlock(password);
         return true;
+    }
+
+    /**
+     * Lock wallet method.
+     */
+    @JsonRpcMethod("unlockWallet")
+    public void unlockWallet()
+    {
+        m_wallet.lock();
     }
 
     /**
@@ -319,39 +348,6 @@ public class RpcService
     }
 
     /**
-     * Gets the current height of the chain.
-     *
-     * @return the current height of the chain.
-     */
-    @JsonRpcMethod("getBlockchainHeight")
-    public long getBlockchainHeight()
-    {
-        return m_node.getPersistenceService().getChainHead().getHeight();
-    }
-
-    /**
-     * Gets the hash of the block on the tip.
-     *
-     * @return the hash of the block on the tip.
-     */
-    @JsonRpcMethod("getChainHeadHash")
-    public Sha256Hash getChainHeadHash()
-    {
-        return m_node.getPersistenceService().getChainHead().getHash();
-    }
-
-    /**
-     * Gets the number of transactions currently sitting in the transaction pool.
-     *
-     * @return the transaction pool count.
-     */
-    @JsonRpcMethod("getTransactionPoolCount")
-    public long getTransactionPoolCount()
-    {
-        return m_node.getTransactionsPool().getCount();
-    }
-
-    /**
      * Submits a solved block.
      *
      * @return The submitted block.
@@ -373,6 +369,102 @@ public class RpcService
 
         return false;
     }
+
+    // Blockchain methods.
+
+    /**
+     * Returns the number of blocks in the longest blockchain.
+     *
+     * @return The current block count.c
+     */
+    @JsonRpcMethod("getBlockCount")
+    public long getBlockCount()
+    {
+        return m_node.getPersistenceService().getChainHead().getHeight();
+    }
+
+    /**
+     * Returns the hash of the best (tip) block in the longest blockchain.c
+     *
+     * @return the block hash, hex-encoded
+     */
+    @JsonRpcMethod("getBestBlockHash")
+    public Sha256Hash getBestBlockHash()
+    {
+        return m_node.getPersistenceService().getChainHead().getHash();
+    }
+
+    /**
+     * Gets the number of transactions currently sitting in the transaction pool.
+     *
+     * @return the transaction pool count.
+     */
+    @JsonRpcMethod("getTransactionPoolCount")
+    public long getTransactionPoolCount()
+    {
+        return m_node.getTransactionsPool().getCount();
+    }
+
+    /**
+     * Gets the size of the transaction pool in bytes.
+     *
+     * @return Size of the transaction pool in bytes.
+     */
+    @JsonRpcMethod("getTransactionPoolSize")
+    public long getTransactionPoolSize()
+    {
+        return m_node.getTransactionsPool().getSizeInBytes();
+    }
+
+    /**
+     * Gets the block header of the block with the given hash.
+     *
+     * @param hash The HEX encoded hash of the block header.
+     *
+     * @return The block header.
+     */
+    @JsonRpcMethod("getBlockHeader")
+    public BlockHeader getBlockHeader(@JsonRpcParam("hash") String hash)
+    {
+        BlockMetadata metadata = m_node.getPersistenceService().getBlockMetadata(new Sha256Hash(hash));
+
+        if (metadata == null)
+            return null;
+
+        return metadata.getHeader();
+    }
+
+    /**
+     * Gets the block with the given hash.
+     *
+     * @param hash The HEX encoded block.
+     *
+     * @return The block.
+     */
+    @JsonRpcMethod("getBlock")
+    public Block getBlock(@JsonRpcParam("hash") String hash) throws StorageException
+    {
+        BlockMetadata metadata = m_node.getPersistenceService().getBlockMetadata(new Sha256Hash(hash));
+
+        if (metadata == null)
+            return null;
+
+        return m_node.getPersistenceService().getBlock(metadata.getHash());
+    }
+
+    /**
+     * Gets the transaction with the given hash.
+     *
+     * @param hash The HEX encoded transaction id.
+     *
+     * @return The transaction.
+     */
+    @JsonRpcMethod("getTransaction")
+    public Transaction getTransaction(@JsonRpcParam("hash") String hash) throws StorageException
+    {
+        return m_node.getPersistenceService().getTransaction(new Sha256Hash(hash));
+    }
+
 
     // Network RPC methods.
 }

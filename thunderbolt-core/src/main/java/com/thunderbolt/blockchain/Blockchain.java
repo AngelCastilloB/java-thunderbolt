@@ -38,6 +38,7 @@ import com.thunderbolt.transaction.contracts.ITransactionValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
 
@@ -185,6 +186,25 @@ public class Blockchain
     public void addOutputsUpdateListener(IOutputsUpdateListener listener)
     {
         m_committer.addOutputsUpdateListener(listener);
+    }
+
+    /**
+     * Returns the proof-of-work difficulty as a multiple of the minimum difficulty.
+     *
+     * @return the proof-of-work difficulty as a multiple of the minimum difficulty.
+     */
+    public double computeDifficulty(long target)
+    {
+        BigDecimal result = BigDecimal.ZERO;
+        BigDecimal targetDifficulty = BigDecimal.valueOf(target);
+
+        if (targetDifficulty.equals(BigInteger.ZERO))
+            result = BigDecimal.ZERO;
+        else
+            result = new BigDecimal(NetworkParameters.MAIN_NET_MAX_DIFFICULTY)
+                    .divide(targetDifficulty, BigDecimal.ROUND_DOWN);
+
+        return result.doubleValue();
     }
 
     /**
