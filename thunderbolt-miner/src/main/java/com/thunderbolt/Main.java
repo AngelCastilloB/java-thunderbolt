@@ -30,7 +30,6 @@ import com.thunderbolt.mining.miners.CpuMiner;
 import com.thunderbolt.rpc.MinerWork;
 import com.thunderbolt.rpc.RpcClient;
 import com.thunderbolt.security.Sha256Digester;
-import org.apache.http.conn.HttpHostConnectException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,9 +60,9 @@ public class Main
     static NonceRange[]         s_noneRanges    = new NonceRange[]
     {
         new NonceRange(0x00000000L, 0x3FFFFFFFL),
-        new NonceRange(0x40000000L, 0x7FFFFFFEL),
-        new NonceRange(0x7FFFFFFFL, 0xC0000000L),
-        new NonceRange(0xC0000001L, 0xFFFFFFFFL)
+        new NonceRange(0x40000000L, 0x7FFFFFFFL),
+        new NonceRange(0x80000000L, 0xBFFFFFFFL),
+        new NonceRange(0xC0000000L, 0xFFFFFFFFL)
     };
 
     /**
@@ -199,5 +198,6 @@ public class Main
                 .execute();
 
         s_logger.info("Block Accepted: {}", result);
+        s_logger.info("Block Accepted: {}", job.getBlock().getHeader());
     }
 }

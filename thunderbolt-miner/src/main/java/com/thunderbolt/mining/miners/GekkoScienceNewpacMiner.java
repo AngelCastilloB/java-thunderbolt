@@ -267,7 +267,7 @@ public class GekkoScienceNewpacMiner implements IMiner
                             job.getId(),
                             Convert.toHexString(job.getMidstate()),
                             Convert.toHexString(job.getData()),
-                            Convert.padLeft(job.getTarget().toString(), 64, '0'));
+                            job.getTarget().toString());
 
                     byte[] data = new byte[BLOCK_TAIL_SIZE];
                     byte[] midstate = job.getMidstate();

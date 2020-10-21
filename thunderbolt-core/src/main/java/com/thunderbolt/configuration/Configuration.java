@@ -99,7 +99,6 @@ public class Configuration
         }
         catch (FileNotFoundException e)
         {
-            s_logger.info("Config file '{}' not found. A new file with default values will be created.", path);
             // Create file with default values.
 
             Properties props = new Properties();

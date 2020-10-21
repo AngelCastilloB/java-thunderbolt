@@ -114,7 +114,8 @@ public class Difficulty implements Comparable<Difficulty>
     @Override
     public String toString()
     {
-        return Convert.toHexString(m_target.toByteArray()) +" (0x"+new BigInteger(""+ m_compressedTarget).toString(16) +")";
+        return Convert.padLeft(Convert.toHexString(m_target.toByteArray()), 64, '0') +
+                " (0x"+new BigInteger(""+ m_compressedTarget).toString(16) +")";
     }
 
     /**

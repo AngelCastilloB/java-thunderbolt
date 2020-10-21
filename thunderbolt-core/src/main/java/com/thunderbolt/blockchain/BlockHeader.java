@@ -34,6 +34,8 @@ import com.thunderbolt.security.Sha256Hash;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 
 /* IMPLEMENTATION ************************************************************/
@@ -320,14 +322,14 @@ public class BlockHeader implements ISerializable
                 "  \"version\":       %d,     %n" +
                 "  \"parentBlock\":   \"%s\", %n" +
                 "  \"merkleRoot\":    \"%s\", %n" +
-                "  \"timestamp\":     %d,     %n" +
+                "  \"timestamp\":     %s UTC, %n" +
                 "  \"difficulty\":    \"%s\", %n" +
                 "  \"nonce\":         %d      %n}",
                 getHash(),
                 m_version,
                 m_parentBlock,
                 m_markleRoot,
-                m_timeStamp,
+                LocalDateTime.ofEpochSecond(m_timeStamp, 0, ZoneOffset.UTC).toString(),
                 Convert.padLeft(Convert.toHexString(Block.unpackDifficulty(m_bits).toByteArray()), 64, '0'),
                 m_nonce);
     }
