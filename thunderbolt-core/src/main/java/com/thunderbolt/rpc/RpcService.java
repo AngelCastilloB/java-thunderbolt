@@ -113,7 +113,7 @@ public class RpcService
                 "  \"payTxFee\" : %s\n" +
                 "}",
                 NetworkParameters.mainNet().getProtocol(),
-                Convert.stripTrailingZeros(getBalance(null) * FRACTIONAL_COIN_FACTOR),
+                Convert.stripTrailingZeros(getBalance(null)),
                 m_node.getBlockchain().getChainHead().getHeight(),
                 m_node.getPeerManager().peerCount(),
                 m_node.getBlockchain()
@@ -221,7 +221,7 @@ public class RpcService
     {
         if (address == null)
         {
-            return m_wallet.getBalance().longValue();
+            return m_wallet.getBalance().longValue() * FRACTIONAL_COIN_FACTOR;
         }
 
         List<UnspentTransactionOutput> outputs =
@@ -239,15 +239,34 @@ public class RpcService
     }
 
     /**
-     * Gets the specified address balance. If no address is specified. The balance of the current active wallet
-     * is returned.
+     * Gets total coins in circulation.
      *
-     * @param address The address to to get the balance from.
+     * @return The total balance.
+     */
+    @JsonRpcMethod("getTotalBalance")
+    public double getTotalBalance()
+    {
+        List<UnspentTransactionOutput> outputs = m_node.getPersistenceService().getUnspentOutputs();
+
+        BigInteger total = BigInteger.ZERO;
+
+        for (UnspentTransactionOutput item : outputs)
+        {
+            BigInteger value = item.getOutput().getAmount();
+            total = total.add(value);
+        }
+
+        return total.longValue() * FRACTIONAL_COIN_FACTOR;
+    }
+
+    /**
+     * Transfer funds from the current node wallet to the specified address.
      *
-     * @return The balance.
+     * @param address The address to send the funds to.
+     * @param amount The amount to be transferred.
      */
     @JsonRpcMethod("sendToAddress")
-    public boolean sendToAddress(@JsonRpcParam("address") String address, @JsonRpcParam("amount") long amount)
+    public boolean sendToAddress(@JsonRpcParam("address") String address, @JsonRpcParam("amount") double amount)
             throws WalletLockedException, IOException, WalletFundsInsufficientException
     {
         if (!m_wallet.isUnlocked())
@@ -257,7 +276,7 @@ public class RpcService
 
         try
         {
-            transaction = m_wallet.createTransaction((long)(amount / FRACTIONAL_COIN_FACTOR), address);
+            transaction = m_wallet.createTransaction((long)(amount * FRACTIONAL_COIN_FACTOR), address);
         }
         catch(IllegalArgumentException exception)
         {
@@ -647,7 +666,7 @@ public class RpcService
      * @return The banned peers.
      */
     @JsonRpcMethod("listBannedPeers")
-    public List<String> getBannedPeers()
+    public List<String> listBannedPeers()
     {
         List<String> bannedPeers = new ArrayList<>();
 

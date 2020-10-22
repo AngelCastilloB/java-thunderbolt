@@ -54,11 +54,7 @@ public class GetInfoCommand implements ICommand
     @Override
     public boolean execute(String[] args)
     {
-        String result = s_client.createRequest()
-                .method(getName())
-                .id(1)
-                .returnAs(String.class)
-                .execute();
+        String result = s_client.getInfo();
 
         System.out.println(result);
         return true;

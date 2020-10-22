@@ -40,7 +40,7 @@ public class GetUptimeCommand implements ICommand
     private RpcClient s_client = null;
 
     /**
-     * Initializes an instance of the GetInfoCommand class.
+     * Initializes an instance of the GetUptimeCommand class.
      */
     public GetUptimeCommand(RpcClient client)
     {
@@ -55,11 +55,7 @@ public class GetUptimeCommand implements ICommand
     @Override
     public boolean execute(String[] args)
     {
-        TimeSpan result = s_client.createRequest()
-                .method(getName())
-                .id(1)
-                .returnAs(TimeSpan.class)
-                .execute();
+        TimeSpan result = s_client.getUptime();
 
         System.out.println(result.toString());
         return true;

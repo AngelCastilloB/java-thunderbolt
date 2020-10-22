@@ -77,11 +77,7 @@ public class Main
         s_client = new RpcClient(Configuration.getRpcUser(), Configuration.getRpcPassword(),
                 String.format("http://localhost:%s", Configuration.getRpcPort()));
 
-        s_currentHeight = s_client.createRequest()
-                .method("getBlockCount")
-                .id(1)
-                .returnAs(Long.class)
-                .execute();
+        s_currentHeight = s_client.getBlockCount();
 
         s_miner = new CpuMiner();
         s_miner.addJobFinishListener(Main::onJobFinish);
@@ -116,11 +112,7 @@ public class Main
     {
         List<Job> jobs = new ArrayList<>();
 
-        long blockchainTip = s_client.createRequest()
-                .method("getBlockCount")
-                .id(1)
-                .returnAs(Long.class)
-                .execute();
+        long blockchainTip = s_client.getBlockCount();
 
         // If we detect that the tip of the blockchain changed, we need to scrap the old jobs and starting working
         // on the new jobs asap.
@@ -136,11 +128,7 @@ public class Main
 
         s_logger.info("Rescheduling work.");
 
-        MinerWork work = s_client.createRequest()
-                .method("getWork")
-                .id(1)
-                .returnAs(MinerWork.class)
-                .execute();
+        MinerWork work = s_client.getWork();
 
         // Create a new block with the information given by the node.
         Block block = new Block();
@@ -190,12 +178,7 @@ public class Main
 
         job.getBlock().getHeader().setNonce(job.getNonce());
 
-        Boolean result = s_client.createRequest()
-                .method("submitBlock")
-                .id(1)
-                .param("block", job.getBlock())
-                .returnAs(Boolean.class)
-                .execute();
+        Boolean result = s_client.submitBlock(job.getBlock());
 
         s_logger.info("Block Accepted: {}", result);
         s_logger.info("Block Accepted: {}", job.getBlock().getHeader());

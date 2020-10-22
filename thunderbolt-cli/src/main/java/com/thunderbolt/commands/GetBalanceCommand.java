@@ -33,31 +33,43 @@ import com.thunderbolt.rpc.RpcClient;
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Returns the proof-of-work difficulty as a multiple of the minimum difficulty.
+ * Gets the specified address balance. If no address is specified. The balance of the current active wallet
+ * is returned.
  */
-public class GetDifficultyCommand implements ICommand
+public class GetBalanceCommand implements ICommand
 {
     private RpcClient s_client = null;
 
     /**
-     * Initializes an instance of the GetDifficultyCommand class.
+     * Initializes an instance of the GetBalanceCommand class.
      */
-    public GetDifficultyCommand(RpcClient client)
+    public GetBalanceCommand(RpcClient client)
     {
         s_client = client;
     }
 
     /**
-     * Executes the command.
+     * Gets the specified address balance. If no address is specified. The balance of the current active wallet
+     * is returned.
      *
-     * @return true if the command was executed correctly; otherwise; false.
+     * @return The balance.
      */
     @Override
     public boolean execute(String[] args)
     {
-        double result = s_client.getDifficulty();
+        double result = 0;
+
+        if (args.length == 1)
+        {
+            result = s_client.getBalance(null);
+        }
+        else
+        {
+            result = s_client.getBalance(args[1]);
+        }
 
         System.out.println(Convert.stripTrailingZeros(result));
+
         return true;
     }
 
@@ -69,7 +81,7 @@ public class GetDifficultyCommand implements ICommand
     @Override
     public String getName()
     {
-        return "getDifficulty";
+        return "getBalance";
     }
 
     /**
@@ -80,6 +92,8 @@ public class GetDifficultyCommand implements ICommand
     @Override
     public String getDescription()
     {
-        return "  Returns the proof-of-work difficulty as a multiple of the minimum difficulty.";
+        return "  Gets the specified address balance. If no address is specified. The balance of the current active wallet\n" +
+               "  is returned.\n" +
+               "  ARGUMENTS: <ADDRESS optional>";
     }
 }

@@ -26,38 +26,35 @@ package com.thunderbolt.commands;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.common.Convert;
 import com.thunderbolt.contracts.ICommand;
 import com.thunderbolt.rpc.RpcClient;
 
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Returns the proof-of-work difficulty as a multiple of the minimum difficulty.
+ * Locks the wallet.
  */
-public class GetDifficultyCommand implements ICommand
+public class LockWalletCommand implements ICommand
 {
     private RpcClient s_client = null;
 
     /**
-     * Initializes an instance of the GetDifficultyCommand class.
+     * Initializes an instance of the LockWalletCommand class.
      */
-    public GetDifficultyCommand(RpcClient client)
+    public LockWalletCommand(RpcClient client)
     {
         s_client = client;
     }
 
     /**
-     * Executes the command.
+     * Encrypts the wallet.
      *
-     * @return true if the command was executed correctly; otherwise; false.
+     * @return Gets whether the wallet was successfully encrypted or not.
      */
     @Override
     public boolean execute(String[] args)
     {
-        double result = s_client.getDifficulty();
-
-        System.out.println(Convert.stripTrailingZeros(result));
+        s_client.lockWallet();
         return true;
     }
 
@@ -69,7 +66,7 @@ public class GetDifficultyCommand implements ICommand
     @Override
     public String getName()
     {
-        return "getDifficulty";
+        return "lockWallet";
     }
 
     /**
@@ -80,6 +77,6 @@ public class GetDifficultyCommand implements ICommand
     @Override
     public String getDescription()
     {
-        return "  Returns the proof-of-work difficulty as a multiple of the minimum difficulty.";
+        return "  Locks the wallet if it is encrypted.";
     }
 }

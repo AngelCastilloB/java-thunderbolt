@@ -26,38 +26,48 @@ package com.thunderbolt.commands;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.common.Convert;
 import com.thunderbolt.contracts.ICommand;
 import com.thunderbolt.rpc.RpcClient;
 
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Returns the proof-of-work difficulty as a multiple of the minimum difficulty.
+ * Encrypts the wallet.
  */
-public class GetDifficultyCommand implements ICommand
+public class EncryptWalletCommand implements ICommand
 {
     private RpcClient s_client = null;
 
     /**
-     * Initializes an instance of the GetDifficultyCommand class.
+     * Initializes an instance of the EncryptWalletCommand class.
      */
-    public GetDifficultyCommand(RpcClient client)
+    public EncryptWalletCommand(RpcClient client)
     {
         s_client = client;
     }
 
     /**
-     * Executes the command.
+     * Encrypts the wallet.
      *
-     * @return true if the command was executed correctly; otherwise; false.
+     * @return Gets whether the wallet was successfully encrypted or not.
      */
     @Override
     public boolean execute(String[] args)
     {
-        double result = s_client.getDifficulty();
+        if (args.length != 2)
+            return false;
 
-        System.out.println(Convert.stripTrailingZeros(result));
+        boolean result = s_client.encryptWallet(args[1]);
+
+        if (result)
+        {
+            System.out.println("Wallet encrypted.");
+        }
+        else
+        {
+            System.out.println("Wallet could not be encrypted. Please refer to the node logs for more information.");
+        }
+
         return true;
     }
 
@@ -69,7 +79,7 @@ public class GetDifficultyCommand implements ICommand
     @Override
     public String getName()
     {
-        return "getDifficulty";
+        return "encryptWallet";
     }
 
     /**
@@ -80,6 +90,7 @@ public class GetDifficultyCommand implements ICommand
     @Override
     public String getDescription()
     {
-        return "  Returns the proof-of-work difficulty as a multiple of the minimum difficulty.";
+        return "  Encrypts the wallet with 'passphrase'. This is for first time encryption.\n" +
+               "  ARGUMENTS: <PASSPHRASE>.";
     }
 }

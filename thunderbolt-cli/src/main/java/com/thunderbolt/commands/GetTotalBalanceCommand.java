@@ -33,29 +33,29 @@ import com.thunderbolt.rpc.RpcClient;
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Returns the proof-of-work difficulty as a multiple of the minimum difficulty.
+ * Gets the amount of coins in circulation.
  */
-public class GetDifficultyCommand implements ICommand
+public class GetTotalBalanceCommand implements ICommand
 {
     private RpcClient s_client = null;
 
     /**
-     * Initializes an instance of the GetDifficultyCommand class.
+     * Initializes an instance of the GetTotalBalanceCommand class.
      */
-    public GetDifficultyCommand(RpcClient client)
+    public GetTotalBalanceCommand(RpcClient client)
     {
         s_client = client;
     }
 
     /**
-     * Executes the command.
+     * Gets the amount of coins in circulation.
      *
-     * @return true if the command was executed correctly; otherwise; false.
+     * @return The balance.
      */
     @Override
     public boolean execute(String[] args)
     {
-        double result = s_client.getDifficulty();
+        double result = s_client.getTotalBalance();
 
         System.out.println(Convert.stripTrailingZeros(result));
         return true;
@@ -69,7 +69,7 @@ public class GetDifficultyCommand implements ICommand
     @Override
     public String getName()
     {
-        return "getDifficulty";
+        return "getTotalBalance";
     }
 
     /**
@@ -80,6 +80,6 @@ public class GetDifficultyCommand implements ICommand
     @Override
     public String getDescription()
     {
-        return "  Returns the proof-of-work difficulty as a multiple of the minimum difficulty.";
+        return "  Gets the amount of coins in circulation (spendable).";
     }
 }

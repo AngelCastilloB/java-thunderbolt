@@ -120,6 +120,13 @@ public interface IMetadataProvider
     UnspentTransactionOutput getUnspentOutput(Sha256Hash id, int index);
 
     /**
+     * Gets all the unspent outputs.
+     *
+     * @return An array with all the unspent outputs.
+     */
+    List<UnspentTransactionOutput> getUnspentOutputs();
+
+    /**
      * Gets all the unspent outputs of a given public key.
      *
      * @param address The address of the wallet to get the unspent outputs for.

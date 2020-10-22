@@ -26,38 +26,35 @@ package com.thunderbolt.commands;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.common.Convert;
 import com.thunderbolt.contracts.ICommand;
 import com.thunderbolt.rpc.RpcClient;
 
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Returns the proof-of-work difficulty as a multiple of the minimum difficulty.
+ * Gets the address of the wallet.
  */
-public class GetDifficultyCommand implements ICommand
+public class GetAddressCommand implements ICommand
 {
     private RpcClient s_client = null;
 
     /**
-     * Initializes an instance of the GetDifficultyCommand class.
+     * Initializes an instance of the GetAddressCommand class.
      */
-    public GetDifficultyCommand(RpcClient client)
+    public GetAddressCommand(RpcClient client)
     {
         s_client = client;
     }
 
     /**
-     * Executes the command.
+     * Gets the address of the wallet.
      *
-     * @return true if the command was executed correctly; otherwise; false.
+     * @return true if the command was successful; otherwise; false.
      */
     @Override
     public boolean execute(String[] args)
     {
-        double result = s_client.getDifficulty();
-
-        System.out.println(Convert.stripTrailingZeros(result));
+        System.out.println(s_client.getAddress());
         return true;
     }
 
@@ -69,7 +66,7 @@ public class GetDifficultyCommand implements ICommand
     @Override
     public String getName()
     {
-        return "getDifficulty";
+        return "getAddress";
     }
 
     /**
@@ -80,6 +77,6 @@ public class GetDifficultyCommand implements ICommand
     @Override
     public String getDescription()
     {
-        return "  Returns the proof-of-work difficulty as a multiple of the minimum difficulty.";
+        return "  Gets the address of the wallet.";
     }
 }

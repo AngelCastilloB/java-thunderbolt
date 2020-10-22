@@ -54,10 +54,7 @@ public class StopCommand implements ICommand
     @Override
     public boolean execute(String[] args)
     {
-        s_client.createRequest()
-                .method(getName())
-                .id(1)
-                .executeNullable();
+        s_client.stop();
 
         System.out.println("Node shutting down.");
         return true;

@@ -33,31 +33,35 @@ import com.thunderbolt.rpc.RpcClient;
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Returns the proof-of-work difficulty as a multiple of the minimum difficulty.
+ * Gets the public private of the wallet.
  */
-public class GetDifficultyCommand implements ICommand
+public class GetPrivateKeyCommand implements ICommand
 {
     private RpcClient s_client = null;
 
     /**
-     * Initializes an instance of the GetDifficultyCommand class.
+     * Initializes an instance of the GetPrivateKeyCommand class.
      */
-    public GetDifficultyCommand(RpcClient client)
+    public GetPrivateKeyCommand(RpcClient client)
     {
         s_client = client;
     }
 
     /**
-     * Executes the command.
+     * Gets the private key of the wallet.
      *
-     * @return true if the command was executed correctly; otherwise; false.
+     * @return true if the wallet was unlocked; otherwise; false.
      */
     @Override
     public boolean execute(String[] args)
     {
-        double result = s_client.getDifficulty();
+        if (!s_client.isWalletUnlocked())
+        {
+            System.out.println("Wallet is locked. Please unlocked it first.");
+            return true;
+        }
 
-        System.out.println(Convert.stripTrailingZeros(result));
+        System.out.println(Convert.toHexString(s_client.getPrivateKey()));
         return true;
     }
 
@@ -69,7 +73,7 @@ public class GetDifficultyCommand implements ICommand
     @Override
     public String getName()
     {
-        return "getDifficulty";
+        return "getPrivateKey";
     }
 
     /**
@@ -80,6 +84,6 @@ public class GetDifficultyCommand implements ICommand
     @Override
     public String getDescription()
     {
-        return "  Returns the proof-of-work difficulty as a multiple of the minimum difficulty.";
+        return "  Gets the private key of the wallet.";
     }
 }

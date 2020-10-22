@@ -349,6 +349,17 @@ public class StandardPersistenceService implements IPersistenceService
     }
 
     /**
+     * Gets all the unspent outputs.
+     *
+     * @return An array with all the unspent outputs.
+     */
+    @Override
+    public List<UnspentTransactionOutput> getUnspentOutputs()
+    {
+        return m_metadataProvider.getUnspentOutputs();
+    }
+
+    /**
      * Removes the unspent output transaction from the metadata provider.
      *
      * @param id    The id of the transaction that contains the unspent output.

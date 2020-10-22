@@ -151,6 +151,13 @@ public interface IPersistenceService
     List<UnspentTransactionOutput> getUnspentOutputsForAddress(Address address) throws StorageException;
 
     /**
+     * Gets all the unspent outputs.
+     *
+     * @return An array with all the unspent outputs.
+     */
+    List<UnspentTransactionOutput> getUnspentOutputs();
+
+    /**
      * Adds the given unspent output to the database.
      *
      * @param output The unspent output to store in the system.

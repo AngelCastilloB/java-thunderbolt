@@ -410,7 +410,6 @@ public class Transaction implements ISerializable
 
         stringBuilder.append("  \"outputs\":");
         stringBuilder.append(Convert.toJsonArrayLikeString(m_outputs, firstLevelTabs));
-        stringBuilder.append(",");
         stringBuilder.append(System.lineSeparator());
         stringBuilder.append("}");
 

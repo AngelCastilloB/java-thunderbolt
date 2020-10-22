@@ -26,38 +26,42 @@ package com.thunderbolt.commands;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.common.Convert;
 import com.thunderbolt.contracts.ICommand;
 import com.thunderbolt.rpc.RpcClient;
+import com.thunderbolt.transaction.Transaction;
+
+import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Returns the proof-of-work difficulty as a multiple of the minimum difficulty.
+ * Gets all the pending transactions related to the current wallet.
  */
-public class GetDifficultyCommand implements ICommand
+public class GetPendingTransactionsCommand implements ICommand
 {
     private RpcClient s_client = null;
 
     /**
-     * Initializes an instance of the GetDifficultyCommand class.
+     * Initializes an instance of the GetPendingTransactionsCommand class.
      */
-    public GetDifficultyCommand(RpcClient client)
+    public GetPendingTransactionsCommand(RpcClient client)
     {
         s_client = client;
     }
 
     /**
-     * Executes the command.
+     * Gets all the pending transactions related to the current wallet.
      *
-     * @return true if the command was executed correctly; otherwise; false.
+     * @return true if the command was successful; otherwise; false.
      */
     @Override
     public boolean execute(String[] args)
     {
-        double result = s_client.getDifficulty();
+        List<Transaction> transactions = s_client.getPendingTransactions();
 
-        System.out.println(Convert.stripTrailingZeros(result));
+        for (Transaction transaction: transactions)
+            System.out.println(transaction);
+
         return true;
     }
 
@@ -69,7 +73,7 @@ public class GetDifficultyCommand implements ICommand
     @Override
     public String getName()
     {
-        return "getDifficulty";
+        return "getPendingTransactions";
     }
 
     /**
@@ -80,6 +84,6 @@ public class GetDifficultyCommand implements ICommand
     @Override
     public String getDescription()
     {
-        return "  Returns the proof-of-work difficulty as a multiple of the minimum difficulty.";
+        return "  Gets all the pending transactions related to the node wallet.";
     }
 }

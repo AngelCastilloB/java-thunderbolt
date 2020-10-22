@@ -284,6 +284,16 @@ public class LevelDbMetadataProvider implements IMetadataProvider
     }
 
     /**
+     * Gets all the unspent outputs.
+     *
+     * @return An array with all the unspent outputs.
+     */
+    public List<UnspentTransactionOutput> getUnspentOutputs()
+    {
+        return new ArrayList<>(m_utxoCache.values());
+    }
+
+    /**
      * Gets all the unspent outputs of a given public key.
      *
      * @param address The address of the wallet to get the unspent outputs for.

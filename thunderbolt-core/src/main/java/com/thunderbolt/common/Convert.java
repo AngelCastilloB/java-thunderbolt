@@ -59,6 +59,28 @@ public class Convert
     }
 
     /**
+     * Return the given byte array encoded as a hex string.
+     *
+     * @param bytes The data to be encoded.
+     *
+     * @return The encoded string
+     */
+    public static String toHexString(Byte[] bytes)
+    {
+        char[] hexChars = new char[bytes.length * 2];
+
+        for (int i = 0; i < bytes.length; ++i)
+        {
+            int value = bytes[i] & 0xFF;
+
+            hexChars[i * 2]     = HEX_ARRAY[value >>> 4];
+            hexChars[i * 2 + 1] = HEX_ARRAY[value & 0x0F];
+        }
+
+        return new String(hexChars);
+    }
+
+    /**
      * Converts a hex string to byte array.
      *
      * @param hex The hex string.

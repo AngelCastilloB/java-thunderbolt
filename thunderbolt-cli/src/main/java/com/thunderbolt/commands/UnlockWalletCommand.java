@@ -26,38 +26,48 @@ package com.thunderbolt.commands;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.common.Convert;
 import com.thunderbolt.contracts.ICommand;
 import com.thunderbolt.rpc.RpcClient;
 
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Returns the proof-of-work difficulty as a multiple of the minimum difficulty.
+ * Unlock wallet method.
  */
-public class GetDifficultyCommand implements ICommand
+public class UnlockWalletCommand implements ICommand
 {
     private RpcClient s_client = null;
 
     /**
-     * Initializes an instance of the GetDifficultyCommand class.
+     * Initializes an instance of the UnlockWalletCommand class.
      */
-    public GetDifficultyCommand(RpcClient client)
+    public UnlockWalletCommand(RpcClient client)
     {
         s_client = client;
     }
 
     /**
-     * Executes the command.
+     * Unlock wallet method.
      *
-     * @return true if the command was executed correctly; otherwise; false.
+     * @return true if the wallet was unlocked; otherwise; false.
      */
     @Override
     public boolean execute(String[] args)
     {
-        double result = s_client.getDifficulty();
+        if (args.length != 2)
+            return false;
 
-        System.out.println(Convert.stripTrailingZeros(result));
+        boolean result = s_client.unlockWallet(args[1]);
+
+        if (result)
+        {
+            System.out.println("Wallet unlocked.");
+        }
+        else
+        {
+            System.out.println("Wallet could not be unlocked. Please refer to the node logs for more information.");
+        }
+
         return true;
     }
 
@@ -69,7 +79,7 @@ public class GetDifficultyCommand implements ICommand
     @Override
     public String getName()
     {
-        return "getDifficulty";
+        return "unlockWallet";
     }
 
     /**
@@ -80,6 +90,7 @@ public class GetDifficultyCommand implements ICommand
     @Override
     public String getDescription()
     {
-        return "  Returns the proof-of-work difficulty as a multiple of the minimum difficulty.";
+        return "  Unlocks the wallet if it is encrypted.\n" +
+               "  ARGUMENTS: <PASSPHRASE>";
     }
 }

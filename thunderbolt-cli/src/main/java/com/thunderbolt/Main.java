@@ -26,14 +26,12 @@ package com.thunderbolt;
 
 /* IMPORTS *******************************************************************/
 
-import com.google.inject.internal.util.Stopwatch;
 import com.thunderbolt.commands.*;
 import com.thunderbolt.configuration.Configuration;
 import com.thunderbolt.contracts.ICommand;
 import com.thunderbolt.rpc.RpcClient;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -64,6 +62,20 @@ public class Main
             CommandFactory.register(GetDifficultyCommand.class);
             CommandFactory.register(StopCommand.class);
             CommandFactory.register(GetUptimeCommand.class);
+            CommandFactory.register(EncryptWalletCommand.class);
+            CommandFactory.register(LockWalletCommand.class);
+            CommandFactory.register(UnlockWalletCommand.class);
+            CommandFactory.register(GetIsWalletEncryptedCommand.class);
+            CommandFactory.register(GetIsWalletUnlockedCommand.class);
+            CommandFactory.register(GetBalanceCommand.class);
+            CommandFactory.register(GetTotalBalanceCommand.class);
+            CommandFactory.register(SendToAddressCommand.class);
+            CommandFactory.register(GetConfirmedTransactionsCommand.class);
+            CommandFactory.register(GetPendingTransactionsCommand.class);
+            CommandFactory.register(GetPublicKeyCommand.class);
+            CommandFactory.register(GetPrivateKeyCommand.class);
+            CommandFactory.register(BackupWalletCommand.class);
+            CommandFactory.register(GetAddressCommand.class);
         }
         catch (IOException exception)
         {
