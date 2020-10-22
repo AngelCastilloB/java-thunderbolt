@@ -22,33 +22,74 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.contracts;
+package com.thunderbolt.commands;
 
-/* DECLARATION ************************************************************/
+/* IMPORTS *******************************************************************/
+
+import com.thunderbolt.contracts.ICommand;
+import com.thunderbolt.rpc.RpcClient;
+
+import java.util.List;
+
+/* IMPLEMENTATION ************************************************************/
 
 /**
- * Base interface for all commands.
+ * Gets a list of all banned peers.
  */
-public interface ICommand
+public class ListBannedPeersCommand implements ICommand
 {
+    private RpcClient s_client = null;
+
+    /**
+     * Initializes an instance of the ListBannedPeersCommand class.
+     */
+    public ListBannedPeersCommand(RpcClient client)
+    {
+        s_client = client;
+    }
+
     /**
      * Executes the given command.
      *
      * @return true if the command could be executed; otherwise; false.
      */
-    boolean execute(String[] args);
+    @Override
+    public boolean execute(String[] args)
+    {
+        List<String> peers = s_client.listBannedPeers();
+
+        if (peers.size() > 0)
+        {
+            for (String peer: peers)
+                System.out.println(peer);
+        }
+        else
+        {
+            System.out.println("No peers are currently banned.");
+        }
+
+        return true;
+    }
 
     /**
      * Gets the name of the command.
      *
      * @return the name of the command.
      */
-    String getName();
+    @Override
+    public String getName()
+    {
+        return "listBannedPeers";
+    }
 
     /**
      * Gets the description of the command.
      *
      * @return the description of the command.
      */
-    String getDescription();
+    @Override
+    public String getDescription()
+    {
+        return "  Gets all banned peers.";
+    }
 }

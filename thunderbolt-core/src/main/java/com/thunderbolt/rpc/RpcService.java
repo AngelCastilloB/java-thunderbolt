@@ -426,7 +426,7 @@ public class RpcService
     /**
      * Returns the number of blocks in the longest blockchain.
      *
-     * @return The current block count.c
+     * @return The current block count.
      */
     @JsonRpcMethod("getBlockCount")
     public long getBlockCount()
@@ -435,7 +435,7 @@ public class RpcService
     }
 
     /**
-     * Returns the hash of the best (tip) block in the longest blockchain.c
+     * Returns the hash of the best (tip) block in the longest blockchain.
      *
      * @return the block hash, hex-encoded
      */
@@ -526,13 +526,15 @@ public class RpcService
     @JsonRpcMethod("getNetworkAddress")
     public String getNetworkAddress()
     {
+        if (m_node.getPublicAddress() == null)
+            return "Unknown.";
+
         return String.format("%s:%s", m_node.getPublicAddress().getAddress().toString(),
                 m_node.getPublicAddress().getPort());
     }
 
     /**
-     * Adds a new address to the pool. If the pool previously contained the address,
-     * the old value is replaced by the specified value.
+     * Adds a new address to the pool.
      *
      * @param url The URI of the network address.
      *
@@ -562,7 +564,7 @@ public class RpcService
      * @param url The URI of the network address.
      */
     @JsonRpcMethod("removePeer")
-    public boolean removeNode(@JsonRpcParam("url") String url) throws UnknownHostException
+    public boolean removePeer(@JsonRpcParam("url") String url) throws UnknownHostException
     {
         try
         {

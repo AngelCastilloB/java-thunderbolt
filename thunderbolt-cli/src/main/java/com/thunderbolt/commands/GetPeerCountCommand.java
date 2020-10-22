@@ -22,33 +22,62 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.contracts;
+package com.thunderbolt.commands;
 
-/* DECLARATION ************************************************************/
+/* IMPORTS *******************************************************************/
+
+import com.thunderbolt.contracts.ICommand;
+import com.thunderbolt.rpc.RpcClient;
+
+/* IMPLEMENTATION ************************************************************/
 
 /**
- * Base interface for all commands.
+ * Gets the amount of peers currently connected.
  */
-public interface ICommand
+public class GetPeerCountCommand implements ICommand
 {
+    private RpcClient s_client = null;
+
+    /**
+     * Initializes an instance of the GetPeerCountCommand class.
+     */
+    public GetPeerCountCommand(RpcClient client)
+    {
+        s_client = client;
+    }
+
     /**
      * Executes the given command.
      *
      * @return true if the command could be executed; otherwise; false.
      */
-    boolean execute(String[] args);
+    @Override
+    public boolean execute(String[] args)
+    {
+        long result = s_client.getPeerCount();
+        System.out.println(result);
+        return true;
+    }
 
     /**
      * Gets the name of the command.
      *
      * @return the name of the command.
      */
-    String getName();
+    @Override
+    public String getName()
+    {
+        return "getPeerCount";
+    }
 
     /**
      * Gets the description of the command.
      *
      * @return the description of the command.
      */
-    String getDescription();
+    @Override
+    public String getDescription()
+    {
+        return "  The number of peers connected to this node.";
+    }
 }

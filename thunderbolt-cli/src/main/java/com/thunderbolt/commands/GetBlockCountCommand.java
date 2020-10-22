@@ -22,33 +22,62 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.contracts;
+package com.thunderbolt.commands;
 
-/* DECLARATION ************************************************************/
+/* IMPORTS *******************************************************************/
+
+import com.thunderbolt.contracts.ICommand;
+import com.thunderbolt.rpc.RpcClient;
+
+/* IMPLEMENTATION ************************************************************/
 
 /**
- * Base interface for all commands.
+ * Returns the number of blocks in the longest blockchain.
  */
-public interface ICommand
+public class GetBlockCountCommand implements ICommand
 {
+    private RpcClient s_client = null;
+
     /**
-     * Executes the given command.
-     *
-     * @return true if the command could be executed; otherwise; false.
+     * Initializes an instance of the GetBlockCountCommand class.
      */
-    boolean execute(String[] args);
+    public GetBlockCountCommand(RpcClient client)
+    {
+        s_client = client;
+    }
+
+    /**
+     * Returns the number of blocks in the longest blockchain.
+     *
+     * @return The block count.
+     */
+    @Override
+    public boolean execute(String[] args)
+    {
+        long result = s_client.getBlockCount();
+        System.out.println(result);
+        return true;
+    }
 
     /**
      * Gets the name of the command.
      *
      * @return the name of the command.
      */
-    String getName();
+    @Override
+    public String getName()
+    {
+        return "getBlockCount";
+    }
 
     /**
      * Gets the description of the command.
      *
      * @return the description of the command.
      */
-    String getDescription();
+    @Override
+    public String getDescription()
+    {
+        return "  Returns the number of blocks in the longest blockchain.";
+    }
 }

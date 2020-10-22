@@ -76,6 +76,23 @@ public class Main
             CommandFactory.register(GetPrivateKeyCommand.class);
             CommandFactory.register(BackupWalletCommand.class);
             CommandFactory.register(GetAddressCommand.class);
+            CommandFactory.register(GetBlockCountCommand.class);
+            CommandFactory.register(GetBlockHashCommand.class);
+            CommandFactory.register(GetTransactionPoolCountCommand.class);
+            CommandFactory.register(GetTransactionPoolSizeCommand.class);
+            CommandFactory.register(GetBlockHeaderCommand.class);
+            CommandFactory.register(GetBlockCommand.class);
+            CommandFactory.register(GetTransactionCommand.class);
+            CommandFactory.register(GetNetworkAddressCommand.class);
+            CommandFactory.register(AddPeerCommand.class);
+            CommandFactory.register(RemovePeerCommand.class);
+            CommandFactory.register(DisconnectPeerCommand.class);
+            CommandFactory.register(BanPeerCommand.class);
+            CommandFactory.register(UnbanPeerCommand.class);
+            CommandFactory.register(ListBannedPeersCommand.class);
+            CommandFactory.register(GetPeerCountCommand.class);
+            CommandFactory.register(GetPeerInfoCommand.class);
+            CommandFactory.register(ListConnectedPeersCommand.class);
         }
         catch (IOException exception)
         {

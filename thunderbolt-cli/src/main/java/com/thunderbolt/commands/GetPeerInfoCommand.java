@@ -22,33 +22,66 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.contracts;
+package com.thunderbolt.commands;
 
-/* DECLARATION ************************************************************/
+/* IMPORTS *******************************************************************/
+
+import com.thunderbolt.contracts.ICommand;
+import com.thunderbolt.rpc.RpcClient;
+
+/* IMPLEMENTATION ************************************************************/
 
 /**
- * Base interface for all commands.
+ * Gets all the information regarding a peer.
  */
-public interface ICommand
+public class GetPeerInfoCommand implements ICommand
 {
+    private RpcClient s_client = null;
+
+    /**
+     * Initializes an instance of the GetPeerInfoCommand class.
+     */
+    public GetPeerInfoCommand(RpcClient client)
+    {
+        s_client = client;
+    }
+
     /**
      * Executes the given command.
      *
      * @return true if the command could be executed; otherwise; false.
      */
-    boolean execute(String[] args);
+    @Override
+    public boolean execute(String[] args)
+    {
+        if (args.length != 2)
+            return false;
+
+        System.out.println(s_client.getPeerInfo(args[1]));
+
+        return true;
+    }
 
     /**
      * Gets the name of the command.
      *
      * @return the name of the command.
      */
-    String getName();
+    @Override
+    public String getName()
+    {
+        return "getPeerInfo";
+    }
 
     /**
      * Gets the description of the command.
      *
      * @return the description of the command.
      */
-    String getDescription();
+    @Override
+    public String getDescription()
+    {
+        return "  Gets all the information regarding a peer.\n" +
+               "  ARGUMENTS: <NETWORK_ADDRESS>";
+    }
 }

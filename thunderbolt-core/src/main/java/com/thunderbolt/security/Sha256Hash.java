@@ -51,7 +51,7 @@ public class Sha256Hash
      */
     public Sha256Hash(String hash)
     {
-        if (hash.length() != 32)
+        if (hash.length() != 64)
             throw new IllegalArgumentException("Hash must be 32 bytes long.");
 
         m_data = Convert.hexStringToByteArray(hash);

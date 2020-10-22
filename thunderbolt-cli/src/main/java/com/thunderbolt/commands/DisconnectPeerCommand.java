@@ -22,33 +22,75 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.contracts;
+package com.thunderbolt.commands;
 
-/* DECLARATION ************************************************************/
+/* IMPORTS *******************************************************************/
+
+import com.thunderbolt.contracts.ICommand;
+import com.thunderbolt.rpc.RpcClient;
+
+/* IMPLEMENTATION ************************************************************/
 
 /**
- * Base interface for all commands.
+ * Disconnects a currently connect peer from the node.
  */
-public interface ICommand
+public class DisconnectPeerCommand implements ICommand
 {
+    private RpcClient s_client = null;
+
+    /**
+     * Initializes an instance of the DisconnectPeerCommand class.
+     */
+    public DisconnectPeerCommand(RpcClient client)
+    {
+        s_client = client;
+    }
+
     /**
      * Executes the given command.
      *
      * @return true if the command could be executed; otherwise; false.
      */
-    boolean execute(String[] args);
+    @Override
+    public boolean execute(String[] args)
+    {
+        if (args.length != 2)
+            return false;
+
+        boolean added = s_client.disconnectPeer(args[1]);
+
+        if (added)
+        {
+            System.out.printf("Peer at %s disconnected.", args[1]);
+        }
+        else
+        {
+            System.out.printf("The Peer at %s was not connected to the node.", args[1]);
+        }
+
+        return true;
+    }
 
     /**
      * Gets the name of the command.
      *
      * @return the name of the command.
      */
-    String getName();
+    @Override
+    public String getName()
+    {
+        return "disconnectPeer";
+    }
 
     /**
      * Gets the description of the command.
      *
      * @return the description of the command.
      */
-    String getDescription();
+    @Override
+    public String getDescription()
+    {
+        return "  Disconnects a currently connect peer from the node.\n" +
+               "  ARGUMENTS: <NETWORK_ADDRESS>";
+    }
 }

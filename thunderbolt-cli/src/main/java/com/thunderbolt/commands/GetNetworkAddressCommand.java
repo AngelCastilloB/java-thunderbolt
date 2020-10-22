@@ -22,33 +22,62 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.contracts;
+package com.thunderbolt.commands;
 
-/* DECLARATION ************************************************************/
+/* IMPORTS *******************************************************************/
+
+import com.thunderbolt.blockchain.BlockHeader;
+import com.thunderbolt.contracts.ICommand;
+import com.thunderbolt.rpc.RpcClient;
+
+/* IMPLEMENTATION ************************************************************/
 
 /**
- * Base interface for all commands.
+ * Gets out current public address.
  */
-public interface ICommand
+public class GetNetworkAddressCommand implements ICommand
 {
+    private RpcClient s_client = null;
+
+    /**
+     * Initializes an instance of the GetNetworkAddressCommand class.
+     */
+    public GetNetworkAddressCommand(RpcClient client)
+    {
+        s_client = client;
+    }
+
     /**
      * Executes the given command.
      *
      * @return true if the command could be executed; otherwise; false.
      */
-    boolean execute(String[] args);
+    @Override
+    public boolean execute(String[] args)
+    {
+        System.out.printf(s_client.getNetworkAddress());
+        return true;
+    }
 
     /**
      * Gets the name of the command.
      *
      * @return the name of the command.
      */
-    String getName();
+    @Override
+    public String getName()
+    {
+        return "getNetworkAddress";
+    }
 
     /**
      * Gets the description of the command.
      *
      * @return the description of the command.
      */
-    String getDescription();
+    @Override
+    public String getDescription()
+    {
+        return "  Gets out current public address.";
+    }
 }

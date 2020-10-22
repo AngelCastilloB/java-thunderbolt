@@ -22,33 +22,62 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.contracts;
+package com.thunderbolt.commands;
 
-/* DECLARATION ************************************************************/
+/* IMPORTS *******************************************************************/
+
+import com.thunderbolt.contracts.ICommand;
+import com.thunderbolt.rpc.RpcClient;
+
+/* IMPLEMENTATION ************************************************************/
 
 /**
- * Base interface for all commands.
+ * Gets the size of the transaction pool in bytes.
  */
-public interface ICommand
+public class GetTransactionPoolSizeCommand implements ICommand
 {
+    private RpcClient s_client = null;
+
     /**
-     * Executes the given command.
-     *
-     * @return true if the command could be executed; otherwise; false.
+     * Initializes an instance of the GetTransactionPoolSizeCommand class.
      */
-    boolean execute(String[] args);
+    public GetTransactionPoolSizeCommand(RpcClient client)
+    {
+        s_client = client;
+    }
+
+    /**
+     * Gets the size of the transaction pool in bytes.
+     *
+     * @return The transaction count.
+     */
+    @Override
+    public boolean execute(String[] args)
+    {
+        long result = s_client.getTransactionPoolSize();
+        System.out.printf("%s bytes", result);
+        return true;
+    }
 
     /**
      * Gets the name of the command.
      *
      * @return the name of the command.
      */
-    String getName();
+    @Override
+    public String getName()
+    {
+        return "getTransactionPoolSize";
+    }
 
     /**
      * Gets the description of the command.
      *
      * @return the description of the command.
      */
-    String getDescription();
+    @Override
+    public String getDescription()
+    {
+        return "  Gets the size of the transaction pool in bytes.";
+    }
 }

@@ -22,33 +22,62 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.contracts;
+package com.thunderbolt.commands;
 
-/* DECLARATION ************************************************************/
+/* IMPORTS *******************************************************************/
+
+import com.thunderbolt.contracts.ICommand;
+import com.thunderbolt.rpc.RpcClient;
+
+/* IMPLEMENTATION ************************************************************/
 
 /**
- * Base interface for all commands.
+ * Gets the number of transactions currently sitting in the transaction pool.
  */
-public interface ICommand
+public class GetTransactionPoolCountCommand implements ICommand
 {
+    private RpcClient s_client = null;
+
     /**
-     * Executes the given command.
-     *
-     * @return true if the command could be executed; otherwise; false.
+     * Initializes an instance of the GetTransactionPoolCountCommand class.
      */
-    boolean execute(String[] args);
+    public GetTransactionPoolCountCommand(RpcClient client)
+    {
+        s_client = client;
+    }
+
+    /**
+     * Gets the number of transactions currently sitting in the transaction pool.
+     *
+     * @return The transaction count.
+     */
+    @Override
+    public boolean execute(String[] args)
+    {
+        long result = s_client.getTransactionPoolCount();
+        System.out.println(result);
+        return true;
+    }
 
     /**
      * Gets the name of the command.
      *
      * @return the name of the command.
      */
-    String getName();
+    @Override
+    public String getName()
+    {
+        return "getTransactionPoolCount";
+    }
 
     /**
      * Gets the description of the command.
      *
      * @return the description of the command.
      */
-    String getDescription();
+    @Override
+    public String getDescription()
+    {
+        return "  Gets the number of transactions currently sitting in the transaction pool.";
+    }
 }

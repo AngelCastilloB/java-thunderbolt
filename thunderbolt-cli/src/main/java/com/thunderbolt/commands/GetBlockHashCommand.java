@@ -22,33 +22,61 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.contracts;
+package com.thunderbolt.commands;
 
-/* DECLARATION ************************************************************/
+/* IMPORTS *******************************************************************/
+
+import com.thunderbolt.contracts.ICommand;
+import com.thunderbolt.rpc.RpcClient;
+
+/* IMPLEMENTATION ************************************************************/
 
 /**
- * Base interface for all commands.
+ * Returns the hash of the best (tip) block in the longest blockchain.
  */
-public interface ICommand
+public class GetBlockHashCommand implements ICommand
 {
+    private RpcClient s_client = null;
+
     /**
-     * Executes the given command.
-     *
-     * @return true if the command could be executed; otherwise; false.
+     * Initializes an instance of the GetBlockHashCommand class.
      */
-    boolean execute(String[] args);
+    public GetBlockHashCommand(RpcClient client)
+    {
+        s_client = client;
+    }
+
+    /**
+     * Returns the hash of the best (tip) block in the longest blockchain.
+     *
+     * @return The block hash.
+     */
+    @Override
+    public boolean execute(String[] args)
+    {
+        System.out.println(s_client.getBestBlockHash());
+        return true;
+    }
 
     /**
      * Gets the name of the command.
      *
      * @return the name of the command.
      */
-    String getName();
+    @Override
+    public String getName()
+    {
+        return "getBestBlockHash";
+    }
 
     /**
      * Gets the description of the command.
      *
      * @return the description of the command.
      */
-    String getDescription();
+    @Override
+    public String getDescription()
+    {
+        return "  Returns the hash of the best (tip) block in the longest blockchain.";
+    }
 }

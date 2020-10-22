@@ -176,11 +176,12 @@ public class Main
         if (job.isSolved())
             s_miner.cancelAllJobs();
 
-        job.getBlock().getHeader().setNonce(job.getNonce());
+        job.getBlock().getHeader().setNonce(Integer.reverseBytes(job.getNonce()));
 
         Boolean result = s_client.submitBlock(job.getBlock());
 
         s_logger.info("Block Accepted: {}", result);
-        s_logger.info("Block Accepted: {}", job.getBlock().getHeader());
+        s_logger.info("Block: {}", job.getBlock().getHeader());
+        s_logger.info("Hash: {}", job.getBlock().getHeader().getHash());
     }
 }

@@ -547,7 +547,7 @@ public class RpcClient
      *
      * @param url The URI of the network address.
      */
-    public boolean removeNode(String url)
+    public boolean removePeer(String url)
     {
         return m_client.createRequest()
                 .method("removePeer")
@@ -581,7 +581,7 @@ public class RpcClient
      *
      * @return true if the peer was banned; otherwise; false.
      */
-    public boolean banPeer(String url) throws UnknownHostException
+    public boolean banPeer(String url)
     {
         return m_client.createRequest()
                 .method("banPeer")

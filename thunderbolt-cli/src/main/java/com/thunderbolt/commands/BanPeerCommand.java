@@ -22,33 +22,76 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.contracts;
+package com.thunderbolt.commands;
 
-/* DECLARATION ************************************************************/
+/* IMPORTS *******************************************************************/
+
+import com.thunderbolt.contracts.ICommand;
+import com.thunderbolt.rpc.RpcClient;
+
+/* IMPLEMENTATION ************************************************************/
 
 /**
- * Base interface for all commands.
+ * Bans a peer for 24 hours.
  */
-public interface ICommand
+public class BanPeerCommand implements ICommand
 {
+    private RpcClient s_client = null;
+
+    /**
+     * Initializes an instance of the BanPeerCommand class.
+     */
+    public BanPeerCommand(RpcClient client)
+    {
+        s_client = client;
+    }
+
     /**
      * Executes the given command.
      *
      * @return true if the command could be executed; otherwise; false.
      */
-    boolean execute(String[] args);
+    @Override
+    public boolean execute(String[] args)
+    {
+        if (args.length != 2)
+            return false;
+
+        boolean added = s_client.banPeer(args[1]);
+
+        if (added)
+        {
+            System.out.printf("Peer at %s ban for 24 hours..", args[1]);
+        }
+        else
+        {
+            System.out.printf("The Peer at %s could not be ban. Please refer to the node logs for more information.", args[1]);
+        }
+
+
+        return true;
+    }
 
     /**
      * Gets the name of the command.
      *
      * @return the name of the command.
      */
-    String getName();
+    @Override
+    public String getName()
+    {
+        return "banPeer";
+    }
 
     /**
      * Gets the description of the command.
      *
      * @return the description of the command.
      */
-    String getDescription();
+    @Override
+    public String getDescription()
+    {
+        return "  Bans a peer for 24 hours.\n" +
+               "  ARGUMENTS: <NETWORK_ADDRESS>";
+    }
 }
