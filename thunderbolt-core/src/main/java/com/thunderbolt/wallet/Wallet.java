@@ -653,6 +653,9 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
 
             for (TransactionInput input : transaction.getInputs())
             {
+                if (input.isCoinBase())
+                    continue;
+
                 SingleSignatureParameters params = new SingleSignatureParameters(input.getUnlockingParameters());
 
                 if (Arrays.equals(params.getPublicKeyHash(), getAddress().getPublicHash()))

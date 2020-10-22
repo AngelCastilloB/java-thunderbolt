@@ -276,7 +276,7 @@ public class RpcService
 
         try
         {
-            transaction = m_wallet.createTransaction((long)(amount * FRACTIONAL_COIN_FACTOR), address);
+            transaction = m_wallet.createTransaction((long)(amount / FRACTIONAL_COIN_FACTOR), address);
         }
         catch(IllegalArgumentException exception)
         {
