@@ -209,7 +209,6 @@ public class GekkoScienceNewpacMiner implements IMiner
 
         m_jobQueue.clear();
         m_runningJobs.clear();
-        reset();
     }
 
     /**
@@ -263,7 +262,7 @@ public class GekkoScienceNewpacMiner implements IMiner
                 if (m_jobQueue.size() > 0 && m_isActive)
                 {
                     Job job = m_jobQueue.take();
-                    s_logger.debug("Starting Job {}:\n - Midstate: {}\n - Data:     {}\n - Target:   {}",
+                    s_logger.info("Starting Job {}:\n - Midstate: {}\n - Data:     {}\n - Target:   {}",
                             job.getId(),
                             Convert.toHexString(job.getMidstate()),
                             Convert.toHexString(job.getData()),

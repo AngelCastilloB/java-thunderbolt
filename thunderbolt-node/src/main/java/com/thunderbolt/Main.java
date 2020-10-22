@@ -112,8 +112,10 @@ public class Main
 
         Wallet wallet = new Wallet(walletPath);
         wallet.initialize(persistenceService);
+
         memPool.addTransactionsChangedListener(wallet);
         blockchain.addBlockchainUpdateListener(wallet);
+        blockchain.addOutputsUpdateListener(wallet);
 
         s_logger.info("Wallet file {}. Encrypted: {}, Unlocked: {}", walletPath, wallet.isEncrypted(), wallet.isUnlocked());
 

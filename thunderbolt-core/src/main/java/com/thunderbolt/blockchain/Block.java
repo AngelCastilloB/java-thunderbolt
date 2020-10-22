@@ -380,8 +380,7 @@ public class Block implements ISerializable
 
         BigInteger hash = m_header.getHash().toBigInteger();
 
-        // TODO: add check back.
-        if (false/*hash.compareTo(target) > 0*/)
+        if (hash.compareTo(target) > 0)
         {
             s_logger.error(String.format("Hash is higher than target. Current hash %s; target %s",
                     m_header.getHash().toString(),

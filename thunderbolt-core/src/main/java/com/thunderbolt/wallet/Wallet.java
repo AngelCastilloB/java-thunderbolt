@@ -569,12 +569,6 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
      */
     public void onOutputsUpdate(List<UnspentTransactionOutput> toAdd, List<Sha256Hash> toRemove)
     {
-        if (!m_isUnlocked)
-        {
-            s_logger.error("Wallet is locked. You must unlock it first.");
-            return;
-        }
-
         for (Sha256Hash sha256Hash : toRemove)
             m_unspentOutputs.remove(sha256Hash);
 

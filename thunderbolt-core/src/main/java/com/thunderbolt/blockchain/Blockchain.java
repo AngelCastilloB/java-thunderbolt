@@ -156,8 +156,7 @@ public class Blockchain
         BigInteger workSoFar = parent.getTotalWork().add(block.getWork());
         long       newHeight = parent.getHeight() + 1;
 
-        // TODO: Add back difficulty check.
-        if (false/*!isTargetDifficultyValid(parent, block)*/)
+        if (!isTargetDifficultyValid(parent, block))
         {
             s_logger.error("Block rejected. Invalid difficulty.");
             return false;
@@ -310,8 +309,6 @@ public class Blockchain
      * Verifies that the difficulty reported by the block is correct.
      *
      * @return True if the difficulty is correct; otherwise; false.
-     *
-     * TODO: Refactor this method.
      */
     private boolean isTargetDifficultyValid(BlockMetadata parent, Block newBlock) throws StorageException
     {

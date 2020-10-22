@@ -22,11 +22,13 @@ import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.blockchain.BlockHeader;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.NumberSerializer;
+import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.configuration.Configuration;
 import com.thunderbolt.mining.Job;
 import com.thunderbolt.mining.NonceRange;
 import com.thunderbolt.mining.contracts.IMiner;
 import com.thunderbolt.mining.miners.CpuMiner;
+import com.thunderbolt.mining.miners.GekkoScienceNewpacMiner;
 import com.thunderbolt.rpc.MinerWork;
 import com.thunderbolt.rpc.RpcClient;
 import com.thunderbolt.security.Sha256Digester;
@@ -47,17 +49,21 @@ import java.util.List;
 public class Main
 {
     // Constants
-    static private final String USER_HOME_PATH   = System.getProperty("user.home");
-    static private final String DATA_FOLDER_NAME = ".thunderbolt";
-    static private final Path   DEFAULT_PATH     = Paths.get(USER_HOME_PATH, DATA_FOLDER_NAME);
-    static private final Path   CONFIG_FILE_PATH = Paths.get(DEFAULT_PATH.toString(), "thunderbolt.conf");
+    static private final String USER_HOME_PATH          = System.getProperty("user.home");
+    static private final String DATA_FOLDER_NAME        = ".thunderbolt";
+    static private final Path   DEFAULT_PATH            = Paths.get(USER_HOME_PATH, DATA_FOLDER_NAME);
+    static private final Path   CONFIG_FILE_PATH        = Paths.get(DEFAULT_PATH.toString(), "thunderbolt.conf");
+    private static final int    MAX_JOB_ID              = 100;
+    private static final int    ASIC_EXHAUST_NONCE_TIME = 3;
 
     // Static variables
-    private static final Logger s_logger        = LoggerFactory.getLogger(Main.class);
-    private static long         s_currentHeight = 0;
-    private static RpcClient    s_client        = null;
-    private static IMiner       s_miner         = null;
-    static NonceRange[]         s_noneRanges    = new NonceRange[]
+    private static final Logger s_logger            = LoggerFactory.getLogger(Main.class);
+    private static long         s_currentHeight     = 0;
+    private static RpcClient    s_client            = null;
+    private static IMiner       s_miner             = null;
+    private static long         s_currentJobId      = 0;
+    private static Stopwatch    s_elapsedSinceSolve = new Stopwatch();
+    static NonceRange[]         s_noneRanges        = new NonceRange[]
     {
         new NonceRange(0x00000000L, 0x3FFFFFFFL),
         new NonceRange(0x40000000L, 0x7FFFFFFFL),
@@ -78,14 +84,54 @@ public class Main
                 String.format("http://localhost:%s", Configuration.getRpcPort()));
 
         s_currentHeight = s_client.getBlockCount();
+        asicMining();
+    }
 
+    /**
+     * Starts asic mining.
+     */
+    private static void asicMining() throws InterruptedException
+    {
+        s_miner = new GekkoScienceNewpacMiner();
+        s_miner.addJobFinishListener(Main::onJobFinish);
+        s_miner.start();
+        s_elapsedSinceSolve.restart();
+
+        while (true)
+        {
+            if (s_elapsedSinceSolve.getElapsedTime().getTotalSeconds() > ASIC_EXHAUST_NONCE_TIME)
+                s_miner.cancelAllJobs();
+
+            List<Job> jobs = getWork(true);
+
+            // If no new jobs, sleep tight.
+            if (jobs.isEmpty())
+            {
+                Thread.sleep(1000);
+                continue;
+            }
+
+            s_miner.cancelAllJobs();
+
+            for (Job job: jobs)
+                s_miner.queueJob(job);
+
+            Thread.sleep(1000);
+        }
+    }
+
+    /**
+     * Starts CPU mining.
+     */
+    private static void cpuMining() throws InterruptedException
+    {
         s_miner = new CpuMiner();
         s_miner.addJobFinishListener(Main::onJobFinish);
         s_miner.start();
 
         while (true)
         {
-            List<Job> jobs = getWork();
+            List<Job> jobs = getWork(false);
 
             // If no new jobs, sleep tight.
             if (jobs.isEmpty())
@@ -106,9 +152,11 @@ public class Main
     /**
      * Gets the batch of work.
      *
+     * @param isAsic Whether to split for ASIC or CPU.
+     *
      * @return The list of new jobs; of an empty list if no new jobs are needed.
      */
-    private static List<Job> getWork()
+    private static List<Job> getWork(boolean isAsic)
     {
         List<Job> jobs = new ArrayList<>();
 
@@ -138,18 +186,25 @@ public class Main
         header.setParentBlockHash(work.getParentBlock());
         header.setTimeStamp(work.getTimeStamp());
         header.setTargetDifficulty(work.getDifficulty());
-
         Sha256Digester digester = new Sha256Digester();
         digester.hash(Convert.reverseEndian(header.serialize()));
 
         byte[] midstate = digester.getMidstate(0);
         byte[] data     = digester.getBlock(1);
 
-        for (int i = 0; i < s_noneRanges.length; ++i)
+        if (isAsic)
         {
-            Job job  = new Job(midstate, data, block, i + 1);
-            job.setNonceRange(s_noneRanges[i]);
+            Job job  = new Job(midstate, data, block, (int)s_currentJobId++ % MAX_JOB_ID);
             jobs.add(job);
+        }
+        else
+        {
+            for (int i = 0; i < s_noneRanges.length; ++i)
+            {
+                Job job  = new Job(midstate, data, block, (int)(s_currentJobId++ % MAX_JOB_ID));
+                job.setNonceRange(s_noneRanges[i]);
+                jobs.add(job);
+            }
         }
 
         return jobs;
@@ -183,5 +238,7 @@ public class Main
         s_logger.info("Block Accepted: {}", result);
         s_logger.info("Block: {}", job.getBlock().getHeader());
         s_logger.info("Hash: {}", job.getBlock().getHeader().getHash());
+
+        s_elapsedSinceSolve.restart();
     }
 }

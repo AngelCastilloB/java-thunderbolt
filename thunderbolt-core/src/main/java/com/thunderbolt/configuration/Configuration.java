@@ -115,6 +115,9 @@ public class Configuration
             props.put("wallet", m_walletPath);
             props.put("pay-tx-fee", Convert.stripTrailingZeros(m_payTransactionFee));
 
+            File file = new File(path).getParentFile();
+            file.mkdirs();
+
             FileOutputStream outputStrem = new FileOutputStream(path);
             props.store(outputStrem, "Thunderbolt configuration file.");
 
