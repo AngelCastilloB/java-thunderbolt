@@ -27,8 +27,11 @@ package com.thunderbolt.commands;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.blockchain.BlockHeader;
+import com.thunderbolt.configuration.Configuration;
 import com.thunderbolt.contracts.ICommand;
 import com.thunderbolt.rpc.RpcClient;
+
+import java.io.IOException;
 
 /* IMPLEMENTATION ************************************************************/
 

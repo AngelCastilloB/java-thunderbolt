@@ -328,7 +328,7 @@ public class RpcService
     @JsonRpcMethod("getPublicKey")
     public byte[] getPublicKey()
     {
-        return m_wallet.getKeyPair().getPublicKey();
+        return m_wallet.getPublicKey();
     }
 
     /**
@@ -342,7 +342,7 @@ public class RpcService
         if (!m_wallet.isUnlocked())
             throw new WalletLockedException();
 
-        return m_wallet.getKeyPair().getPrivateKey().toByteArray();
+        return m_wallet.getPrivateKey().toByteArray();
     }
 
     /**

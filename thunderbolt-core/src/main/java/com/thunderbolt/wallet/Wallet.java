@@ -332,19 +332,29 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
     }
 
     /**
-     * Gets the wallet key pair.
+     * Gets the wallet public key.
      *
-     * @return The key pair.
+     * @return The public key pair.
      */
-    public EllipticCurveKeyPair getKeyPair()
+    public byte[] getPublicKey()
     {
-        if (!m_isUnlocked)
+        return m_publicKey;
+    }
+
+    /**
+     * Gets the wallet public key.
+     *
+     * @return The private key.
+     */
+    public BigInteger getPrivateKey()
+    {
+        if (m_isUnlocked || !m_isEncrypted)
         {
-            s_logger.error("Wallet is locked. You must unlock it first.");
-            return null;
+            return m_privateKey;
         }
 
-        return new EllipticCurveKeyPair(m_privateKey);
+        s_logger.error("Wallet is locked. You must unlock it first.");
+        return null;
     }
 
     /**

@@ -28,6 +28,7 @@ package com.thunderbolt.commands;
 
 import com.thunderbolt.contracts.ICommand;
 import com.thunderbolt.rpc.RpcClient;
+import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +36,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -52,28 +54,20 @@ public class CommandFactory
      *
      * @param client The RPC client instance.
      */
-    public static void initialize(RpcClient client)
+    public static void initialize(RpcClient client) throws NoSuchMethodException, IllegalAccessException,
+            InvocationTargetException, InstantiationException
     {
         s_client = client;
-    }
 
-    /**
-     * Registers a type in the factory.
-     *
-     * @param type The command concrete type.
-     */
-    public static void register(Class<? extends ICommand> type)
-    {
-        try
+        Reflections reflections = new Reflections("com.thunderbolt.commands");
+
+        Set<Class<? extends ICommand>> subTypes = reflections.getSubTypesOf(ICommand.class);
+
+        for (Class<? extends ICommand> type: subTypes)
         {
             Constructor<?> constructor = type.getConstructor(RpcClient.class);
-
             ICommand command = (ICommand)constructor.newInstance(s_client);
             s_commands.put(command.getName(), command);
-        }
-        catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e)
-        {
-            throw new IllegalStateException(e);
         }
     }
 

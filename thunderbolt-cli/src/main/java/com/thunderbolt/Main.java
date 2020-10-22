@@ -32,6 +32,7 @@ import com.thunderbolt.contracts.ICommand;
 import com.thunderbolt.rpc.RpcClient;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -48,66 +49,20 @@ public class Main
     static private final Path   DEFAULT_PATH     = Paths.get(USER_HOME_PATH, DATA_FOLDER_NAME);
     static private final Path   CONFIG_FILE_PATH = Paths.get(DEFAULT_PATH.toString(), "thunderbolt.conf");
 
-    // Initialize the factory.
-    static
-    {
-        try
-        {
-            Configuration.initialize(CONFIG_FILE_PATH.toString());
-
-            CommandFactory.initialize(new RpcClient(Configuration.getRpcUser(), Configuration.getRpcPassword(),
-                    String.format("http://localhost:%s", Configuration.getRpcPort())));
-
-            CommandFactory.register(GetInfoCommand.class);
-            CommandFactory.register(GetDifficultyCommand.class);
-            CommandFactory.register(StopCommand.class);
-            CommandFactory.register(GetUptimeCommand.class);
-            CommandFactory.register(EncryptWalletCommand.class);
-            CommandFactory.register(LockWalletCommand.class);
-            CommandFactory.register(UnlockWalletCommand.class);
-            CommandFactory.register(GetIsWalletEncryptedCommand.class);
-            CommandFactory.register(GetIsWalletUnlockedCommand.class);
-            CommandFactory.register(GetBalanceCommand.class);
-            CommandFactory.register(GetTotalBalanceCommand.class);
-            CommandFactory.register(SendToAddressCommand.class);
-            CommandFactory.register(GetConfirmedTransactionsCommand.class);
-            CommandFactory.register(GetPendingTransactionsCommand.class);
-            CommandFactory.register(GetPublicKeyCommand.class);
-            CommandFactory.register(GetPrivateKeyCommand.class);
-            CommandFactory.register(BackupWalletCommand.class);
-            CommandFactory.register(GetAddressCommand.class);
-            CommandFactory.register(GetBlockCountCommand.class);
-            CommandFactory.register(GetBlockHashCommand.class);
-            CommandFactory.register(GetTransactionPoolCountCommand.class);
-            CommandFactory.register(GetTransactionPoolSizeCommand.class);
-            CommandFactory.register(GetBlockHeaderCommand.class);
-            CommandFactory.register(GetBlockCommand.class);
-            CommandFactory.register(GetTransactionCommand.class);
-            CommandFactory.register(GetNetworkAddressCommand.class);
-            CommandFactory.register(AddPeerCommand.class);
-            CommandFactory.register(RemovePeerCommand.class);
-            CommandFactory.register(DisconnectPeerCommand.class);
-            CommandFactory.register(BanPeerCommand.class);
-            CommandFactory.register(UnbanPeerCommand.class);
-            CommandFactory.register(ListBannedPeersCommand.class);
-            CommandFactory.register(GetPeerCountCommand.class);
-            CommandFactory.register(GetPeerInfoCommand.class);
-            CommandFactory.register(ListConnectedPeersCommand.class);
-        }
-        catch (IOException exception)
-        {
-            throw new IllegalStateException(exception);
-        }
-    }
-
     /**
      * Application entry point.
      *
      * @param args Arguments.
      */
-    public static void main(String[] args)
+    public static void main(String[] args) throws IOException, InvocationTargetException, NoSuchMethodException,
+            InstantiationException, IllegalAccessException
     {
-        if(args.length == 0)
+        Configuration.initialize(CONFIG_FILE_PATH.toString());
+
+        CommandFactory.initialize(new RpcClient(Configuration.getRpcUser(), Configuration.getRpcPassword(),
+                String.format("http://localhost:%s", Configuration.getRpcPort())));
+
+        if (args.length == 0)
         {
             CommandFactory.printAvailableCommands();
             return;
