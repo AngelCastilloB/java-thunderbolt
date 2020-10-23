@@ -28,6 +28,9 @@ package com.thunderbolt;
 
 import com.thunderbolt.worksapce.StandardWorkspace;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
+
 /* IMPLEMENTATION ************************************************************/
 
 /**
@@ -45,7 +48,7 @@ public class Main
      *
      * @param args Arguments.
      */
-    public static void main(String[] args)
+    public static void main(String[] args) throws IOException, URISyntaxException
     {
         StandardWorkspace workspace = new StandardWorkspace(STARTING_X, STARTING_Y, WIDTH, HEIGHT);
         workspace.setTitle("Thunderbolt - Wallet");

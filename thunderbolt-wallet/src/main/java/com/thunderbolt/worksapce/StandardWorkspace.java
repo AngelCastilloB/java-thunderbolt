@@ -26,12 +26,16 @@ package com.thunderbolt.worksapce;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.components.MenuPanel;
+import com.thunderbolt.components.TitlePanel;
 import com.thunderbolt.screens.ScreenBase;
-import com.thunderbolt.theme.ThemeManager;
+import com.thunderbolt.theme.Theme;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.IOException;
+import java.net.URISyntaxException;
 
 import static javax.swing.WindowConstants.EXIT_ON_CLOSE;
 
@@ -53,30 +57,39 @@ public class StandardWorkspace implements IWorkspace, ActionListener
      * @param width The width of the window.
      * @param height The height of the window.
      */
-    public StandardWorkspace(int x, int y, int width, int height)
+    public StandardWorkspace(int x, int y, int width, int height) throws IOException, URISyntaxException
     {
         m_frame.setBounds(x, y, width, height);
 
         m_frame.setDefaultCloseOperation(EXIT_ON_CLOSE);
         m_frame.setResizable(false);
-        m_frame.setBackground(ThemeManager.BACKGROUND_COLOR);
+        m_frame.setBackground(Theme.BACKGROUND_COLOR);
 
+        // Left panel 30%
         Container container = m_frame.getContentPane();
         container.setLayout(null);
 
-        JPanel panelA = new JPanel();
-        JPanel panelB = new JPanel();
+        MenuPanel leftPanel = new MenuPanel("images/left_panel_background.png");
+        TitlePanel title = new TitlePanel();
+        JPanel rightPanel = new JPanel();
 
-        panelA.setSize(500, 500);
-        panelA.setLocation(100, 200);
+        //leftPanel.setBackground(Theme.BACKGROUND_COLOR);
+        rightPanel.setBackground(Theme.FOREGROUND_COLOR);
 
-        panelB.setSize(500, 500);
-        panelB.setLocation(300, 300);
+        leftPanel.setSize((int)(m_frame.getWidth() * 0.28), m_frame.getHeight());
+        leftPanel.setLocation(0, 0);
 
-        container.add(panelA);
-        container.add(panelB);
+        rightPanel.setSize(m_frame.getWidth() - leftPanel.getWidth(), m_frame.getHeight());
+        rightPanel.setLocation(leftPanel.getWidth(), 0);
 
-        container.remove(panelB);
+        title.setSize(m_frame.getWidth() - leftPanel.getWidth(), 50);
+        title.setLocation(leftPanel.getWidth(), 0);
+
+        container.add(rightPanel);
+        container.add(title);
+        container.add(leftPanel);
+
+        container.remove(rightPanel);
     }
 
     /**

@@ -31,12 +31,12 @@ import java.awt.*;
 /* DECLARATION ***************************************************************/
 
 /**
- * Application default theme.
+ * Application theme.
  */
-public class ThemeManager
+public class Theme
 {
-    public static final Color BACKGROUND_COLOR = new Color(255, 0, 0, 255);
-    public static final Color FOREGROUND_COLOR = Color.BLACK;
+    public static final Color BACKGROUND_COLOR = new Color(248, 248, 248, 255);
+    public static final Color FOREGROUND_COLOR = Color.WHITE;
     public static final Color TITLE_COLOR      = Color.WHITE;
     public static final Color HEADER_COLOR     = new Color(255, 9, 14, 15);
 }
