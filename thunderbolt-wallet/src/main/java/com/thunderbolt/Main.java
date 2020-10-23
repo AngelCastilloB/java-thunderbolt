@@ -28,6 +28,8 @@ package com.thunderbolt;
 
 /* IMPLEMENTATION ************************************************************/
 
+import com.thunderbolt.worksapce.StandardWorkspace;
+
 /**
  * Application main class.
  */
@@ -40,6 +42,8 @@ public class Main
      */
     public static void main(String[] args)
     {
-        StandardWorkspace f = new StandardWorkspace();
+        StandardWorkspace workspace = new StandardWorkspace(300, 90, 1065, 635);
+        workspace.setTitle("Thunderbolt - Wallet");
+        workspace.display();
     }
 }

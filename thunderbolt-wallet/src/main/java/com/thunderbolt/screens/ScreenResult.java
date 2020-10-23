@@ -22,13 +22,57 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.contracts;
+package com.thunderbolt.screens;
 
 /* DECLARATION ****************************************************************/
 
 /**
- * Abstract screen class interface.
+ * Specifies identifiers to indicate the return value of a screen.
  */
-public class AbstractScreen
+public enum ScreenResult
 {
+    /**
+     * The screen return value is Abort.
+     */
+    Abort,
+
+    /**
+     * The screen return value is Cancel.
+     */
+    Cancel,
+
+    /**
+     * The screen return value is Ignore.
+     */
+    Ignore,
+
+    /**
+     * The screen return value is No.
+     */
+    No,
+
+    /**
+     * The screen return value is None.
+     */
+    None,
+
+    /**
+     * The screen return value is OK.
+     */
+    OK,
+
+    /**
+     * The screen return value is Retry.
+     */
+    Retry,
+
+    /**
+     * The screen return value is Yes.
+     */
+    Yes,
+
+    /**
+     * The screen return value is Skip.
+     */
+    Skip
 }

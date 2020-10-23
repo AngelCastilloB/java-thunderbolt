@@ -22,16 +22,20 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.contracts;
+package com.thunderbolt.worksapce;
+
+/* IMPORTS ********************************************************************/
+
+import com.thunderbolt.screens.ScreenBase;
 
 /* DECLARATION ****************************************************************/
 
 /**
- * This interface provide a drawing area for screens.
+ * This interface provides a drawing area for screens.
  *
- * The methods in this interface are invoked when the screen manager shows or
- * hides a screen.
+ * The methods in this interface are invoked when the screen manager shows or hides a screen.
  */
+
 public interface IWorkspace
 {
     /**
@@ -39,17 +43,31 @@ public interface IWorkspace
      *
      * @return The current screen or NULL if no screen is visible.
      */
-    AbstractScreen getCurrentScreen();
+    ScreenBase getCurrentScreen();
 
     /**
      * Shows a screen.
      *
      * @param screen The screen to shown.
      */
-    void showScreen(AbstractScreen screen);
+    void setCurrentScreen(ScreenBase screen);
+
+    /**
+     * Sets the current screen on full screen.
+     *
+     * @param screen The screen to be shown.
+     */
+    void setCurrentScreenFullScreen(ScreenBase screen);
 
     /**
      * Removes the current screen.
      */
     void removeCurrentScreen();
+
+    /**
+     * Sets the title of the workspace.
+     *
+     * @param title The title.
+     */
+    void setTitle(String title);
 }
