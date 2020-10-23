@@ -25,15 +25,9 @@ package com.thunderbolt.transaction;
 
 // IMPORTS ************************************************************/
 
-import com.fasterxml.jackson.core.JsonEncoding;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
-import com.thunderbolt.network.ProtocolException;
 import com.thunderbolt.security.Sha256Digester;
 import com.thunderbolt.security.Sha256Hash;
 import org.slf4j.Logger;
@@ -394,44 +388,22 @@ public class Transaction implements ISerializable
     @Override
     public String toString()
     {
-        ByteArrayOutputStream data = new ByteArrayOutputStream();
-        JsonFactory jsonFactory = new JsonFactory();
-
-        JsonGenerator jsonGenerator = null;
-        try
-        {
-            jsonGenerator = jsonFactory.createGenerator(data, JsonEncoding.UTF8);
-            jsonGenerator.writeStartObject();
-
-            jsonGenerator.writeStringField("hash", getTransactionId().toString());
-            jsonGenerator.writeNumberField("version", m_version);
-            jsonGenerator.writeNumberField("lockTime", m_lockTime);
-            jsonGenerator.writeFieldName("inputs");
-
-            jsonGenerator.writeStartArray();
-
-            for (TransactionInput input: m_inputs)
-                jsonGenerator.writeRawValue(input.toString());
-
-            jsonGenerator.writeEndArray();
-
-            jsonGenerator.writeFieldName("outputs");
-
-            jsonGenerator.writeStartArray();
-
-            for (TransactionOutput output: m_outputs)
-                jsonGenerator.writeRawValue(output.toString());
-
-            jsonGenerator.writeEndArray();
-
-            jsonGenerator.writeEndObject();
-            jsonGenerator.close();
-        }
-        catch (IOException exception)
-        {
-            exception.printStackTrace();
-        }
-
-        return Convert.prettyPrint(new String(data.toByteArray()));
+        return String.format(
+                "{                        %n" +
+                "  \"hash\":          %s, %n" +
+                "  \"version\":       %s, %n" +
+                "  \"lockTime\":      %s, %n" +
+                "  \"inputs\":",
+                getTransactionId(),
+                m_version,
+                m_lockTime) +
+                Convert.toJsonArrayLikeString(m_inputs, 2) +
+                "," +
+                System.lineSeparator() +
+                "  \"outputs\":" +
+                Convert.toJsonArrayLikeString(m_outputs, 2) +
+                "," +
+                System.lineSeparator() +
+                "}";
     }
 }

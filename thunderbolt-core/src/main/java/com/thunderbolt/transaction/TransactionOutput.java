@@ -25,9 +25,6 @@ package com.thunderbolt.transaction;
 
 // IMPORTS ************************************************************/
 
-import com.fasterxml.jackson.core.JsonEncoding;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
@@ -182,30 +179,15 @@ public class TransactionOutput implements ISerializable
     @Override
     public String toString()
     {
-        ByteArrayOutputStream data = new ByteArrayOutputStream();
-        JsonFactory jsonFactory = new JsonFactory();
-
-        JsonGenerator jsonGenerator = null;
-        try
-        {
-            jsonGenerator = jsonFactory.createGenerator(data, JsonEncoding.UTF8);
-            jsonGenerator.useDefaultPrettyPrinter();
-            jsonGenerator.writeStartObject();
-
-            jsonGenerator.writeStringField("amount",
-                    String.format("%d.%08d", getAmount().longValue() / ONE_COIN, getAmount().longValue() % ONE_COIN));
-
-            jsonGenerator.writeStringField("lockType", m_type.toString());
-            jsonGenerator.writeStringField("lockingParameters", Convert.toHexString(m_lockingParameters));
-
-            jsonGenerator.writeEndObject();
-            jsonGenerator.close();
-        }
-        catch (IOException exception)
-        {
-            exception.printStackTrace();
-        }
-
-        return new String(data.toByteArray());
+        return String.format(
+            "{                                %n" +
+            "  \"amount\":            %d.%08d,%n" +
+            "  \"lockType\":          \"%s\", %n" +
+            "  \"lockingParameters\": \"%s\"  %n" +
+            "}",
+            getAmount().longValue() / ONE_COIN,
+            getAmount().longValue() % ONE_COIN,
+            m_type.toString(),
+            Convert.toHexString(m_lockingParameters));
     }
 }

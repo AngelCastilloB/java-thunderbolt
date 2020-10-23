@@ -260,27 +260,20 @@ public class UnspentTransactionOutput implements ISerializable
     @Override
     public String toString()
     {
-        final int tabs = 3;
-
-        StringBuilder stringBuilder = new StringBuilder();
-
-        stringBuilder.append(
-                String.format(
-                        "{                    %n" +
-                        "  \"transaction\":   \"%s\",%n" +
-                        "  \"index\":         %d,%n" +
-                        "  \"version\":       %d,%n" +
-                        "  \"blockHeight\":   %d,%n" +
-                        "  \"isCoinbase\":    %s,%n" +
-                        "  \"output\":%s%n",
-                        m_transactionHash,
-                        m_index,
-                        m_version,
-                        m_blockHeight,
-                        m_isCoinbase,
-                        Convert.toTabbedString(m_output.toString(), tabs)));
-        stringBuilder.append("}");
-
-        return stringBuilder.toString();
+        return String.format(
+                "{                    %n" +
+                "  \"transaction\":   \"%s\",%n" +
+                "  \"index\":         %d,%n" +
+                "  \"version\":       %d,%n" +
+                "  \"blockHeight\":   %d,%n" +
+                "  \"isCoinbase\":    %s,%n" +
+                "  \"output\":%s%n",
+                m_transactionHash,
+                m_index,
+                m_version,
+                m_blockHeight,
+                m_isCoinbase,
+                Convert.toTabbedString(m_output.toString(), 3)) +
+                "}";
     }
 }
