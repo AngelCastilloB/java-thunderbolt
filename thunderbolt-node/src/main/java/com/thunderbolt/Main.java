@@ -46,8 +46,7 @@ import com.thunderbolt.persistence.contracts.INetworkAddressPool;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.storage.*;
 import com.thunderbolt.rpc.NodeHttpHandler;
-import com.thunderbolt.transaction.MemoryTransactionsPool;
-import com.thunderbolt.transaction.StandardTransactionValidator;
+import com.thunderbolt.transaction.*;
 import com.thunderbolt.transaction.contracts.ITransactionValidator;
 import com.thunderbolt.wallet.Wallet;
 import org.slf4j.Logger;
@@ -93,7 +92,7 @@ public class Main
      *
      * @param args Arguments.
      */
-    public static void main(String[] args) throws IOException, StorageException, InterruptedException
+    public static void main(String[] args) throws IOException, StorageException
     {
         Configuration.initialize(CONFIG_FILE_PATH.toString());
 

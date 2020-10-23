@@ -25,6 +25,11 @@ package com.thunderbolt.transaction;
 
 // IMPORTS ************************************************************/
 
+import com.fasterxml.jackson.core.JsonEncoding;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
@@ -389,30 +394,44 @@ public class Transaction implements ISerializable
     @Override
     public String toString()
     {
-        final int firstLevelTabs = 2;
+        ByteArrayOutputStream data = new ByteArrayOutputStream();
+        JsonFactory jsonFactory = new JsonFactory();
 
-        StringBuilder stringBuilder = new StringBuilder();
+        JsonGenerator jsonGenerator = null;
+        try
+        {
+            jsonGenerator = jsonFactory.createGenerator(data, JsonEncoding.UTF8);
+            jsonGenerator.writeStartObject();
 
-        stringBuilder.append(
-                String.format(
-                    "{                        %n" +
-                    "  \"hash\":          %s, %n" +
-                    "  \"version\":       %s, %n" +
-                    "  \"lockTime\":      %s, %n" +
-                    "  \"inputs\":",
-                    getTransactionId(),
-                    m_version,
-                    m_lockTime));
+            jsonGenerator.writeStringField("hash", getTransactionId().toString());
+            jsonGenerator.writeNumberField("version", m_version);
+            jsonGenerator.writeNumberField("lockTime", m_lockTime);
+            jsonGenerator.writeFieldName("inputs");
 
-        stringBuilder.append(Convert.toJsonArrayLikeString(m_inputs, firstLevelTabs));
-        stringBuilder.append(",");
-        stringBuilder.append(System.lineSeparator());
+            jsonGenerator.writeStartArray();
 
-        stringBuilder.append("  \"outputs\":");
-        stringBuilder.append(Convert.toJsonArrayLikeString(m_outputs, firstLevelTabs));
-        stringBuilder.append(System.lineSeparator());
-        stringBuilder.append("}");
+            for (TransactionInput input: m_inputs)
+                jsonGenerator.writeRawValue(input.toString());
 
-        return stringBuilder.toString();
+            jsonGenerator.writeEndArray();
+
+            jsonGenerator.writeFieldName("outputs");
+
+            jsonGenerator.writeStartArray();
+
+            for (TransactionOutput output: m_outputs)
+                jsonGenerator.writeRawValue(output.toString());
+
+            jsonGenerator.writeEndArray();
+
+            jsonGenerator.writeEndObject();
+            jsonGenerator.close();
+        }
+        catch (IOException exception)
+        {
+            exception.printStackTrace();
+        }
+
+        return Convert.prettyPrint(new String(data.toByteArray()));
     }
 }

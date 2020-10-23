@@ -25,9 +25,14 @@ package com.thunderbolt.common;
 
 /* IMPLEMENTATION ************************************************************/
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+
+/* IMPORTS ********************************************************************/
 
 /**
  * Utility class for data conventions.
@@ -189,6 +194,35 @@ public class Convert
         for (int i = 0; i < data.length; ++i)
         {
             result[i] = data[data.length - 1 - i];
+        }
+
+        return result;
+    }
+
+    /**
+     * Pretty prints a jason string.
+     *
+     * @param data The jason string to be pretty rpinted.
+     *
+     * @return The pretty printed version of the jason string.
+     */
+    public static String prettyPrint(String data)
+    {
+        String result = "";
+
+        ObjectMapper mapper = new ObjectMapper();
+
+        Object json = null;
+
+        try
+        {
+            json = mapper.readValue(data, Object.class);
+            result = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
+        }
+        catch (JsonProcessingException e)
+        {
+            e.printStackTrace();
+            result = "Invalid JSON file.";
         }
 
         return result;

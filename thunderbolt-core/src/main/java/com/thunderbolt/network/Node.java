@@ -90,7 +90,6 @@ public class Node implements IChainHeadUpdateListener, ITransactionsChangeListen
     private Peer            m_initialSyncingPeer     = null;
     private final Stopwatch m_elapsedSinceRequest    = new Stopwatch();
 
-
     /**
      * Initializes a new instance of the Node class.
      *

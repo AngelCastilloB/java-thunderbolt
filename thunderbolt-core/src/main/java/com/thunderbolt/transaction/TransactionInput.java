@@ -25,6 +25,11 @@ package com.thunderbolt.transaction;
 
 // IMPORTS *******************************************************************/
 
+import com.fasterxml.jackson.core.JsonEncoding;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.PrettyPrinter;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
@@ -32,6 +37,7 @@ import com.thunderbolt.security.Sha256Hash;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
 // IMPLEMENTATION ************************************************************/
@@ -188,16 +194,29 @@ public class TransactionInput implements ISerializable
     @Override
     public String toString()
     {
-        return String.format(
-                "{                             %n" +
-                "  \"isCoinbase\":     %s,     %n" +
-                "  \"referenceHash\":  \"%s\", %n" +
-                "  \"index\":           %s,    %n" +
-                "  \"UnlockingParams\": \"%s\" %n" +
-                "}",
-            isCoinBase(),
-            m_refSha256Hash,
-            m_index,
-            Convert.toHexString(m_unlockingParameters));
+        ByteArrayOutputStream data = new ByteArrayOutputStream();
+        JsonFactory jsonFactory = new JsonFactory();
+
+        JsonGenerator jsonGenerator = null;
+        try
+        {
+            jsonGenerator = jsonFactory.createGenerator(data, JsonEncoding.UTF8);
+            jsonGenerator.useDefaultPrettyPrinter();
+            jsonGenerator.writeStartObject();
+
+            jsonGenerator.writeBooleanField("isCoinbase", isCoinBase());
+            jsonGenerator.writeStringField("referenceHash", m_refSha256Hash.toString());
+            jsonGenerator.writeNumberField("index", m_index);
+            jsonGenerator.writeStringField("UnlockingParams", Convert.toHexString(m_unlockingParameters));
+
+            jsonGenerator.writeEndObject();
+            jsonGenerator.close();
+        }
+        catch (IOException exception)
+        {
+            exception.printStackTrace();
+        }
+
+        return new String(data.toByteArray());
     }
 }
