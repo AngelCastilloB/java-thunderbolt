@@ -156,29 +156,22 @@ public class SingleSignatureParameters implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
-        {
-            if (m_publicKey.length != PUBLIC_KEY_SIZE)
-                throw new RuntimeException(
-                        String.format("Wrong public key size. Expected %s, actual %s",
-                                PUBLIC_KEY_SIZE,
-                                m_publicKey.length));
+        if (m_publicKey.length != PUBLIC_KEY_SIZE)
+            throw new RuntimeException(
+                    String.format("Wrong public key size. Expected %s, actual %s",
+                            PUBLIC_KEY_SIZE,
+                            m_publicKey.length));
 
-            data.write(m_publicKey);
+        data.writeBytes(m_publicKey);
 
-            if (m_signature.length > MAX_SIGNATURE_SIZE)
-                throw new RuntimeException(
-                        String.format("Wrong signature key size. Expected less than %s, actual %s",
-                                MAX_SIGNATURE_SIZE,
-                                m_signature.length));
+        if (m_signature.length > MAX_SIGNATURE_SIZE)
+            throw new RuntimeException(
+                    String.format("Wrong signature key size. Expected less than %s, actual %s",
+                            MAX_SIGNATURE_SIZE,
+                            m_signature.length));
 
-            data.write((byte)m_signature.length);
-            data.write(m_signature);
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        data.write((byte)m_signature.length);
+        data.writeBytes(m_signature);
 
         return data.toByteArray();
     }

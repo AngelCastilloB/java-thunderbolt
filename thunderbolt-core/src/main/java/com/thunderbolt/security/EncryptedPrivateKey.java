@@ -138,17 +138,10 @@ public class EncryptedPrivateKey implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
-        {
-            data.write(m_iv);
-            data.write(m_salt);
-            data.write(NumberSerializer.serialize(m_encKeyBytes.length));
-            data.write(m_encKeyBytes);
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        data.writeBytes(m_iv);
+        data.writeBytes(m_salt);
+        data.writeBytes(NumberSerializer.serialize(m_encKeyBytes.length));
+        data.writeBytes(m_encKeyBytes);
 
         return data.toByteArray();
     }

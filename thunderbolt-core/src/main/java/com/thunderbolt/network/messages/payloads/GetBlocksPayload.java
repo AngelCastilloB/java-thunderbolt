@@ -91,20 +91,13 @@ public class GetBlocksPayload implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
-        {
-            data.write(NumberSerializer.serialize(getVersion()));
-            data.write(NumberSerializer.serialize(getBlockLocatorHashes().size()));
+        data.writeBytes(NumberSerializer.serialize(getVersion()));
+        data.writeBytes(NumberSerializer.serialize(getBlockLocatorHashes().size()));
 
-            for (Sha256Hash hash: getBlockLocatorHashes())
-                data.write(hash.serialize());
+        for (Sha256Hash hash: getBlockLocatorHashes())
+            data.writeBytes(hash.serialize());
 
-            data.write(getHashToStop().serialize());
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        data.writeBytes(getHashToStop().serialize());
 
         return data.toByteArray();
     }

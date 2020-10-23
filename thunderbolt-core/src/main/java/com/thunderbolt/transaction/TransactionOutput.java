@@ -156,17 +156,10 @@ public class TransactionOutput implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
-        {
-            data.write(NumberSerializer.serialize(m_amount));
-            data.write(m_type.getValue());
-            data.write(NumberSerializer.serialize(m_lockingParameters.length));
-            data.write(m_lockingParameters);
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        data.writeBytes(NumberSerializer.serialize(m_amount));
+        data.write(m_type.getValue());
+        data.writeBytes(NumberSerializer.serialize(m_lockingParameters.length));
+        data.writeBytes(m_lockingParameters);
 
         return data.toByteArray();
     }

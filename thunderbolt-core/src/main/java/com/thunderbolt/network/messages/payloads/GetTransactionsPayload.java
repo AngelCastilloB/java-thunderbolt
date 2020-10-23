@@ -85,17 +85,10 @@ public class GetTransactionsPayload implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
-        {
-            data.write(NumberSerializer.serialize(m_transactions.size()));
+        data.writeBytes(NumberSerializer.serialize(m_transactions.size()));
 
-            for (Sha256Hash hash: m_transactions)
-                data.write(hash.serialize());
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        for (Sha256Hash hash: m_transactions)
+            data.writeBytes(hash.serialize());
 
         return data.toByteArray();
     }

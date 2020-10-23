@@ -97,18 +97,11 @@ public class AddressPayload implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
-        {
-            data.write(NumberSerializer.serialize(getAddresses().size()));
+        data.writeBytes(NumberSerializer.serialize(getAddresses().size()));
 
-            for (TimestampedNetworkAddress address: getAddresses())
-                data.write(address.serialize());
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-
+        for (TimestampedNetworkAddress address: getAddresses())
+            data.writeBytes(address.serialize());
+        
         return data.toByteArray();
     }
 

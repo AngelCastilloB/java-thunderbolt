@@ -84,7 +84,19 @@ public class Main
                 String.format("http://localhost:%s", Configuration.getRpcPort()));
 
         s_currentHeight = s_client.getBlockCount();
-        asicMining();
+
+        if (args.length == 0 || args[0].equals("cpu"))
+        {
+            cpuMining();
+        }
+        else if (args[0].equals("asic"))
+        {
+            asicMining();
+        }
+        else
+        {
+            System.out.printf("Unknown mining strategy %s\n", args[0]);
+        }
     }
 
     /**

@@ -272,21 +272,13 @@ public class BlockHeader implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
-        {
-            data.write(NumberSerializer.serialize(m_version));
-            data.write(m_parentBlock.getData());
-            data.write(m_markleRoot.getData());
-            data.write(NumberSerializer.serialize((int)m_timeStamp));
-            data.write(NumberSerializer.serialize((int)m_bits));
-            data.write(NumberSerializer.serialize((int)m_nonce));
-
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-
+        data.writeBytes(NumberSerializer.serialize(m_version));
+        data.writeBytes(m_parentBlock.getData());
+        data.writeBytes(m_markleRoot.getData());
+        data.writeBytes(NumberSerializer.serialize((int)m_timeStamp));
+        data.writeBytes(NumberSerializer.serialize((int)m_bits));
+        data.writeBytes(NumberSerializer.serialize((int)m_nonce));
+        
         return data.toByteArray();
     }
 

@@ -275,18 +275,11 @@ public class Block implements ISerializable
 
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
-        {
-            data.write(m_header.serialize());
-            data.write(NumberSerializer.serialize(m_transactions.size()));
+        data.writeBytes(m_header.serialize());
+        data.writeBytes(NumberSerializer.serialize(m_transactions.size()));
 
-            for (Transaction transaction : m_transactions)
-                data.write(transaction.serialize());
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        for (Transaction transaction : m_transactions)
+            data.writeBytes(transaction.serialize());
 
         return data.toByteArray();
     }
@@ -477,21 +470,13 @@ public class Block implements ISerializable
     @Override
     public String toString()
     {
-        final int tabs = 3;
-
-        StringBuilder stringBuilder = new StringBuilder();
-
-        stringBuilder.append(
-                String.format(
-                        "{               %n" +
-                        "  \"header\":%s,%n" +
-                        "  \"transactions\":",
-                        Convert.toTabbedString(m_header.toString(), tabs)));
-
-        stringBuilder.append(Convert.toJsonArrayLikeString(m_transactions, tabs));
-        stringBuilder.append(System.lineSeparator());
-        stringBuilder.append("}");
-
-        return stringBuilder.toString();
+        return String.format(
+                "{               %n" +
+                "  \"header\":%s,%n" +
+                "  \"transactions\":",
+                Convert.toTabbedString(m_header.toString(), 3)) +
+                Convert.toJsonArrayLikeString(m_transactions, 3) +
+                System.lineSeparator() +
+                "}";
     }
 }

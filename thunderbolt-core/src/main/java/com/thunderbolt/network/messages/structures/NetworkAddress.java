@@ -108,16 +108,9 @@ public class NetworkAddress implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
-        {
-            data.write(NumberSerializer.serialize(m_services.getValue()));
-            data.write(m_address);
-            data.write(NumberSerializer.serialize((short) getPort()));
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        data.writeBytes(NumberSerializer.serialize(m_services.getValue()));
+        data.writeBytes(m_address);
+        data.writeBytes(NumberSerializer.serialize((short) getPort()));
 
         return data.toByteArray();
     }

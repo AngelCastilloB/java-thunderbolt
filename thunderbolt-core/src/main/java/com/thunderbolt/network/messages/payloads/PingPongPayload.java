@@ -82,14 +82,7 @@ public class PingPongPayload implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
-        {
-            data.write(NumberSerializer.serialize(getNonce()));
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        data.writeBytes(NumberSerializer.serialize(getNonce()));
 
         return data.toByteArray();
     }

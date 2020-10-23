@@ -86,16 +86,9 @@ public class TransactionMetadata implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
-        {
-            data.write(NumberSerializer.serialize(m_blockFile));
-            data.write(NumberSerializer.serialize(m_blockPosition));
-            data.write(NumberSerializer.serialize(m_transactionPosition));
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        data.writeBytes(NumberSerializer.serialize(m_blockFile));
+        data.writeBytes(NumberSerializer.serialize(m_blockPosition));
+        data.writeBytes(NumberSerializer.serialize(m_transactionPosition));
 
         return data.toByteArray();
     }

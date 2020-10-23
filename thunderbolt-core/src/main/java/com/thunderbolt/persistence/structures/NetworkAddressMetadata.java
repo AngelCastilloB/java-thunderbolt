@@ -98,18 +98,11 @@ public class NetworkAddressMetadata implements ISerializable
 
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
-        {
-            data.write(NumberSerializer.serialize(lastMessageDate));
-            data.write(m_address.serialize());
-            data.write(NumberSerializer.serialize(m_banScore));
-            data.write((byte)(m_isBan ? 0x01 : 0x0));
-            data.write(NumberSerializer.serialize(banDate));
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        data.writeBytes(NumberSerializer.serialize(lastMessageDate));
+        data.writeBytes(m_address.serialize());
+        data.writeBytes(NumberSerializer.serialize(m_banScore));
+        data.write((byte)(m_isBan ? 0x01 : 0x0));
+        data.writeBytes(NumberSerializer.serialize(banDate));
 
         return data.toByteArray();
     }

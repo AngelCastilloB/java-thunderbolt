@@ -234,19 +234,12 @@ public class UnspentTransactionOutput implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
-        {
-            data.write(m_transactionHash.serialize());
-            data.write(NumberSerializer.serialize(m_index));
-            data.write(NumberSerializer.serialize(m_version));
-            data.write(NumberSerializer.serialize(m_blockHeight));
-            data.write((byte)(m_isCoinbase ? 1 : 0));
-            data.write(m_output.serialize());
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        data.writeBytes(m_transactionHash.serialize());
+        data.writeBytes(NumberSerializer.serialize(m_index));
+        data.writeBytes(NumberSerializer.serialize(m_version));
+        data.writeBytes(NumberSerializer.serialize(m_blockHeight));
+        data.write((byte)(m_isCoinbase ? 1 : 0));
+        data.writeBytes(m_output.serialize());
 
         return data.toByteArray();
     }

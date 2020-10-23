@@ -83,15 +83,8 @@ public class TimestampedNetworkAddress implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
-        {
-            data.write(NumberSerializer.serialize(getTimestamp().toEpochSecond(ZoneOffset.UTC)));
-            data.write(getNetworkAddress().serialize());
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        data.writeBytes(NumberSerializer.serialize(getTimestamp().toEpochSecond(ZoneOffset.UTC)));
+        data.writeBytes(getNetworkAddress().serialize());
 
         return data.toByteArray();
     }

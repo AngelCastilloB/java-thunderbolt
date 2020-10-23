@@ -358,24 +358,17 @@ public class Transaction implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
-        {
-            data.write(NumberSerializer.serialize(m_version));
-            data.write(NumberSerializer.serialize(getInputs().size()));
+        data.writeBytes(NumberSerializer.serialize(m_version));
+        data.writeBytes(NumberSerializer.serialize(getInputs().size()));
 
-            for (int i = 0; i < getInputs().size(); ++i)
-                data.write(m_inputs.get(i).serialize());
+        for (int i = 0; i < getInputs().size(); ++i)
+            data.writeBytes(m_inputs.get(i).serialize());
 
-            data.write(NumberSerializer.serialize(getOutputs().size()));
-            for (int i = 0; i < getOutputs().size(); ++i)
-                data.write(m_outputs.get(i).serialize());
+        data.writeBytes(NumberSerializer.serialize(getOutputs().size()));
+        for (int i = 0; i < getOutputs().size(); ++i)
+            data.writeBytes(m_outputs.get(i).serialize());
 
-            data.write(NumberSerializer.serialize(m_lockTime));
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        data.writeBytes(NumberSerializer.serialize(m_lockTime));
 
         return data.toByteArray();
     }

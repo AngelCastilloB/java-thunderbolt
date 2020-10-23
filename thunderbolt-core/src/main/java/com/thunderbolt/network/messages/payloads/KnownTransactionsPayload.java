@@ -104,17 +104,10 @@ public class KnownTransactionsPayload implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
-        {
-            data.write(NumberSerializer.serialize(getTransactionIds().size()));
+        data.writeBytes(NumberSerializer.serialize(getTransactionIds().size()));
 
-            for (Sha256Hash id: getTransactionIds())
-                data.write(id.serialize());
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        for (Sha256Hash id: getTransactionIds())
+            data.writeBytes(id.serialize());
 
         return data.toByteArray();
     }

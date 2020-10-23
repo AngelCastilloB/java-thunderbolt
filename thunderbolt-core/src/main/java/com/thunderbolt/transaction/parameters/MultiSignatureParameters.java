@@ -225,15 +225,8 @@ public class MultiSignatureParameters implements ISerializable
 
         for (byte[] publicKey: m_publicKeys)
         {
-            try
-            {
-                data.write(NumberSerializer.serialize(publicKey.length));
-                data.write(publicKey);
-            }
-            catch (IOException e)
-            {
-                e.printStackTrace();
-            }
+            data.writeBytes(NumberSerializer.serialize(publicKey.length));
+            data.writeBytes(publicKey);
         }
 
         return data.toByteArray();

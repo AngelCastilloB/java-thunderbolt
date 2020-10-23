@@ -97,17 +97,10 @@ public class BlocksPayload implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
-        {
-            data.write(NumberSerializer.serialize(getBlocks().size()));
+        data.writeBytes(NumberSerializer.serialize(getBlocks().size()));
 
-            for (Block blocks: getBlocks())
-                data.write(blocks.serialize());
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        for (Block blocks: getBlocks())
+            data.writeBytes(blocks.serialize());
 
         return data.toByteArray();
     }

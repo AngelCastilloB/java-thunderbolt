@@ -228,28 +228,20 @@ public class ProtocolMessage implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
+        data.writeBytes(NumberSerializer.serialize(m_packetMagic));
+        data.writeBytes(NumberSerializer.serialize(m_messageType));
+
+        if (m_payload == null)
         {
-            data.write(NumberSerializer.serialize(m_packetMagic));
-            data.write(NumberSerializer.serialize(m_messageType));
-
-            if (m_payload == null)
-            {
-                data.write(NumberSerializer.serialize((int)0));
-                byte[] checksum = new byte[]{ 0x00, 0x00, 0x00, 0x00 };
-                data.write(checksum, 0, CHECKSUM_SIZE);
-            }
-            else
-            {
-                data.write(NumberSerializer.serialize(m_payload.length));
-                data.write(Sha256Digester.digest(m_payload).getData(), 0, CHECKSUM_SIZE);
-                data.write(m_payload);
-            }
-
+            data.writeBytes(NumberSerializer.serialize((int)0));
+            byte[] checksum = new byte[]{ 0x00, 0x00, 0x00, 0x00 };
+            data.write(checksum, 0, CHECKSUM_SIZE);
         }
-        catch (IOException e)
+        else
         {
-            e.printStackTrace();
+            data.writeBytes(NumberSerializer.serialize(m_payload.length));
+            data.write(Sha256Digester.digest(m_payload).getData(), 0, CHECKSUM_SIZE);
+            data.writeBytes(m_payload);
         }
 
         return data.toByteArray();

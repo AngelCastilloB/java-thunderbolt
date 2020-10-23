@@ -100,19 +100,12 @@ public class VersionPayload implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
-        {
-            data.write(NumberSerializer.serialize(getVersion()));
-            data.write(NumberSerializer.serialize(getServices().getValue()));
-            data.write(NumberSerializer.serialize(getTimestamp()));
-            data.write(NumberSerializer.serialize((int)getBlockHeight()));
-            data.write(NumberSerializer.serialize(getNonce()));
-            data.write(m_addrRecv.serialize());
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        data.writeBytes(NumberSerializer.serialize(getVersion()));
+        data.writeBytes(NumberSerializer.serialize(getServices().getValue()));
+        data.writeBytes(NumberSerializer.serialize(getTimestamp()));
+        data.writeBytes(NumberSerializer.serialize((int)getBlockHeight()));
+        data.writeBytes(NumberSerializer.serialize(getNonce()));
+        data.writeBytes(m_addrRecv.serialize());
 
         return data.toByteArray();
     }

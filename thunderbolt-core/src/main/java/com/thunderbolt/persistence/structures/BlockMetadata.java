@@ -297,22 +297,15 @@ public class BlockMetadata implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
-        {
-            data.write(m_header.serialize());
-            data.write(NumberSerializer.serialize(m_height));
-            data.write(NumberSerializer.serialize(m_totalWork));
-            data.write(NumberSerializer.serialize(m_transactionCount));
-            data.write(m_status);
-            data.write(NumberSerializer.serialize(m_blockSegment));
-            data.write(NumberSerializer.serialize(m_blockOffset));
-            data.write(NumberSerializer.serialize(m_revertSegment));
-            data.write(NumberSerializer.serialize(m_revertOffset));
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        data.writeBytes(m_header.serialize());
+        data.writeBytes(NumberSerializer.serialize(m_height));
+        data.writeBytes(NumberSerializer.serialize(m_totalWork));
+        data.writeBytes(NumberSerializer.serialize(m_transactionCount));
+        data.write(m_status);
+        data.writeBytes(NumberSerializer.serialize(m_blockSegment));
+        data.writeBytes(NumberSerializer.serialize(m_blockOffset));
+        data.writeBytes(NumberSerializer.serialize(m_revertSegment));
+        data.writeBytes(NumberSerializer.serialize(m_revertOffset));
 
         return data.toByteArray();
     }

@@ -144,18 +144,10 @@ public class TransactionInput implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
-        {
-            data.write(NumberSerializer.serialize(m_index));
-            data.write(m_refSha256Hash.serialize());
-            data.write(NumberSerializer.serialize(m_unlockingParameters.length));
-            data.write(m_unlockingParameters);
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-
+        data.writeBytes(NumberSerializer.serialize(m_index));
+        data.writeBytes(m_refSha256Hash.serialize());
+        data.writeBytes(NumberSerializer.serialize(m_unlockingParameters.length));
+        data.writeBytes(m_unlockingParameters);
 
         return data.toByteArray();
     }

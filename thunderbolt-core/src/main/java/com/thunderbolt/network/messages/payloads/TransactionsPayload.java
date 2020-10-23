@@ -104,17 +104,10 @@ public class TransactionsPayload implements ISerializable
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
-        {
-            data.write(NumberSerializer.serialize(getTransactions().size()));
+        data.writeBytes(NumberSerializer.serialize(getTransactions().size()));
 
-            for (Transaction transaction: getTransactions())
-                data.write(transaction.serialize());
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        for (Transaction transaction: getTransactions())
+            data.writeBytes(transaction.serialize());
 
         return data.toByteArray();
     }

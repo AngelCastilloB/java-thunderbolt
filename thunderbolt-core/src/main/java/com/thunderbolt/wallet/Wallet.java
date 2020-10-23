@@ -506,32 +506,25 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
     {
         ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-        try
+        data.write((byte)(m_isEncrypted ? 0x01 :0x00));
+        data.writeBytes(m_encryptedKey.serialize());
+
+        // Write all zeroes
+        if (m_isEncrypted)
         {
-            data.write((byte)(m_isEncrypted ? 0x01 :0x00));
-            data.write(m_encryptedKey.serialize());
-
-            // Write all zeroes
-            if (m_isEncrypted)
-            {
-                data.write(new byte[PRIVATE_KEY_SIZE]);
-            }
-            else
-            {
-                data.write(m_privateKey.toByteArray());
-            }
-
-            data.write(m_publicKey);
-            data.write(m_syncedUpTo.serialize());
-            data.write(NumberSerializer.serialize(m_transactions.size()));
-
-            for (Transaction transaction: m_transactions)
-                data.write(transaction.serialize());
+            data.writeBytes(new byte[PRIVATE_KEY_SIZE]);
         }
-        catch (Exception exception)
+        else
         {
-            exception.printStackTrace();
+            data.writeBytes(m_privateKey.toByteArray());
         }
+
+        data.writeBytes(m_publicKey);
+        data.writeBytes(m_syncedUpTo.serialize());
+        data.writeBytes(NumberSerializer.serialize(m_transactions.size()));
+
+        for (Transaction transaction: m_transactions)
+            data.writeBytes(transaction.serialize());
 
         return data.toByteArray();
     }
