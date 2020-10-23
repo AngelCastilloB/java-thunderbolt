@@ -35,6 +35,11 @@ import com.thunderbolt.worksapce.StandardWorkspace;
  */
 public class Main
 {
+    private static final int STARTING_X = 300;
+    private static final int STARTING_Y = 90;
+    private static final int WIDTH      = 1065;
+    private static final int HEIGHT     = 635;
+
     /**
      * Application entry point.
      *
@@ -42,7 +47,7 @@ public class Main
      */
     public static void main(String[] args)
     {
-        StandardWorkspace workspace = new StandardWorkspace(300, 90, 1065, 635);
+        StandardWorkspace workspace = new StandardWorkspace(STARTING_X, STARTING_Y, WIDTH, HEIGHT);
         workspace.setTitle("Thunderbolt - Wallet");
         workspace.display();
     }
