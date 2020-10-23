@@ -26,9 +26,9 @@ package com.thunderbolt;
 
 /* IMPORTS *******************************************************************/
 
-/* IMPLEMENTATION ************************************************************/
-
 import com.thunderbolt.worksapce.StandardWorkspace;
+
+/* IMPLEMENTATION ************************************************************/
 
 /**
  * Application main class.
