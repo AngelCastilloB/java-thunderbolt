@@ -213,6 +213,9 @@ public class ScreenManager
      */
     public void replaceTopScreen(ScreenBase screen, boolean fullScreen)
     {
+        if (m_stack.size() > 0 && m_stack.getFirst().getClass().equals(screen.getClass()))
+            return;
+
         if (m_stack.size() > 0)
         {
             ScreenBase topScreen = m_stack.getFirst();

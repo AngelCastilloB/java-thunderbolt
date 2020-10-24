@@ -49,7 +49,7 @@ public class Main
      *
      * @param args Arguments.
      */
-    public static void main(String[] args) throws IOException, URISyntaxException
+    public static void main(String[] args) throws IOException
     {
         StandardWorkspace workspace = new StandardWorkspace(STARTING_X, STARTING_Y, WIDTH, HEIGHT);
         ScreenManager.getInstance().setWorkspaceProvider(workspace);

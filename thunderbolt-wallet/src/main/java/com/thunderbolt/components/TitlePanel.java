@@ -26,10 +26,15 @@ package com.thunderbolt.components;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.resources.ResourceManager;
+import com.thunderbolt.state.StateService;
 import com.thunderbolt.theme.Theme;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.WritableRaster;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -41,13 +46,19 @@ public class TitlePanel extends JPanel
     private static final int UMBRA_OFFSET    = 2;
     private static final int PENUMBRA_OFFSET = 1;
 
-    private String m_title = "";
+    private String        m_title       = "";
+    private BufferedImage m_nodeOffline = deepCopy(ResourceManager.loadImage("images/offline.png"));
+    private BufferedImage m_nodeSyncing = deepCopy(ResourceManager.loadImage("images/syncing.png"));
+    private BufferedImage m_nodeReady   = deepCopy(ResourceManager.loadImage("images/ready.png"));
 
     /**
      * Initializes a new instance of the TitlePanel class.
      */
     public TitlePanel()
     {
+        tint(m_nodeOffline, Theme.STATUS_OFFLINE_COLOR);
+        tint(m_nodeSyncing, Theme.STATUS_SYNCING_COLOR);
+        tint(m_nodeReady, Theme.STATUS_READY_COLOR);
     }
 
     /**
@@ -78,6 +89,28 @@ public class TitlePanel extends JPanel
         graphics.drawLine(0, getHeight() - UMBRA_OFFSET, getWidth(), getHeight() - UMBRA_OFFSET);
         graphics.setColor(Theme.SHADOW_PENUMBRA_COLOR);
         graphics.drawLine(0, getHeight() - PENUMBRA_OFFSET, getWidth(), getHeight() - PENUMBRA_OFFSET);
+
+        graphics.setFont(Theme.STATUS_FONT);
+
+        switch (StateService.getInstance().getNodeState())
+        {
+            case Ready:
+                graphics.drawImage(m_nodeReady, getWidth() - 150, getHeight() / 2 - 25,null);
+                graphics.setColor(Theme.STATUS_READY_COLOR);
+                graphics.drawString("Ready", getWidth() - 100, getHeight() / 2);
+                break;
+            case Syncing:
+                graphics.drawImage(m_nodeSyncing, getWidth() - 150, getHeight() / 2 - 25,null);
+                graphics.setColor(Theme.STATUS_SYNCING_COLOR);
+                graphics.drawString("Syncing...", getWidth() - 100, getHeight() / 2);
+                break;
+            case Offline:
+                graphics.drawImage(m_nodeOffline, getWidth() - 150, getHeight() / 2 - 25,null);
+                graphics.setColor(Theme.STATUS_OFFLINE_COLOR);
+                graphics.drawString("Offline", getWidth() - 100, getHeight() / 2);
+            default:
+                break;
+        }
     }
 
     /**
@@ -99,4 +132,43 @@ public class TitlePanel extends JPanel
     {
         m_title = title;
     }
+
+    /**
+     * Tints the image with the given color.
+     *
+     * @param image The image.
+     * @param color The color to be tinted with.
+     */
+    static private void tint(BufferedImage image, Color color)
+    {
+        for (int x = 0; x < image.getWidth(); x++)
+        {
+            for (int y = 0; y < image.getHeight(); y++)
+            {
+                Color pixelColor = new Color(image.getRGB(x, y), true);
+                int r = (pixelColor.getRed() + color.getRed());
+                int g = (pixelColor.getGreen() + color.getGreen());
+                int b = (pixelColor.getBlue() + color.getBlue());
+                int a = pixelColor.getAlpha();
+                int rgba = (a << 24) | (r << 16) | (g << 8) | b;
+                image.setRGB(x, y, rgba);
+            }
+        }
+    }
+
+    /**
+     * Deep copy a buffered image.
+     *
+     * @param bi The image to be copied.
+     *
+     * @return the new image.
+     */
+    static BufferedImage deepCopy(BufferedImage bi)
+    {
+        ColorModel cm = bi.getColorModel();
+        boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
+        WritableRaster raster = bi.copyData(null);
+        return new BufferedImage(cm, raster, isAlphaPremultiplied, null);
+    }
+
 }

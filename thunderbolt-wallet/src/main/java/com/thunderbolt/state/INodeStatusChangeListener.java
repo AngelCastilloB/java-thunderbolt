@@ -22,19 +22,19 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.screens;
-
-/* IMPORTS *******************************************************************/
-
-import com.thunderbolt.theme.Theme;
+package com.thunderbolt.state;
 
 /* IMPLEMENTATION ************************************************************/
 
-public class OverviewScreen extends ScreenBase
+/**
+ * Event handler for when the node state changes.
+ */
+public interface INodeStatusChangeListener
 {
-    public OverviewScreen()
-    {
-        setTitle("PENDING TRANSACTIONS");
-        setBackground(Theme.FOREGROUND_COLOR);
-    }
+    /**
+     * Trigger when the node state changes.
+     *
+     * @param state The new state.
+     */
+    void onNodeStatusChange(NodeState state);
 }

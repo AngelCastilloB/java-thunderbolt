@@ -28,6 +28,8 @@ package com.thunderbolt.components;
 
 import com.thunderbolt.resources.ResourceManager;
 import com.thunderbolt.screens.*;
+import com.thunderbolt.state.INodeStatusChangeListener;
+import com.thunderbolt.state.NodeState;
 import com.thunderbolt.state.StateService;
 import com.thunderbolt.theme.Theme;
 
@@ -42,7 +44,7 @@ import java.util.Objects;
 /**
  * Panel component that can display an image as background.
  */
-public class MenuPanel extends JPanel
+public class MenuPanel extends JPanel implements INodeStatusChangeListener
 {
     private static final int LEFT_MARGIN                  = 37;
     private static final int BUTTON_WIDTH                 = 215;
@@ -70,6 +72,7 @@ public class MenuPanel extends JPanel
     public MenuPanel(String img) throws IOException
     {
         this(ImageIO.read(Objects.requireNonNull(MenuPanel.class.getClassLoader().getResourceAsStream(img))));
+        StateService.getInstance().addListener(this);
     }
 
     /**
@@ -87,6 +90,20 @@ public class MenuPanel extends JPanel
 
         m_overviewButton.addActionListener(e ->
         {
+            if (StateService.getInstance().getNodeState().equals(NodeState.Offline))
+            {
+                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
+                ResourceManager.playAudio(Theme.MENU_BUTTON_INVALID_SOUND);
+                return;
+            }
+
+            if (StateService.getInstance().getNodeState().equals(NodeState.Syncing))
+            {
+                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
+                ResourceManager.playAudio(Theme.MENU_BUTTON_INVALID_SOUND);
+                return;
+            }
+
             ScreenManager.getInstance().replaceTopScreen(new OverviewScreen());
             ResourceManager.playAudio(Theme.MENU_BUTTON_CLICK_SOUND);
             activateButton(m_overviewButton);
@@ -97,6 +114,20 @@ public class MenuPanel extends JPanel
 
         m_sendButton.addActionListener(e ->
         {
+            if (StateService.getInstance().getNodeState().equals(NodeState.Offline))
+            {
+                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
+                ResourceManager.playAudio(Theme.MENU_BUTTON_INVALID_SOUND);
+                return;
+            }
+
+            if (StateService.getInstance().getNodeState().equals(NodeState.Syncing))
+            {
+                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
+                ResourceManager.playAudio(Theme.MENU_BUTTON_INVALID_SOUND);
+                return;
+            }
+
             ScreenManager.getInstance().replaceTopScreen(new SendScreen());
             ResourceManager.playAudio(Theme.MENU_BUTTON_CLICK_SOUND);
             activateButton(m_sendButton);
@@ -107,6 +138,20 @@ public class MenuPanel extends JPanel
 
         m_receiveButton.addActionListener(e ->
         {
+            if (StateService.getInstance().getNodeState().equals(NodeState.Offline))
+            {
+                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
+                ResourceManager.playAudio(Theme.MENU_BUTTON_INVALID_SOUND);
+                return;
+            }
+
+            if (StateService.getInstance().getNodeState().equals(NodeState.Syncing))
+            {
+                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
+                ResourceManager.playAudio(Theme.MENU_BUTTON_INVALID_SOUND);
+                return;
+            }
+
             ScreenManager.getInstance().replaceTopScreen(new ReceiveScreen());
             ResourceManager.playAudio(Theme.MENU_BUTTON_CLICK_SOUND);
             activateButton(m_receiveButton);
@@ -117,6 +162,20 @@ public class MenuPanel extends JPanel
 
         m_encryptButton.addActionListener(e ->
         {
+            if (StateService.getInstance().getNodeState().equals(NodeState.Offline))
+            {
+                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
+                ResourceManager.playAudio(Theme.MENU_BUTTON_INVALID_SOUND);
+                return;
+            }
+
+            if (StateService.getInstance().getNodeState().equals(NodeState.Syncing))
+            {
+                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
+                ResourceManager.playAudio(Theme.MENU_BUTTON_INVALID_SOUND);
+                return;
+            }
+
             ScreenManager.getInstance().replaceTopScreen(new EncryptWalletScreen());
             ResourceManager.playAudio(Theme.MENU_BUTTON_CLICK_SOUND);
             activateButton(m_encryptButton);
@@ -127,6 +186,20 @@ public class MenuPanel extends JPanel
 
         m_exportButton.addActionListener(e ->
         {
+            if (StateService.getInstance().getNodeState().equals(NodeState.Offline))
+            {
+                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
+                ResourceManager.playAudio(Theme.MENU_BUTTON_INVALID_SOUND);
+                return;
+            }
+
+            if (StateService.getInstance().getNodeState().equals(NodeState.Syncing))
+            {
+                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
+                ResourceManager.playAudio(Theme.MENU_BUTTON_INVALID_SOUND);
+                return;
+            }
+
             ScreenManager.getInstance().replaceTopScreen(new ExportWalletScreen());
             ResourceManager.playAudio(Theme.MENU_BUTTON_CLICK_SOUND);
             activateButton(m_exportButton);
@@ -137,6 +210,20 @@ public class MenuPanel extends JPanel
 
         m_dumpKeysButton.addActionListener(e ->
         {
+            if (StateService.getInstance().getNodeState().equals(NodeState.Offline))
+            {
+                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
+                ResourceManager.playAudio(Theme.MENU_BUTTON_INVALID_SOUND);
+                return;
+            }
+
+            if (StateService.getInstance().getNodeState().equals(NodeState.Syncing))
+            {
+                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
+                ResourceManager.playAudio(Theme.MENU_BUTTON_INVALID_SOUND);
+                return;
+            }
+
             ScreenManager.getInstance().replaceTopScreen(new DumpKeysScreen());
             ResourceManager.playAudio(Theme.MENU_BUTTON_CLICK_SOUND);
             activateButton(m_dumpKeysButton);
@@ -148,9 +235,6 @@ public class MenuPanel extends JPanel
         add(m_encryptButton);
         add(m_exportButton);
         add(m_dumpKeysButton);
-
-        // Default starting screen.
-        m_overviewButton.setActive(true);
     }
 
     /**
@@ -205,5 +289,29 @@ public class MenuPanel extends JPanel
         m_encryptButton.setActive(m_encryptButton == button);
         m_exportButton.setActive(m_exportButton == button);
         m_dumpKeysButton.setActive(m_dumpKeysButton == button);
+    }
+
+    /**
+     * Trigger when the node state changes.
+     *
+     * @param state The new state.
+     */
+    @Override
+    public void onNodeStatusChange(NodeState state)
+    {
+        if (state == NodeState.Ready)
+        {
+            m_overviewButton.setActive(true);
+            m_overviewButton.doClick();
+        }
+
+        if (state == NodeState.Offline)
+        {
+            ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
+            return;
+        }
+
+        if (state == NodeState.Syncing)
+            ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
     }
 }

@@ -51,17 +51,22 @@ public class Theme
     public static final Color SHADOW_UMBRA_COLOR    = new Color(200, 200, 200);
     public static final Color SHADOW_PENUMBRA_COLOR = new Color(220, 220, 220);
 
-    public static final Color MENU_BUTTON_BACKGROUND = new Color(0, 0, 0, 30);
-    public static final Color MENU_BUTTON_ACTIVE     = FOREGROUND_COLOR;
+    public static final Font  TITLE_FONT                  = ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 16f);
+    public static final Font  STATUS_FONT                 = ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 16f);
+    public static final Color STATUS_OFFLINE_COLOR        = new Color(210, 27, 3);
+    public static final Color STATUS_SYNCING_COLOR        = new Color(255, 154, 0);
+    public static final Color STATUS_READY_COLOR          = new Color(61, 137, 0);
 
-    public static final Font  TITLE_FONT             = ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 16f);
-    public static final Font  MENU_BUTTON_FONT       = ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 13f);
-    public static final Color MENU_BUTTON_FONT_COLOR = new Color(240, 240, 240);
-    public static final Color MENU_BUTTON_ACTIVE_COLOR = Color.BLACK;
-    public static final Color MENU_BUTTON_INACTIVE_COLOR = new Color(240, 240, 240);
-
-    public static final Font  MENU_OVERVIEW_FONT       = ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 14f);
-    public static final Color MENU_OVERVIEW_FONT_COLOR = new Color(240, 240, 240);
-
-    public static final String MENU_BUTTON_CLICK_SOUND = "audio/navigation_minimal.wav";
+    public static final Color  MENU_BUTTON_BACKGROUND     = new Color(0, 0, 0, 30);
+    public static final Color  MENU_BUTTON_ACTIVE         = FOREGROUND_COLOR;
+    public static final Font   MENU_BUTTON_FONT           = ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 13f);
+    public static final Color  MENU_BUTTON_FONT_COLOR     = new Color(240, 240, 240);
+    public static final Color  MENU_BUTTON_ACTIVE_COLOR   = Color.BLACK;
+    public static final Color  MENU_BUTTON_INACTIVE_COLOR = new Color(240, 240, 240);
+    public static final Font   MENU_OVERVIEW_FONT         = ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 14f);
+    public static final Color  MENU_OVERVIEW_FONT_COLOR   = new Color(240, 240, 240);
+    public static final String MENU_BUTTON_CLICK_SOUND    = "audio/navigation_minimal.wav";
+    public static final String MENU_BUTTON_INVALID_SOUND  = "audio/navigation_unavailable-selection.wav";
+    public static final Font   MESSAGE_SCREEN_FONT        = ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 24f);
+    public static final Color  MESSAGE_SCREEN_COLOR       = new Color(0x75, 0x75, 0x75);
 }

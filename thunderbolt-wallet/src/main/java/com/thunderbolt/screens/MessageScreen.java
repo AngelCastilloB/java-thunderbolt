@@ -26,15 +26,42 @@ package com.thunderbolt.screens;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.state.StateService;
 import com.thunderbolt.theme.Theme;
+
+import java.awt.*;
 
 /* IMPLEMENTATION ************************************************************/
 
-public class OverviewScreen extends ScreenBase
+public class MessageScreen extends ScreenBase
 {
-    public OverviewScreen()
+    private String m_message;
+
+    public MessageScreen(String message)
     {
-        setTitle("PENDING TRANSACTIONS");
+        m_message = message;
         setBackground(Theme.FOREGROUND_COLOR);
+    }
+
+    /**
+     * Paints this component's children. If shouldUseBuffer is true, no component ancestor has a buffer and the component
+     * children can use a buffer if they have one. Otherwise, one ancestor has a buffer currently in use and children
+     * should not use a buffer to paint.
+     *
+     * @param graphics the Graphics context in which to paint
+     */
+    @Override
+    public void paintComponent(Graphics graphics)
+    {
+        Graphics2D graphics2d = (Graphics2D)graphics;
+        graphics2d.setRenderingHint(
+                RenderingHints.KEY_TEXT_ANTIALIASING,
+                RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        int width  = graphics.getFontMetrics().stringWidth(m_message);
+
+        graphics.setFont(Theme.MESSAGE_SCREEN_FONT);
+        graphics.setColor(Theme.MESSAGE_SCREEN_COLOR);
+        graphics.drawString(m_message, getWidth() / 2 - width, getHeight() / 2);
     }
 }

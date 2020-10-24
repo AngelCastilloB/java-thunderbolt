@@ -32,6 +32,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
 import java.awt.image.WritableRaster;
@@ -113,7 +114,9 @@ public class MenuButton extends JButton
                 RenderingHints.VALUE_ANTIALIAS_ON);
 
         graphics.setColor(m_isActive ? Theme.MENU_BUTTON_ACTIVE : Theme.MENU_BUTTON_BACKGROUND);
-        graphics.fillRect(0, 0, getWidth(), getHeight());
+
+        RoundRectangle2D roundedRectangle = new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 10, 10);
+        graphics2d.fill(roundedRectangle);
 
         graphics.drawImage(m_isActive ? m_pressedImage : m_unpressedImage, 10, getHeight() / 2 - 12,null);
 

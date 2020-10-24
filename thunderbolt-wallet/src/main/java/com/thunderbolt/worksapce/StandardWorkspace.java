@@ -30,6 +30,7 @@ import com.thunderbolt.components.MenuPanel;
 import com.thunderbolt.components.StatusPanel;
 import com.thunderbolt.components.TitlePanel;
 import com.thunderbolt.resources.ResourceManager;
+import com.thunderbolt.screens.MessageScreen;
 import com.thunderbolt.screens.OverviewScreen;
 import com.thunderbolt.screens.ScreenBase;
 import com.thunderbolt.theme.Theme;
@@ -81,10 +82,9 @@ public class StandardWorkspace implements IWorkspace, ActionListener
         ImageIcon icon = new ImageIcon(ResourceManager.loadImage("images/thunderbolt_icon.png"));
         m_frame.setIconImage(icon.getImage());
 
-        m_currentScreen = new OverviewScreen();
+        m_currentScreen = new MessageScreen("Trying to sync...");
 
         m_workArea.add(m_titlePanel);
-        //m_workArea.add(m_status);
         m_workArea.add(m_menu);
         m_frame.getContentPane().add(m_workArea);
         m_workArea.add(m_currentScreen);
@@ -114,9 +114,6 @@ public class StandardWorkspace implements IWorkspace, ActionListener
 
         m_titlePanel.setSize(m_workArea.getWidth() - m_menu.getWidth(), TITLE_PANEL_SIZE);
         m_titlePanel.setLocation(m_menu.getWidth(), 0);
-
-       // m_status.setSize(m_workArea.getWidth() - m_menu.getWidth(), STATUS_PANEL_SIZE);
-       // m_status.setLocation(m_menu.getWidth(), m_workArea.getHeight() - STATUS_PANEL_SIZE);
 
         m_currentScreen.setLocation(m_menu.getWidth() + SCREEN_MARGIN, m_titlePanel.getHeight() + SCREEN_MARGIN);
         m_currentScreen.setSize(m_workArea.getWidth() - m_menu.getWidth() - (SCREEN_MARGIN * 2),

@@ -45,11 +45,33 @@ public class StateService
     private static StateService s_instance = null;
     private static final Logger s_logger   = LoggerFactory.getLogger(StateService.class);
 
+    private final List<INodeStatusChangeListener> m_listeners = new ArrayList<>();
+    private NodeState m_currentState = NodeState.Syncing;
+
     /**
      * Prevents a default instance of the StateService class from being created.
      */
     protected StateService()
     {
+        new Thread(new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                try
+                {
+                    Thread.sleep(5000);
+                }
+                catch (InterruptedException e)
+                {
+                    e.printStackTrace();
+                }
+
+                m_currentState = NodeState.Ready;
+                for (INodeStatusChangeListener listener: m_listeners)
+                    listener.onNodeStatusChange(NodeState.Ready);
+            }
+        }).start();
     }
 
     /**
@@ -63,6 +85,39 @@ public class StateService
             s_instance = new StateService();
 
         return s_instance;
+    }
+
+    /**
+     * Adds a new listener to node state changes.
+     *
+     * @param listener The listener.
+     */
+    public void addListener(INodeStatusChangeListener listener)
+    {
+        if (m_listeners.contains(listener))
+            return;
+
+        m_listeners.add(listener);
+    }
+
+    /**
+     * Removes a listener from this object.
+     *
+     * @param listener The listener.
+     */
+    public void removeListener(INodeStatusChangeListener listener)
+    {
+        m_listeners.remove(listener);
+    }
+
+    /**
+     * Gets the current node state.
+     *
+     * @return The node state.
+     */
+    public NodeState getNodeState()
+    {
+        return m_currentState;
     }
 
     /**
@@ -92,6 +147,9 @@ public class StateService
      */
     public String getAvailableBalance()
     {
+        if (getNodeState() != NodeState.Ready)
+            return "Out of Sync";
+
         return Double.toString(2150.0);
     }
 
@@ -102,6 +160,9 @@ public class StateService
      */
     public String getPendingBalance()
     {
+        if (getNodeState() != NodeState.Ready)
+            return "Out of Sync";
+
         return Double.toString(500.0);
     }
 
@@ -112,6 +173,9 @@ public class StateService
      */
     public String getTotalBalance()
     {
+        if (getNodeState() != NodeState.Ready)
+            return "Out of Sync";
+
         return Double.toString(2650.0) + " THB";
     }
 

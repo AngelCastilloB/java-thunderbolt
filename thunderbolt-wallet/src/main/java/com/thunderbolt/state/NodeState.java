@@ -22,19 +22,27 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.screens;
-
-/* IMPORTS *******************************************************************/
-
-import com.thunderbolt.theme.Theme;
+package com.thunderbolt.state;
 
 /* IMPLEMENTATION ************************************************************/
 
-public class OverviewScreen extends ScreenBase
+/**
+ * The node current state.
+ */
+public enum NodeState
 {
-    public OverviewScreen()
-    {
-        setTitle("PENDING TRANSACTIONS");
-        setBackground(Theme.FOREGROUND_COLOR);
-    }
+    /**
+     * The node is offline.
+     */
+    Offline,
+
+    /**
+     * The node is currently syncing with a peer.
+     */
+    Syncing,
+
+    /**
+     * The node is ready.
+     */
+    Ready
 }
