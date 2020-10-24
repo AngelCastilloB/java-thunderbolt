@@ -27,7 +27,6 @@ package com.thunderbolt;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.screens.ScreenManager;
-import com.thunderbolt.screens.TransactionsScreen;
 import com.thunderbolt.worksapce.StandardWorkspace;
 
 import java.io.IOException;

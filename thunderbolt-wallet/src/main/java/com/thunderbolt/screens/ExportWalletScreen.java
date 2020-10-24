@@ -30,11 +30,11 @@ import com.thunderbolt.theme.Theme;
 
 /* IMPLEMENTATION ************************************************************/
 
-public class TransactionsScreen extends ScreenBase
+public class ExportWalletScreen extends ScreenBase
 {
-    public TransactionsScreen()
+    public ExportWalletScreen()
     {
-        setTitle("TRANSACTIONS");
+        setTitle("EXPORT WALLET");
         setBackground(Theme.FOREGROUND_COLOR);
     }
 }

@@ -78,10 +78,13 @@ public class StandardWorkspace implements IWorkspace, ActionListener
         m_frame.setBackground(Theme.BACKGROUND_COLOR);
         m_frame.getContentPane().setLayout(null);
 
+        ImageIcon icon = new ImageIcon(ResourceManager.loadImage("images/thunderbolt_icon.png"));
+        m_frame.setIconImage(icon.getImage());
+
         m_currentScreen = new OverviewScreen();
 
         m_workArea.add(m_titlePanel);
-        m_workArea.add(m_status);
+        //m_workArea.add(m_status);
         m_workArea.add(m_menu);
         m_frame.getContentPane().add(m_workArea);
         m_workArea.add(m_currentScreen);
@@ -112,12 +115,12 @@ public class StandardWorkspace implements IWorkspace, ActionListener
         m_titlePanel.setSize(m_workArea.getWidth() - m_menu.getWidth(), TITLE_PANEL_SIZE);
         m_titlePanel.setLocation(m_menu.getWidth(), 0);
 
-        m_status.setSize(m_workArea.getWidth() - m_menu.getWidth(), STATUS_PANEL_SIZE);
-        m_status.setLocation(m_menu.getWidth(), m_workArea.getHeight() - STATUS_PANEL_SIZE);
+       // m_status.setSize(m_workArea.getWidth() - m_menu.getWidth(), STATUS_PANEL_SIZE);
+       // m_status.setLocation(m_menu.getWidth(), m_workArea.getHeight() - STATUS_PANEL_SIZE);
 
         m_currentScreen.setLocation(m_menu.getWidth() + SCREEN_MARGIN, m_titlePanel.getHeight() + SCREEN_MARGIN);
         m_currentScreen.setSize(m_workArea.getWidth() - m_menu.getWidth() - (SCREEN_MARGIN * 2),
-                m_workArea.getHeight() - m_status.getHeight() - m_titlePanel.getHeight() - (SCREEN_MARGIN * 2));
+                m_workArea.getHeight() - m_titlePanel.getHeight() - (SCREEN_MARGIN * 2));
 
         m_titlePanel.setTitle(m_currentScreen.getTitle());
     }
@@ -178,6 +181,21 @@ public class StandardWorkspace implements IWorkspace, ActionListener
     @Override
     public void setCurrentScreenFullScreen(ScreenBase screen)
     {
+        if (m_currentScreen == null)
+            return;
+
+        m_workArea.remove(m_currentScreen);
+
+        m_currentScreen = screen;
+        m_titlePanel.setTitle(m_currentScreen.getTitle());
+
+        // compute screen position.
+        m_currentScreen.setLocation(0, 0);
+        m_currentScreen.setSize(m_workArea.getWidth(), m_workArea.getHeight());
+
+        m_workArea.add(m_currentScreen);
+        m_workArea.revalidate();
+        m_workArea.repaint();
     }
 
     /**
