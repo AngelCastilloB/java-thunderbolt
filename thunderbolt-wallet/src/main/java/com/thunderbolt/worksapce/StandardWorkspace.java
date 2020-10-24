@@ -28,6 +28,7 @@ package com.thunderbolt.worksapce;
 
 import com.thunderbolt.components.MenuPanel;
 import com.thunderbolt.components.TitlePanel;
+import com.thunderbolt.resources.ResourceManager;
 import com.thunderbolt.screens.ScreenBase;
 import com.thunderbolt.theme.Theme;
 
@@ -73,8 +74,7 @@ public class StandardWorkspace implements IWorkspace, ActionListener
         TitlePanel title = new TitlePanel();
         JPanel rightPanel = new JPanel();
 
-        //leftPanel.setBackground(Theme.BACKGROUND_COLOR);
-        rightPanel.setBackground(Theme.FOREGROUND_COLOR);
+        rightPanel.setBackground(Theme.BACKGROUND_COLOR);
 
         leftPanel.setSize((int)(m_frame.getWidth() * 0.28), m_frame.getHeight());
         leftPanel.setLocation(0, 0);
@@ -85,11 +85,12 @@ public class StandardWorkspace implements IWorkspace, ActionListener
         title.setSize(m_frame.getWidth() - leftPanel.getWidth(), 50);
         title.setLocation(leftPanel.getWidth(), 0);
 
-        container.add(rightPanel);
         container.add(title);
+        container.add(rightPanel);
         container.add(leftPanel);
+        ResourceManager.playAudio("audio/navigation_minimal.wav");
 
-        container.remove(rightPanel);
+
     }
 
     /**

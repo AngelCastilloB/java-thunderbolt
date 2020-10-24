@@ -28,11 +28,8 @@ package com.thunderbolt.components;
 
 import com.thunderbolt.theme.Theme;
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
-import java.io.IOException;
-import java.util.Objects;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -41,6 +38,11 @@ import java.util.Objects;
  */
 public class TitlePanel extends JPanel
 {
+    private static final int UMBRA_OFFSET    = 2;
+    private static final int PENUMBRA_OFFSET = 1;
+
+    private String m_title = "";
+
     /**
      * Initializes a new instance of the TitlePanel class.
      */
@@ -57,15 +59,43 @@ public class TitlePanel extends JPanel
      */
     public void paintComponent(Graphics graphics)
     {
+        Graphics2D graphics2d = (Graphics2D)graphics;
+        graphics2d.setRenderingHint(
+                RenderingHints.KEY_TEXT_ANTIALIASING,
+                RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
         graphics.setColor(Theme.FOREGROUND_COLOR);
         graphics.fillRect(0, 0, getWidth(), getHeight());
 
-        // Add shadow to edge.
-        graphics.setColor(new Color(150, 150, 150));
-        graphics.drawLine(0, getHeight() - 2, getWidth(), getHeight() - 2);
-        graphics.setColor(new Color(190, 190, 190));
-        graphics.drawLine(0, getHeight() - 1, getWidth(), getHeight() - 1 );
+        graphics.setColor(Theme.TITLE_FONT_COLOR);
+        graphics.setFont(Theme.TITLE_FONT);
 
+        graphics.drawString("Transactions", 30, 30);
+
+        // Add shadow to edge.
+        graphics.setColor(Theme.SHADOW_UMBRA_COLOR);
+        graphics.drawLine(0, getHeight() - UMBRA_OFFSET, getWidth(), getHeight() - UMBRA_OFFSET);
+        graphics.setColor(Theme.SHADOW_PENUMBRA_COLOR);
+        graphics.drawLine(0, getHeight() - PENUMBRA_OFFSET, getWidth(), getHeight() - PENUMBRA_OFFSET);
     }
 
+    /**
+     * Gets the currently set title.
+     *
+     * @return The title.
+     */
+    public String getTitle()
+    {
+        return m_title;
+    }
+
+    /**
+     * Sets the title.
+     *
+     * @param title The title.
+     */
+    public void setTitle(String title)
+    {
+        m_title = title;
+    }
 }

@@ -7,5 +7,6 @@
     <file url="file://$PROJECT_DIR$/thunderbolt-miner/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/thunderbolt-node/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/thunderbolt-wallet/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/thunderbolt-wallet/src/main/resources" charset="UTF-8" />
   </component>
 </project>

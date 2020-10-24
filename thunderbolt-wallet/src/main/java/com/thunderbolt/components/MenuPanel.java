@@ -26,6 +26,8 @@ package com.thunderbolt.components;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.theme.Theme;
+
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
@@ -77,13 +79,6 @@ public class MenuPanel extends JPanel
     public void paintComponent(Graphics graphics)
     {
         graphics.drawImage(m_img, 0, 0, null);
-
-        // Add shadow to edge.
-        graphics.setColor(new Color(100, 100, 100));
-        graphics.drawLine(getWidth() - 2, 0, getWidth() - 2, getHeight());
-
-        graphics.setColor(new Color(150, 150, 150));
-        graphics.drawLine(getWidth() - 1, 0, getWidth() - 1, getHeight());
     }
 
 }
