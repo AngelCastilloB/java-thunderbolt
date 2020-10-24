@@ -34,20 +34,16 @@ import java.awt.*;
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Panel component that displays the title of each screen.
+ * Custom button implementation.
  */
-public class TitlePanel extends JPanel
+public class MenuButton extends JButton
 {
-    private static final int UMBRA_OFFSET    = 2;
-    private static final int PENUMBRA_OFFSET = 1;
-
-    private String m_title = "";
-
     /**
-     * Initializes a new instance of the TitlePanel class.
+     * Initializes a new instance of the CustomButton class.
      */
-    public TitlePanel()
+    public MenuButton()
     {
+        this.setContentAreaFilled(false);
     }
 
     /**
@@ -60,43 +56,17 @@ public class TitlePanel extends JPanel
     @Override
     public void paintComponent(Graphics graphics)
     {
-        Graphics2D graphics2d = (Graphics2D)graphics;
-        graphics2d.setRenderingHint(
-                RenderingHints.KEY_TEXT_ANTIALIASING,
-                RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-
-        graphics.setColor(Theme.FOREGROUND_COLOR);
+        graphics.setColor(Theme.MENU_BUTTON_BACKGROUND);
         graphics.fillRect(0, 0, getWidth(), getHeight());
-
-        graphics.setColor(Theme.PRIMARY_TEXT_COLOR);
-        graphics.setFont(Theme.TITLE_FONT);
-
-        graphics.drawString(m_title, 30, 30);
-
-        // Add shadow to edge.
-        graphics.setColor(Theme.SHADOW_UMBRA_COLOR);
-        graphics.drawLine(0, getHeight() - UMBRA_OFFSET, getWidth(), getHeight() - UMBRA_OFFSET);
-        graphics.setColor(Theme.SHADOW_PENUMBRA_COLOR);
-        graphics.drawLine(0, getHeight() - PENUMBRA_OFFSET, getWidth(), getHeight() - PENUMBRA_OFFSET);
     }
 
     /**
-     * Gets the currently set title.
+     * Paints the border for the specified component with the specified position and size.
      *
-     * @return The title.
+     * @param graphics the Graphics context in which to paint
      */
-    public String getTitle()
+    @Override
+    public void paintBorder(Graphics graphics)
     {
-        return m_title;
-    }
-
-    /**
-     * Sets the title.
-     *
-     * @param title The title.
-     */
-    public void setTitle(String title)
-    {
-        m_title = title;
     }
 }

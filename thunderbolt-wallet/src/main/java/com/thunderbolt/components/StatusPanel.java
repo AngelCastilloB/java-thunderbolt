@@ -36,7 +36,7 @@ import java.awt.*;
 /**
  * Panel component that displays the title of each screen.
  */
-public class TitlePanel extends JPanel
+public class StatusPanel extends JPanel
 {
     private static final int UMBRA_OFFSET    = 2;
     private static final int PENUMBRA_OFFSET = 1;
@@ -46,7 +46,7 @@ public class TitlePanel extends JPanel
     /**
      * Initializes a new instance of the TitlePanel class.
      */
-    public TitlePanel()
+    public StatusPanel()
     {
     }
 
@@ -57,7 +57,6 @@ public class TitlePanel extends JPanel
      *
      * @param graphics the Graphics context in which to paint
      */
-    @Override
     public void paintComponent(Graphics graphics)
     {
         Graphics2D graphics2d = (Graphics2D)graphics;
@@ -76,8 +75,6 @@ public class TitlePanel extends JPanel
         // Add shadow to edge.
         graphics.setColor(Theme.SHADOW_UMBRA_COLOR);
         graphics.drawLine(0, getHeight() - UMBRA_OFFSET, getWidth(), getHeight() - UMBRA_OFFSET);
-        graphics.setColor(Theme.SHADOW_PENUMBRA_COLOR);
-        graphics.drawLine(0, getHeight() - PENUMBRA_OFFSET, getWidth(), getHeight() - PENUMBRA_OFFSET);
     }
 
     /**

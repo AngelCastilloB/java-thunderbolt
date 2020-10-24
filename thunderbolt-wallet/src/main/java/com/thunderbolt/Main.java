@@ -26,6 +26,8 @@ package com.thunderbolt;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.screens.ScreenManager;
+import com.thunderbolt.screens.TransactionsScreen;
 import com.thunderbolt.worksapce.StandardWorkspace;
 
 import java.io.IOException;
@@ -51,6 +53,7 @@ public class Main
     public static void main(String[] args) throws IOException, URISyntaxException
     {
         StandardWorkspace workspace = new StandardWorkspace(STARTING_X, STARTING_Y, WIDTH, HEIGHT);
+        ScreenManager.getInstance().setWorkspaceProvider(workspace);
         workspace.setTitle("Thunderbolt - Wallet");
         workspace.display();
     }

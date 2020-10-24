@@ -26,22 +26,24 @@ package com.thunderbolt.screens;
 
 /* IMPORTS ********************************************************************/
 
+import com.thunderbolt.theme.Theme;
+
 import javax.swing.*;
+import java.awt.*;
 
 /* DECLARATION ****************************************************************/
 
 /**
  * Base class for all screens.
  */
-public class ScreenBase extends JComponent
+public class ScreenBase extends JPanel
 {
-    private ScreenResult m_result     = ScreenResult.None;
-    private String       m_title      = "";
-    private boolean      m_showTitle  = false;
-    private boolean      m_showHeader = true;
-    private boolean      m_showFooter = true;
-    private boolean      m_closeAble  = false;
-    private boolean      m_showing    = false;
+    private static final int UMBRA_OFFSET    = 2;
+    private static final int PENUMBRA_OFFSET = 1;
+
+    private ScreenResult m_result  = ScreenResult.None;
+    private String       m_title   = "";
+    private boolean      m_showing = false;
 
     /**
      * Gets the screen result.
@@ -84,80 +86,6 @@ public class ScreenBase extends JComponent
     }
 
     /**
-     * Gets whether the title of this screen is showing.
-     *
-     * @return True if the title is showing, otherwise, false.
-     */
-    public boolean isTitleShowing()
-    {
-        return m_showTitle;
-    }
-
-    /**
-     * Sets whether the title of this screen is showing.
-     *
-     * @param showTitle True if the title of this is screen must be shown, otherwise, false.
-     */
-    public void setIsTitleShowing(boolean showTitle)
-    {
-        m_showTitle = showTitle;
-    }
-
-    /**
-     * Gets whether the header of this screen is showing.
-     */
-    public boolean isHeaderShowing()
-    {
-        return m_showHeader;
-    }
-
-    /**
-     * Gets whether the header of this screen is showing.
-     *
-     * @param showHeader True if the header of this is screen must be shown, otherwise, false.
-     */
-    public void setIsHeaderShowing(boolean showHeader)
-    {
-        this.m_showHeader = showHeader;
-    }
-
-    /**
-     * Gets whether the footer of this screen is showing.
-     */
-    public boolean isFooterShowing()
-    {
-        return m_showFooter;
-    }
-
-    /**
-     * Gets whether the footer of this screen is showing.
-     *
-     * @param showFooter True if the header of this is screen must be shown, otherwise, false.
-     */
-    public void setIsFooterShowing(boolean showFooter)
-    {
-        this.m_showFooter = showFooter;
-    }
-
-    /**
-     * Gets whether the screen is closeable.
-     */
-    public boolean isCloseAble()
-    {
-        return m_closeAble;
-    }
-
-    /**
-     * Sets whether the screen is closeable.
-     *
-     * @param closeAble True if the screen is closeable, otherwise, false.
-     */
-    public void setIsCloseAble(boolean closeAble)
-    {
-        this.m_closeAble = closeAble;
-    }
-
-    /**
      * Gets whether this screen is currently being shown.
      *
      * @return True if the screen is being shown, otherwise, false.
@@ -191,5 +119,18 @@ public class ScreenBase extends JComponent
     public void onClose()
     {
         m_showing = false;
+    }
+
+    /**
+     * Paints this component's children. If shouldUseBuffer is true, no component ancestor has a buffer and the component
+     * children can use a buffer if they have one. Otherwise, one ancestor has a buffer currently in use and children
+     * should not use a buffer to paint.
+     *
+     * @param graphics the Graphics context in which to paint
+     */
+    public void paintComponent(Graphics graphics)
+    {
+        graphics.setColor(Theme.BACKGROUND_COLOR);
+        graphics.fillRect(0, 0, getWidth(), getHeight());
     }
 }
