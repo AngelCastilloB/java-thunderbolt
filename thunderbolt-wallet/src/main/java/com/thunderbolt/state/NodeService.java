@@ -247,7 +247,7 @@ public class NodeService
      */
     public String getAddress()
     {
-        return Convert.toHexString(new byte[32]);
+        return m_address;
     }
 
     /**

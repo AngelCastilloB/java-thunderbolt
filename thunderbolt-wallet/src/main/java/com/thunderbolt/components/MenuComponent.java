@@ -26,6 +26,7 @@ package com.thunderbolt.components;
 
 /* IMPORTS *******************************************************************/
 
+import com.google.zxing.WriterException;
 import com.thunderbolt.resources.ResourceManager;
 import com.thunderbolt.screens.*;
 import com.thunderbolt.state.INodeStatusChangeListener;
@@ -144,7 +145,16 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
                 return;
             }
 
-            ScreenManager.getInstance().replaceTopScreen(new ReceiveScreen());
+            try
+            {
+                ScreenManager.getInstance().replaceTopScreen(new ReceiveScreen());
+                activateButton(m_receiveButton);
+            }
+            catch (WriterException | IOException e)
+            {
+                e.printStackTrace();
+            }
+
             activateButton(m_receiveButton);
         });
 

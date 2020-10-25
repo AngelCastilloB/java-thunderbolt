@@ -31,14 +31,11 @@ import com.thunderbolt.components.MenuComponent;
 import com.thunderbolt.resources.ResourceManager;
 import com.thunderbolt.screens.MessageScreen;
 import com.thunderbolt.screens.ScreenBase;
-import com.thunderbolt.state.IDataChangeListener;
 import com.thunderbolt.state.NodeService;
 import com.thunderbolt.theme.Theme;
 
 import javax.swing.*;
-import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.RoundRectangle2D;
 import java.io.IOException;
 
 import static javax.swing.WindowConstants.EXIT_ON_CLOSE;
@@ -121,10 +118,29 @@ public class StandardWorkspace extends JPanel implements IWorkspace, ActionListe
         m_titleComponent.setLocation(m_menu.getWidth(), 0);
 
         m_currentScreen.setLocation(m_menu.getWidth() + SCREEN_MARGIN, m_titleComponent.getHeight() + SCREEN_MARGIN);
-        m_currentScreen.setSize(getWidth() - m_menu.getWidth() - (SCREEN_MARGIN * 2),
-                getHeight() - m_titleComponent.getHeight() - (SCREEN_MARGIN * 2));
+        m_currentScreen.setSize(getReservedScreenWidth(),getReservedScreenHeight());
 
         m_titleComponent.setTitle(m_currentScreen.getTitle());
+    }
+
+    /**
+     * Gets the reserved screen width by the workspace.
+     *
+     * @return The screen width.
+     */
+    public int getReservedScreenWidth()
+    {
+        return getWidth() - m_menu.getWidth() - (SCREEN_MARGIN * 2);
+    }
+
+    /**
+     * Gets the reserved screen height by the workspace.
+     *
+     * @return The screen ehgith.
+     */
+    public int getReservedScreenHeight()
+    {
+        return getHeight() - m_titleComponent.getHeight() - (SCREEN_MARGIN * 2);
     }
 
     /**

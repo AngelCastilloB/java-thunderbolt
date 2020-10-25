@@ -28,13 +28,16 @@ package com.thunderbolt.screens;
 
 import com.thunderbolt.theme.Theme;
 
+import javax.swing.*;
+import java.awt.*;
+
 /* IMPLEMENTATION ************************************************************/
 
 public class OverviewScreen extends ScreenBase
 {
     public OverviewScreen()
     {
+        setLayout(null);
         setTitle("PENDING TRANSACTIONS");
-        setBackground(Theme.FOREGROUND_COLOR);
     }
 }

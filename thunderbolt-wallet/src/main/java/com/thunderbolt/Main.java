@@ -43,9 +43,9 @@ import java.nio.file.Paths;
 public class Main
 {
     // Constants
-    static private final String USER_HOME_PATH          = System.getProperty("user.home");
+    static private final String USER_HOME_PATH   = System.getProperty("user.home");
     static private final String DATA_FOLDER_NAME = ".thunderbolt";
-    static private final Path DEFAULT_PATH     = Paths.get(USER_HOME_PATH, DATA_FOLDER_NAME);
+    static private final Path   DEFAULT_PATH     = Paths.get(USER_HOME_PATH, DATA_FOLDER_NAME);
     static private final Path   CONFIG_FILE_PATH = Paths.get(DEFAULT_PATH.toString(), "thunderbolt.conf");
 
     private static final int STARTING_X = 300;

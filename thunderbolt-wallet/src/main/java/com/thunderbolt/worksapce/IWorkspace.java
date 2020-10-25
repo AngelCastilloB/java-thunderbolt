@@ -58,6 +58,20 @@ public interface IWorkspace
     void removeCurrentScreen();
 
     /**
+     * Gets the reserved screen width by the workspace.
+     *
+     * @return The screen width.
+     */
+    int getReservedScreenWidth();
+
+    /**
+     * Gets the reserved screen height by the workspace.
+     *
+     * @return The screen ehgith.
+     */
+    int getReservedScreenHeight();
+
+    /**
      * Sets the title of the workspace.
      *
      * @param title The title.

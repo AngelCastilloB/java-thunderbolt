@@ -248,4 +248,24 @@ public class ScreenManager
     {
         m_workspace.clearNotification();
     }
+
+    /**
+     * Gets the reserved screen width by the workspace.
+     *
+     * @return The screen width.
+     */
+    public int getReservedScreenWidth()
+    {
+        return m_workspace.getReservedScreenWidth();
+    }
+
+    /**
+     * Gets the reserved screen height by the workspace.
+     *
+     * @return The screen ehgith.
+     */
+    public int getReservedScreenHeight()
+    {
+        return m_workspace.getReservedScreenHeight();
+    }
 }

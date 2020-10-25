@@ -26,7 +26,10 @@ package com.thunderbolt.screens;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.state.NodeService;
 import com.thunderbolt.theme.Theme;
+
+import javax.swing.*;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -36,5 +39,17 @@ public class EncryptWalletScreen extends ScreenBase
     {
         setTitle("ENCRYPT WALLET");
         setBackground(Theme.FOREGROUND_COLOR);
+
+        JTextField label = new JPasswordField();
+
+        label.setSize(getWidth() - 20, 50);
+        label.setFont(Theme.TITLE_FONT);
+        label.setLocation(10, getHeight() - 150);
+        //label.setHorizontalAlignment(0);
+        //label.setBorder(BorderFactory.createEmptyBorder());
+        //label.setBackground(Theme.FOREGROUND_COLOR);
+
+
+        add(label);
     }
 }

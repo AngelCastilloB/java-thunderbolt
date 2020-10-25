@@ -47,6 +47,16 @@ public class ScreenBase extends JComponent
     private boolean      m_isFullscreen = false;
 
     /**
+     * Creates a new instance of the ScreenBase class.
+     */
+    public ScreenBase()
+    {
+        if (ScreenManager.getInstance().getWorkspace() != null)
+            setSize(ScreenManager.getInstance().getReservedScreenWidth(),
+                    ScreenManager.getInstance().getReservedScreenHeight());
+    }
+
+    /**
      * Gets the screen title.
      *
      * @return The screen title.
