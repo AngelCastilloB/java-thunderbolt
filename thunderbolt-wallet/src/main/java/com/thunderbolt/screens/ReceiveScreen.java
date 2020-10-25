@@ -28,6 +28,8 @@ package com.thunderbolt.screens;
 
 import com.thunderbolt.theme.Theme;
 
+import javax.swing.*;
+
 /* IMPLEMENTATION ************************************************************/
 
 public class ReceiveScreen extends ScreenBase
@@ -36,5 +38,14 @@ public class ReceiveScreen extends ScreenBase
     {
         setTitle("RECEIVE");
         setBackground(Theme.FOREGROUND_COLOR);
+        JTextField label = new JTextField();
+        label.setText("rerasfasdasdas");
+        label.setFont(Theme.TITLE_FONT);
+        label.setSize(getSize());
+        label.setLocation(100, 100);
+        label.setEditable(false);
+        label.setBorder(BorderFactory.createEmptyBorder());
+        label.setBackground(Theme.FOREGROUND_COLOR);
+        add(label);
     }
 }

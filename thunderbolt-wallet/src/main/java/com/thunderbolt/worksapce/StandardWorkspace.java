@@ -54,12 +54,12 @@ public class StandardWorkspace extends JPanel implements IWorkspace, ActionListe
     private static final int    TITLE_PANEL_SIZE    = 50;
     private static final double MENU_SIZE_FACTOR    = 0.28;
 
-    private final JFrame       m_frame         = new JFrame();
-    private final TitleComponent m_titleComponent = new TitleComponent();
-    private final MenuComponent m_menu          = new MenuComponent("images/left_panel_background.png");
-    private final StatusComponent m_status        = new StatusComponent();
-    private NotificationComponent       m_notification  = null;
-    private ScreenBase         m_currentScreen = null;
+    private final JFrame          m_frame          = new JFrame();
+    private final TitleComponent  m_titleComponent = new TitleComponent();
+    private final MenuComponent   m_menu           = new MenuComponent("images/left_panel_background.png");
+    private final StatusComponent m_status         = new StatusComponent();
+    private NotificationComponent m_notification   = null;
+    private ScreenBase            m_currentScreen  = null;
 
     /**
      * Creates a new instance of the StandardWorkspace class.
