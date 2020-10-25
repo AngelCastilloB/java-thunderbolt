@@ -27,7 +27,11 @@ package com.thunderbolt.state;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.Convert;
+import com.thunderbolt.resources.ResourceManager;
+import com.thunderbolt.screens.ScreenManager;
+import com.thunderbolt.theme.Theme;
 import com.thunderbolt.transaction.Transaction;
+import com.thunderbolt.worksapce.NotificationButtons;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,16 +64,20 @@ public class StateService
             {
                 try
                 {
-                    Thread.sleep(5000);
+                    Thread.sleep(1000);
                 }
                 catch (InterruptedException e)
                 {
                     e.printStackTrace();
                 }
 
+                ResourceManager.playAudio(Theme.STATUS_READY_SOUND);
                 m_currentState = NodeState.Ready;
                 for (INodeStatusChangeListener listener: m_listeners)
                     listener.onNodeStatusChange(NodeState.Ready);
+
+                ScreenManager.getInstance().showNotification("Syncing Finish", "Initial blockchain synchronization finished.",
+                        NotificationButtons.GotIt, result -> System.out.println(NotificationButtons.GotIt));
             }
         }).start();
     }

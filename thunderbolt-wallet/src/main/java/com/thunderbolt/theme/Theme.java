@@ -56,6 +56,17 @@ public class Theme
     public static final Color STATUS_OFFLINE_COLOR        = new Color(210, 27, 3);
     public static final Color STATUS_SYNCING_COLOR        = new Color(255, 154, 0);
     public static final Color STATUS_READY_COLOR          = new Color(61, 137, 0);
+    public static final String STATUS_READY_SOUND         = "audio/wallet_ready.wav";
+
+    public static final Color  NOTIFICATION_BACKGROUND        = new Color(0, 0, 0, 128);
+    public static final String NOTIFICATION_SOUND             = "audio/notification.wav";
+    public static final Font   NOTIFICATION_TITLE_FONT        = ResourceManager.loadFont("fonts/Roboto-Bold.ttf", 18f);
+    public static final Font   NOTIFICATION_TEXT              = ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 16f);
+    public static final Color  NOTIFICATION_BUTTON_TEXT       = new Color(0xFF, 0xFF, 0xFF);
+    public static final Color  NOTIFICATION_BUTTON_BACKGROUND = new Color(0x30, 0x3F, 0x9F);
+    public static final Color  NOTIFICATION_TILE_COLOR        = new Color(26, 37, 57);
+    public static final Color  NOTIFICATION_TEXT_COLOR        = new Color(26, 37, 57);
+    public static final Color  NOTIFICATION_BUTTON_TEXT_COLOR = new Color(0x75, 0x75, 0x75);
 
     public static final Color  MENU_BUTTON_BACKGROUND     = new Color(0, 0, 0, 30);
     public static final Color  MENU_BUTTON_ACTIVE         = FOREGROUND_COLOR;

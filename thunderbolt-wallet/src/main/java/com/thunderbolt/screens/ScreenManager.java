@@ -26,7 +26,11 @@ package com.thunderbolt.screens;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.resources.ResourceManager;
+import com.thunderbolt.theme.Theme;
+import com.thunderbolt.worksapce.INotificationResultHandler;
 import com.thunderbolt.worksapce.IWorkspace;
+import com.thunderbolt.worksapce.NotificationButtons;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,12 +85,17 @@ public class ScreenManager
     }
 
     /**
-     * Remove and deletes a screen.
+     * Shows a notification to the user.
      *
-     * @param screen   The screen to remove.
+     * @param title The tittle on the notification.
+     * @param text The text of the notification.
+     * @param buttons The buttons to be display.
+     * @param handler The notification handler.
      */
-    void removeScreen(ScreenBase screen)
+    public void showNotification(String title, String text, NotificationButtons buttons, INotificationResultHandler handler)
     {
+        ResourceManager.playAudio(Theme.NOTIFICATION_SOUND);
+        m_workspace.showNotification(title, text, buttons, handler);
     }
 
     /**
@@ -125,14 +134,7 @@ public class ScreenManager
         s_logger.debug(String.format("Showing screen: %s", screen.getTitle()));
         m_stack.addFirst(screen);
 
-        if (fullScreen)
-        {
-            m_workspace.setCurrentScreenFullScreen(screen);
-        }
-        else
-        {
-            m_workspace.setCurrentScreen(screen);
-        }
+        m_workspace.setCurrentScreen(screen);
 
         screen.onShow();
     }
@@ -173,21 +175,6 @@ public class ScreenManager
         if (m_stack.size() > 0)
         {
             this.close(m_stack.getFirst());
-        }
-        else
-        {
-            m_workspace.setCurrentScreen(null);
-        }
-    }
-
-    /**
-     * Closes the underneath screen.
-     */
-    public void closeUnderneathScreen()
-    {
-        if (m_stack.size() > 0)
-        {
-            this.close(m_stack.get(1));
         }
         else
         {
@@ -242,5 +229,23 @@ public class ScreenManager
         s_logger.debug(String.format("Returning last screen: %s", m_stack.getLast().getTitle()));
 
         return m_stack.getLast();
+    }
+
+    /**
+     * Gets whether a notification is being shown.
+     *
+     * @return True if notifications are being shown; otherwise false.
+     */
+    public boolean isNotificationShown()
+    {
+        return m_workspace.isNotificationShowing();
+    }
+
+    /**
+     * Clears the notification currently being shown.
+     */
+    public void clearNotification()
+    {
+        m_workspace.clearNotification();
     }
 }

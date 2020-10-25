@@ -26,6 +26,7 @@ package com.thunderbolt.components;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.screens.ScreenManager;
 import com.thunderbolt.theme.Theme;
 
 import javax.swing.*;
@@ -36,7 +37,7 @@ import java.awt.*;
 /**
  * Panel component that displays the title of each screen.
  */
-public class StatusPanel extends JPanel
+public class StatusComponent extends JComponent
 {
     private static final int UMBRA_OFFSET    = 2;
     private static final int PENUMBRA_OFFSET = 1;
@@ -46,7 +47,7 @@ public class StatusPanel extends JPanel
     /**
      * Initializes a new instance of the TitlePanel class.
      */
-    public StatusPanel()
+    public StatusComponent()
     {
     }
 

@@ -53,13 +53,6 @@ public interface IWorkspace
     void setCurrentScreen(ScreenBase screen);
 
     /**
-     * Sets the current screen on full screen.
-     *
-     * @param screen The screen to be shown.
-     */
-    void setCurrentScreenFullScreen(ScreenBase screen);
-
-    /**
      * Removes the current screen.
      */
     void removeCurrentScreen();
@@ -70,4 +63,26 @@ public interface IWorkspace
      * @param title The title.
      */
     void setTitle(String title);
+
+    /**
+     * Shows a notification to the user.
+     *
+     * @param title The tittle on the notification.
+     * @param text The text of the notification.
+     * @param buttons The buttons to be display.
+     * @param handler The notification handler.
+     */
+    void showNotification(String title, String text, NotificationButtons buttons, INotificationResultHandler handler);
+
+    /**
+     * Clears the notification currently being shown.
+     */
+    void clearNotification();
+
+    /**
+     * Gets whether a notification is being currently shown.
+     *
+     * @return true if a notification is being shown; otherwise; false.
+     */
+    boolean isNotificationShowing();
 }

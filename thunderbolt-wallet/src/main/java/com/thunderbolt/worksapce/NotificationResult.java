@@ -22,57 +22,47 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.screens;
+package com.thunderbolt.worksapce;
 
 /* DECLARATION ****************************************************************/
 
 /**
- * Specifies identifiers to indicate the return value of a screen.
+ * Specifies identifiers to indicate the return value of a notification.
  */
-public enum ScreenResult
+public enum NotificationResult
 {
     /**
-     * The screen return value is Abort.
+     * The user acknowledges the notification.
      */
-    Abort,
+    GotIt,
 
     /**
-     * The screen return value is Cancel.
-     */
-    Cancel,
-
-    /**
-     * The screen return value is Ignore.
-     */
-    Ignore,
-
-    /**
-     * The screen return value is No.
-     */
-    No,
-
-    /**
-     * The screen return value is None.
-     */
-    None,
-
-    /**
-     * The screen return value is OK.
-     */
-    OK,
-
-    /**
-     * The screen return value is Retry.
-     */
-    Retry,
-
-    /**
-     * The screen return value is Yes.
+     * The notification result value is Yes.
      */
     Yes,
 
     /**
-     * The screen return value is Skip.
+     * The notification return value is No.
      */
-    Skip
+    No,
+
+    /**
+     * The notification return value is Accept.
+     */
+    Accept,
+
+    /**
+     * The notification return value is Cancel.
+     */
+    Cancel,
+
+    /**
+     * The notification return value is Agree.
+     */
+    Agree,
+
+    /**
+     * The notification return value is Disagree.
+     */
+    Disagree
 }

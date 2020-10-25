@@ -26,20 +26,18 @@ package com.thunderbolt.worksapce;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.components.MenuPanel;
-import com.thunderbolt.components.StatusPanel;
-import com.thunderbolt.components.TitlePanel;
+import com.thunderbolt.components.*;
+import com.thunderbolt.components.MenuComponent;
 import com.thunderbolt.resources.ResourceManager;
 import com.thunderbolt.screens.MessageScreen;
-import com.thunderbolt.screens.OverviewScreen;
 import com.thunderbolt.screens.ScreenBase;
 import com.thunderbolt.theme.Theme;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.RoundRectangle2D;
 import java.io.IOException;
-import java.net.URISyntaxException;
 
 import static javax.swing.WindowConstants.EXIT_ON_CLOSE;
 
@@ -48,19 +46,18 @@ import static javax.swing.WindowConstants.EXIT_ON_CLOSE;
 /**
  * Application workspace.
  */
-public class StandardWorkspace implements IWorkspace, ActionListener
+public class StandardWorkspace extends JPanel implements IWorkspace, ActionListener
 {
-    private static final int    SCREEN_MARGIN     = 10;
-    private static final int    STATUS_PANEL_SIZE = 30;
-    private static final int    TITLE_PANEL_SIZE  = 50;
-    private static final double MENU_SIZE_FACTOR  = 0.28;
+    private static final int    SCREEN_MARGIN       = 10;
+    private static final int    TITLE_PANEL_SIZE    = 50;
+    private static final double MENU_SIZE_FACTOR    = 0.28;
 
-    private final JFrame m_frame         = new JFrame();
-    private ScreenBase   m_currentScreen = null;
-    private JPanel       m_workArea      = new JPanel();
-    private TitlePanel   m_titlePanel    = new TitlePanel();
-    private MenuPanel    m_menu          = new MenuPanel("images/left_panel_background.png");
-    private StatusPanel  m_status        = new StatusPanel();
+    private final JFrame       m_frame         = new JFrame();
+    private final TitleComponent m_titleComponent = new TitleComponent();
+    private final MenuComponent m_menu          = new MenuComponent("images/left_panel_background.png");
+    private final StatusComponent m_status        = new StatusComponent();
+    private NotificationComponent       m_notification  = null;
+    private ScreenBase         m_currentScreen = null;
 
     /**
      * Creates a new instance of the StandardWorkspace class.
@@ -84,10 +81,10 @@ public class StandardWorkspace implements IWorkspace, ActionListener
 
         m_currentScreen = new MessageScreen("Trying to sync...");
 
-        m_workArea.add(m_titlePanel);
-        m_workArea.add(m_menu);
-        m_frame.getContentPane().add(m_workArea);
-        m_workArea.add(m_currentScreen);
+        add(m_titleComponent);
+        add(m_menu);
+        m_frame.getContentPane().add(this);
+        add(m_currentScreen);
     }
 
     /**
@@ -106,20 +103,20 @@ public class StandardWorkspace implements IWorkspace, ActionListener
     {
         m_frame.setVisible(true);
 
-        m_workArea.setSize(m_frame.getContentPane().getSize());
-        m_workArea.setLayout(null);
+        setSize(m_frame.getContentPane().getSize());
+        setLayout(null);
 
-        m_menu.setSize((int)(m_workArea.getWidth() * MENU_SIZE_FACTOR), m_workArea.getHeight());
+        m_menu.setSize((int)(getWidth() * MENU_SIZE_FACTOR), getHeight());
         m_menu.setLocation(0, 0);
 
-        m_titlePanel.setSize(m_workArea.getWidth() - m_menu.getWidth(), TITLE_PANEL_SIZE);
-        m_titlePanel.setLocation(m_menu.getWidth(), 0);
+        m_titleComponent.setSize(getWidth() - m_menu.getWidth(), TITLE_PANEL_SIZE);
+        m_titleComponent.setLocation(m_menu.getWidth(), 0);
 
-        m_currentScreen.setLocation(m_menu.getWidth() + SCREEN_MARGIN, m_titlePanel.getHeight() + SCREEN_MARGIN);
-        m_currentScreen.setSize(m_workArea.getWidth() - m_menu.getWidth() - (SCREEN_MARGIN * 2),
-                m_workArea.getHeight() - m_titlePanel.getHeight() - (SCREEN_MARGIN * 2));
+        m_currentScreen.setLocation(m_menu.getWidth() + SCREEN_MARGIN, m_titleComponent.getHeight() + SCREEN_MARGIN);
+        m_currentScreen.setSize(getWidth() - m_menu.getWidth() - (SCREEN_MARGIN * 2),
+                getHeight() - m_titleComponent.getHeight() - (SCREEN_MARGIN * 2));
 
-        m_titlePanel.setTitle(m_currentScreen.getTitle());
+        m_titleComponent.setTitle(m_currentScreen.getTitle());
     }
 
     /**
@@ -155,44 +152,21 @@ public class StandardWorkspace implements IWorkspace, ActionListener
         if (m_currentScreen == null)
             return;
 
-        m_workArea.remove(m_currentScreen);
+        remove(m_currentScreen);
 
         m_currentScreen = screen;
-        m_titlePanel.setTitle(m_currentScreen.getTitle());
+        m_titleComponent.setTitle(m_currentScreen.getTitle());
 
         // compute screen position.
-        m_currentScreen.setLocation(m_menu.getWidth() + SCREEN_MARGIN, m_titlePanel.getHeight() + SCREEN_MARGIN);
-        m_currentScreen.setSize(m_workArea.getWidth() - m_menu.getWidth() - (SCREEN_MARGIN * 2),
-                m_workArea.getHeight() - m_status.getHeight() - m_titlePanel.getHeight() - (SCREEN_MARGIN * 2));
+        m_currentScreen.setLocation(m_menu.getWidth() + SCREEN_MARGIN, m_titleComponent.getHeight() + SCREEN_MARGIN);
+        m_currentScreen.setSize(getWidth() - m_menu.getWidth() - (SCREEN_MARGIN * 2),
+                getHeight() - m_status.getHeight() - m_titleComponent.getHeight() - (SCREEN_MARGIN * 2));
 
-        m_workArea.add(m_currentScreen);
-        m_workArea.revalidate();
-        m_workArea.repaint();
-    }
+        m_currentScreen.setIsFullscreen(false);
+        add(m_currentScreen);
 
-    /**
-     * Sets the current screen on full screen.
-     *
-     * @param screen The screen to be shown.
-     */
-    @Override
-    public void setCurrentScreenFullScreen(ScreenBase screen)
-    {
-        if (m_currentScreen == null)
-            return;
-
-        m_workArea.remove(m_currentScreen);
-
-        m_currentScreen = screen;
-        m_titlePanel.setTitle(m_currentScreen.getTitle());
-
-        // compute screen position.
-        m_currentScreen.setLocation(0, 0);
-        m_currentScreen.setSize(m_workArea.getWidth(), m_workArea.getHeight());
-
-        m_workArea.add(m_currentScreen);
-        m_workArea.revalidate();
-        m_workArea.repaint();
+        revalidate();
+        repaint();
     }
 
     /**
@@ -202,5 +176,56 @@ public class StandardWorkspace implements IWorkspace, ActionListener
     public void removeCurrentScreen()
     {
         m_frame.remove(m_currentScreen);
+    }
+
+    /**
+     * Shows a notification to the user.
+     *
+     * @param title The tittle on the notification.
+     * @param text The text of the notification.
+     * @param buttons The buttons to be display.
+     * @param handler The notification handler.
+     */
+    @Override
+    public void showNotification(String title, String text, NotificationButtons buttons, INotificationResultHandler handler)
+    {
+        Notification notification = new Notification();
+        notification.setTitle(title);
+        notification.setText(text);
+        notification.setButtons(buttons);
+        notification.setHandler(handler);
+
+        m_notification = new NotificationComponent(notification, getWidth(), getHeight());
+        m_notification.setLocation(0, 0);
+
+        add(m_notification, 0);
+        revalidate();
+        repaint();
+    }
+
+    /**
+     * Gets whether a notification is being currently shown.
+     *
+     * @return true if a notification is being shown; otherwise; false.
+     */
+    @Override
+    public boolean isNotificationShowing()
+    {
+        return m_notification != null;
+    }
+
+    /**
+     * Clears the notification currently being shown.
+     */
+    @Override
+    public void clearNotification()
+    {
+        if (m_notification != null)
+            remove(m_notification);
+
+        m_notification = null;
+
+        revalidate();
+        repaint();
     }
 }

@@ -30,7 +30,6 @@ import com.thunderbolt.screens.ScreenManager;
 import com.thunderbolt.worksapce.StandardWorkspace;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 
 /* IMPLEMENTATION ************************************************************/
 

@@ -22,11 +22,17 @@
  * SOFTWARE.
  */
 
-package com.thunderbolt.screens;
-/* IMPORTS *******************************************************************/
+package com.thunderbolt.components;
 
 /* IMPLEMENTATION ************************************************************/
 
-public class NotificationScreen extends ScreenBase
+/**
+ * Event handler for when the button is clicked.
+ */
+public interface IButtonClickHandler
 {
+    /**
+     * Trigger when the button is clicked closes.
+     */
+    void onClick();
 }

@@ -27,6 +27,7 @@ package com.thunderbolt.screens;
 /* IMPORTS ********************************************************************/
 
 import com.thunderbolt.theme.Theme;
+import com.thunderbolt.worksapce.NotificationResult;
 
 import javax.swing.*;
 import java.awt.*;
@@ -36,34 +37,14 @@ import java.awt.*;
 /**
  * Base class for all screens.
  */
-public class ScreenBase extends JPanel
+public class ScreenBase extends JComponent
 {
     private static final int UMBRA_OFFSET    = 2;
     private static final int PENUMBRA_OFFSET = 1;
 
-    private ScreenResult m_result  = ScreenResult.None;
-    private String       m_title   = "";
-    private boolean      m_showing = false;
-
-    /**
-     * Gets the screen result.
-     *
-     * @return The screen result.
-     */
-    public ScreenResult getResult()
-    {
-        return m_result;
-    }
-
-    /**
-     * Sets the screen result.
-     *
-     * @param result The screen result.
-     */
-    public void setResult(ScreenResult result)
-    {
-        m_result = result;
-    }
+    private String       m_title        = "";
+    private boolean      m_showing      = false;
+    private boolean      m_isFullscreen = false;
 
     /**
      * Gets the screen title.
@@ -130,7 +111,40 @@ public class ScreenBase extends JPanel
      */
     public void paintComponent(Graphics graphics)
     {
-        graphics.setColor(Theme.BACKGROUND_COLOR);
+        graphics.setColor(Theme.FOREGROUND_COLOR);
         graphics.fillRect(0, 0, getWidth(), getHeight());
+        // Add shadow to edge.
+        graphics.setColor(Theme.SHADOW_UMBRA_COLOR);
+        graphics.drawLine(0, getHeight() - UMBRA_OFFSET, getWidth(), getHeight() - UMBRA_OFFSET);
+        graphics.setColor(Theme.SHADOW_PENUMBRA_COLOR);
+        graphics.drawLine(0, getHeight() - PENUMBRA_OFFSET, getWidth(), getHeight() - PENUMBRA_OFFSET);
+
+        graphics.setColor(Theme.SHADOW_UMBRA_COLOR);
+        graphics.drawLine(getWidth() - UMBRA_OFFSET, 0, getWidth() - UMBRA_OFFSET, getHeight());
+        graphics.setColor(Theme.SHADOW_PENUMBRA_COLOR);
+        graphics.drawLine(getWidth() - PENUMBRA_OFFSET, 0, getWidth() - PENUMBRA_OFFSET, getHeight());
+
+        graphics.setColor(Theme.SHADOW_PENUMBRA_COLOR);
+        graphics.drawLine(0, 0, 0, getHeight());
+    }
+
+    /**
+     * Gets whether this screen is full screen or not.
+     *
+     * @return true if the screen is full screen; otherwise; false.
+     */
+    public boolean isFullscreen()
+    {
+        return m_isFullscreen;
+    }
+
+    /**
+     * Sets whether this screen is full screen or not.
+     *
+     * @param isFullscreen Set to true if the screen is full screen; otherwise; false.
+     */
+    public void setIsFullscreen(boolean isFullscreen)
+    {
+        m_isFullscreen = isFullscreen;
     }
 }
