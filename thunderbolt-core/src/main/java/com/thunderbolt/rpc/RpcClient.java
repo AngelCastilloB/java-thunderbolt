@@ -52,6 +52,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
@@ -105,6 +106,24 @@ public class RpcClient
     }
 
     /**
+     * Gets whether the node service is online.
+     *
+     * @return true if the node is online; otherwise; false.
+     */
+    public boolean isNodeOnline()
+    {
+        try
+        {
+            getAddress();
+            return true;
+        }
+        catch (IllegalStateException exception)
+        {
+            return false;
+        }
+    }
+
+    /**
      * Gets the node information.
      *
      * @return The node information.
@@ -115,6 +134,18 @@ public class RpcClient
                 .method("getInfo")
                 .id(m_currentNonce++)
                 .returnAs(String.class)
+                .execute();
+    }
+
+    /**
+     * Gets whether this node is still syncing.
+     */
+    public boolean isInitialBlockDownload()
+    {
+        return m_client.createRequest()
+                .method("isInitialBlockDownload")
+                .id(m_currentNonce++)
+                .returnAs(Boolean.class)
                 .execute();
     }
 
@@ -249,6 +280,23 @@ public class RpcClient
 
         return m_client.createRequest()
                 .method("getBalance")
+                .id(m_currentNonce++)
+                .param("address", address)
+                .returnAs(Double.class)
+                .execute();
+    }
+
+    /**
+     * Get the pending balance for the nodes wallet.
+     *
+     * @param address The address to to get the balance from.
+     *
+     * @return The pending balance.
+     */
+    public double getPendingBalance(String address)
+    {
+        return m_client.createRequest()
+                .method("getPendingBalance")
                 .id(m_currentNonce++)
                 .param("address", address)
                 .returnAs(Double.class)
@@ -456,6 +504,20 @@ public class RpcClient
                 .method("getTransactionPoolSize")
                 .id(m_currentNonce++)
                 .returnAs(Long.class)
+                .execute();
+    }
+
+    /**
+     * Gets the time stamp on the last update of the mempool.
+     *
+     * @return The timestamp of the last update.
+     */
+    public LocalDateTime getMemPoolLastUpdateTime()
+    {
+        return m_client.createRequest()
+                .method("getMemPoolLastUpdateTime")
+                .id(m_currentNonce++)
+                .returnAs(LocalDateTime.class)
                 .execute();
     }
 

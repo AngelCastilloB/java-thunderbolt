@@ -63,6 +63,7 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -119,6 +120,15 @@ public class RpcService
                 m_node.getBlockchain()
                         .computeDifficultyAsMultiple(m_node.getBlockchain().computeTargetDifficulty()),
                 Convert.stripTrailingZeros(Configuration.getPayTransactionFee()));
+    }
+
+    /**
+     * Gets whether this node is still syncing.
+     */
+    @JsonRpcMethod("isInitialBlockDownload")
+    public boolean isInitialBlockDownload()
+    {
+        return m_node.isInitialBlockDownload();
     }
 
     /**
@@ -239,6 +249,45 @@ public class RpcService
     }
 
     /**
+     * Get the pending balance for the nodes wallet.
+     *
+     * @return The pending balance.
+     */
+    @JsonRpcMethod("getPendingBalance")
+    public double getPendingBalance(@JsonRpcParam("address") String address)
+    {
+        BigInteger total = BigInteger.ZERO;
+
+        Address addrs = new Address(address);
+
+        for (Transaction transaction : m_node.getTransactionsPool().getAllTransactions())
+        {
+            // We need to add the new outputs.
+            for (TransactionOutput output: transaction.getOutputs())
+            {
+                if (Arrays.equals(output.getLockingParameters(), addrs.getPublicHash()))
+                {
+                    total = total.add(output.getAmount());
+                }
+            }
+
+            // An subtract the outputs that this transaction is spending.
+            for (TransactionInput input: transaction.getInputs())
+            {
+                UnspentTransactionOutput unspent =
+                        m_node.getPersistenceService().getUnspentOutput(input.getReferenceHash(), input.getIndex());
+
+                if (Arrays.equals(unspent.getOutput().getLockingParameters(), addrs.getPublicHash()))
+                {
+                    total = total.subtract(unspent.getOutput().getAmount());
+                }
+            }
+        }
+
+        return total.longValue() * FRACTIONAL_COIN_FACTOR;
+    }
+
+    /**
      * Gets total coins in circulation.
      *
      * @return The total balance.
@@ -307,6 +356,17 @@ public class RpcService
     public List<Transaction> getPendingTransactions()
     {
         return m_wallet.getPendingTransactions();
+    }
+
+    /**
+     * Gets the time stamp on the last update of the mempool.
+     *
+     * @return The timestamp of the last update.
+     */
+    @JsonRpcMethod("getMemPoolLastUpdateTime")
+    public LocalDateTime getMemPoolLastUpdateTime()
+    {
+        return m_node.getTransactionsPool().getLastUpdateTime();
     }
 
     /**

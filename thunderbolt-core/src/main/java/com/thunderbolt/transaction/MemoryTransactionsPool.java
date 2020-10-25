@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigInteger;
 import java.security.InvalidParameterException;
+import java.time.LocalDateTime;
 import java.util.*;
 
 /* IMPLEMENTATION ************************************************************/
@@ -58,7 +59,8 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
     private final HashMap<Sha256Hash, TransactionPoolEntry> m_memPool            = new HashMap<>();
     private final HashMap<Sha256Hash, TransactionPoolEntry> m_orphanTransactions = new HashMap<>();
     private BigInteger                                      m_size               = BigInteger.ZERO;
-    private final List<ITransactionsChangeListener>           m_listeners          = new ArrayList<>();
+    private final List<ITransactionsChangeListener>         m_listeners          = new ArrayList<>();
+    private LocalDateTime                                   m_lastUpdate         = LocalDateTime.now();
 
     /**
      * Initializes a new instance of the MemoryTransactionsPoolService class.
@@ -209,6 +211,8 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
         if (containsTransaction(transaction.getTransactionId()))
             return false;
 
+        m_lastUpdate = LocalDateTime.now();
+
         if (isDoubleSpending(transaction))
         {
             s_logger.info("Transaction {} is double spending. Rejected.", transaction);
@@ -272,6 +276,8 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
         if (!containsTransaction(id))
             return false;
 
+        m_lastUpdate = LocalDateTime.now();
+
         TransactionPoolEntry entry = m_memPool.get(id);
         m_size = m_size.subtract(BigInteger.valueOf(entry.getSize()));
 
@@ -287,6 +293,8 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
     @Override
     synchronized public void cleanup()
     {
+        m_lastUpdate = LocalDateTime.now();
+
         m_memPool.entrySet().removeIf(e -> e.getValue().getInThePoolSince().getTotalHours() >= EVICTION_TIME);
         m_orphanTransactions.entrySet().removeIf(e -> e.getValue().getInThePoolSince().getTotalHours() >= EVICTION_TIME);
     }
@@ -499,5 +507,15 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
                 m_memPool.put(poolEntry.getTransaction().getTransactionId(), poolEntry);
             }
         }
+    }
+
+    /**
+     * Gets the time stamp on the last update of the mempool.
+     *
+     * @return The timestamp of the last update.
+     */
+    public LocalDateTime getLastUpdateTime()
+    {
+        return m_lastUpdate;
     }
 }

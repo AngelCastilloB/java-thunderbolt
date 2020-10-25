@@ -27,7 +27,9 @@ package com.thunderbolt.state;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.Convert;
+import com.thunderbolt.configuration.Configuration;
 import com.thunderbolt.resources.ResourceManager;
+import com.thunderbolt.rpc.RpcClient;
 import com.thunderbolt.screens.ScreenManager;
 import com.thunderbolt.theme.Theme;
 import com.thunderbolt.transaction.Transaction;
@@ -43,41 +45,69 @@ import java.util.List;
 /**
  * Handles the state of the wallet.
  */
-public class StateService
+public class NodeService
 {
     // Static fields.
-    private static StateService s_instance = null;
-    private static final Logger s_logger   = LoggerFactory.getLogger(StateService.class);
+    private static NodeService  s_instance = null;
+    private static final Logger s_logger   = LoggerFactory.getLogger(NodeService.class);
 
-    private final List<INodeStatusChangeListener> m_listeners = new ArrayList<>();
-    private NodeState m_currentState = NodeState.Syncing;
+    private final List<INodeStatusChangeListener> m_listeners        = new ArrayList<>();
+    private final List<IDataChangeListener>       m_dataListeners    = new ArrayList<>();
+    private NodeState                             m_currentState     = NodeState.Offline;
+    private RpcClient                             m_client           = null;
+    private double                                m_availableBalance = 0.0;
+    private double                                m_pendingBalance   = 0.0;
+    private String                                m_address          = "";
 
     /**
      * Prevents a default instance of the StateService class from being created.
      */
-    protected StateService()
+    protected NodeService()
     {
-        new Thread(new Runnable()
+        m_client = new RpcClient(Configuration.getRpcUser(), Configuration.getRpcPassword(),
+                String.format("http://localhost:%s", Configuration.getRpcPort()));
+    }
+
+    /**
+     * Starts the node service.
+     */
+    public void start()
+    {
+        new Thread(() ->
         {
-            @Override
-            public void run()
+            while (true)
             {
+                if (!m_client.isNodeOnline())
+                {
+                    changeState(NodeState.Offline);
+                }
+                else if (m_client.isInitialBlockDownload())
+                {
+                    changeState(NodeState.Syncing);
+                }
+                else
+                {
+                    changeState(NodeState.Ready);
+
+                    if (m_address.isEmpty())
+                        m_address = m_client.getAddress();
+
+                    m_availableBalance = m_client.getBalance(null);
+                    m_pendingBalance   = m_client.getPendingBalance(m_address);
+
+                    for (IDataChangeListener listener: m_dataListeners)
+                        listener.onNodeDataChange();
+                }
+
                 try
                 {
                     Thread.sleep(1000);
                 }
                 catch (InterruptedException e)
                 {
-                    e.printStackTrace();
+                    s_logger.info("Node service thread interrupted.");
+                    break;
                 }
-
-                ResourceManager.playAudio(Theme.STATUS_READY_SOUND);
-                m_currentState = NodeState.Ready;
-                for (INodeStatusChangeListener listener: m_listeners)
-                    listener.onNodeStatusChange(NodeState.Ready);
-
-                ScreenManager.getInstance().showNotification("Syncing Finish", "Initial blockchain synchronization finished.",
-                        NotificationButtons.GotIt, result -> System.out.println(NotificationButtons.GotIt));
             }
         }).start();
     }
@@ -87,10 +117,10 @@ public class StateService
      *
      * @return The state service instance.
      */
-    public static StateService getInstance()
+    public static NodeService getInstance()
     {
         if(s_instance == null)
-            s_instance = new StateService();
+            s_instance = new NodeService();
 
         return s_instance;
     }
@@ -100,12 +130,25 @@ public class StateService
      *
      * @param listener The listener.
      */
-    public void addListener(INodeStatusChangeListener listener)
+    public void addStatusListener(INodeStatusChangeListener listener)
     {
         if (m_listeners.contains(listener))
             return;
 
         m_listeners.add(listener);
+    }
+
+    /**
+     * Adds a new listener to node state changes.
+     *
+     * @param listener The listener.
+     */
+    public void addDataListener(IDataChangeListener listener)
+    {
+        if (m_dataListeners.contains(listener))
+            return;
+
+        m_dataListeners.add(listener);
     }
 
     /**
@@ -158,7 +201,7 @@ public class StateService
         if (getNodeState() != NodeState.Ready)
             return "Out of Sync";
 
-        return Double.toString(2150.0);
+        return Double.toString(m_availableBalance);
     }
 
     /**
@@ -171,7 +214,7 @@ public class StateService
         if (getNodeState() != NodeState.Ready)
             return "Out of Sync";
 
-        return Double.toString(500.0);
+        return Double.toString(m_pendingBalance);
     }
 
     /**
@@ -184,7 +227,7 @@ public class StateService
         if (getNodeState() != NodeState.Ready)
             return "Out of Sync";
 
-        return Double.toString(2650.0) + " THB";
+        return Double.toString(m_availableBalance + m_pendingBalance) + " THB";
     }
 
     /**
@@ -297,5 +340,30 @@ public class StateService
      */
     public void lockWallet()
     {
+    }
+
+    /**
+     * Changes the state of the node.
+     *
+     * @param state The new state.
+     */
+    private void changeState(NodeState state)
+    {
+        if (m_currentState == state)
+            return;
+
+        m_currentState = state;
+
+        if (m_currentState ==  NodeState.Ready)
+            ResourceManager.playAudio(Theme.STATUS_READY_SOUND);
+
+        for (INodeStatusChangeListener listener: m_listeners)
+            listener.onNodeStatusChange(m_currentState);
+
+        if (m_currentState == NodeState.Offline)
+        {
+            ScreenManager.getInstance().showNotification("Node offline", "The node service is offline. Please make sure thunderbolt-node is running.",
+                    NotificationButtons.GotIt, result -> System.out.println(NotificationButtons.GotIt));
+        }
     }
 }

@@ -30,7 +30,7 @@ import com.thunderbolt.resources.ResourceManager;
 import com.thunderbolt.screens.*;
 import com.thunderbolt.state.INodeStatusChangeListener;
 import com.thunderbolt.state.NodeState;
-import com.thunderbolt.state.StateService;
+import com.thunderbolt.state.NodeService;
 import com.thunderbolt.theme.Theme;
 
 import javax.imageio.ImageIO;
@@ -72,7 +72,7 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
     public MenuComponent(String img) throws IOException
     {
         this(ImageIO.read(Objects.requireNonNull(MenuComponent.class.getClassLoader().getResourceAsStream(img))));
-        StateService.getInstance().addListener(this);
+        NodeService.getInstance().addStatusListener(this);
     }
 
     /**
@@ -90,20 +90,19 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
 
         m_overviewButton.addButtonClickListener(() ->
         {
-            if (StateService.getInstance().getNodeState().equals(NodeState.Offline))
+            if (NodeService.getInstance().getNodeState().equals(NodeState.Offline))
             {
                 ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
                 return;
             }
 
-            if (StateService.getInstance().getNodeState().equals(NodeState.Syncing))
+            if (NodeService.getInstance().getNodeState().equals(NodeState.Syncing))
             {
                 ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
                 return;
             }
 
             ScreenManager.getInstance().replaceTopScreen(new OverviewScreen());
-            ResourceManager.playAudio(Theme.MENU_BUTTON_CLICK_SOUND);
             activateButton(m_overviewButton);
         });
 
@@ -112,13 +111,13 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
 
         m_sendButton.addButtonClickListener(() ->
         {
-            if (StateService.getInstance().getNodeState().equals(NodeState.Offline))
+            if (NodeService.getInstance().getNodeState().equals(NodeState.Offline))
             {
                 ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
                 return;
             }
 
-            if (StateService.getInstance().getNodeState().equals(NodeState.Syncing))
+            if (NodeService.getInstance().getNodeState().equals(NodeState.Syncing))
             {
                 ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
                 return;
@@ -133,13 +132,13 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
 
         m_receiveButton.addButtonClickListener(() ->
         {
-            if (StateService.getInstance().getNodeState().equals(NodeState.Offline))
+            if (NodeService.getInstance().getNodeState().equals(NodeState.Offline))
             {
                 ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
                 return;
             }
 
-            if (StateService.getInstance().getNodeState().equals(NodeState.Syncing))
+            if (NodeService.getInstance().getNodeState().equals(NodeState.Syncing))
             {
                 ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
                 return;
@@ -154,20 +153,19 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
 
         m_encryptButton.addButtonClickListener(() ->
         {
-            if (StateService.getInstance().getNodeState().equals(NodeState.Offline))
+            if (NodeService.getInstance().getNodeState().equals(NodeState.Offline))
             {
                 ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
                 return;
             }
 
-            if (StateService.getInstance().getNodeState().equals(NodeState.Syncing))
+            if (NodeService.getInstance().getNodeState().equals(NodeState.Syncing))
             {
                 ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
                 return;
             }
 
             ScreenManager.getInstance().replaceTopScreen(new EncryptWalletScreen());
-            ResourceManager.playAudio(Theme.MENU_BUTTON_CLICK_SOUND);
             activateButton(m_encryptButton);
         });
 
@@ -176,20 +174,19 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
 
         m_exportButton.addButtonClickListener(() ->
         {
-            if (StateService.getInstance().getNodeState().equals(NodeState.Offline))
+            if (NodeService.getInstance().getNodeState().equals(NodeState.Offline))
             {
                 ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
                 return;
             }
 
-            if (StateService.getInstance().getNodeState().equals(NodeState.Syncing))
+            if (NodeService.getInstance().getNodeState().equals(NodeState.Syncing))
             {
                 ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
                 return;
             }
 
             ScreenManager.getInstance().replaceTopScreen(new ExportWalletScreen());
-            ResourceManager.playAudio(Theme.MENU_BUTTON_CLICK_SOUND);
             activateButton(m_exportButton);
         });
 
@@ -198,20 +195,19 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
 
         m_dumpKeysButton.addButtonClickListener(() ->
         {
-            if (StateService.getInstance().getNodeState().equals(NodeState.Offline))
+            if (NodeService.getInstance().getNodeState().equals(NodeState.Offline))
             {
                 ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
                 return;
             }
 
-            if (StateService.getInstance().getNodeState().equals(NodeState.Syncing))
+            if (NodeService.getInstance().getNodeState().equals(NodeState.Syncing))
             {
                 ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
                 return;
             }
 
             ScreenManager.getInstance().replaceTopScreen(new DumpKeysScreen());
-            ResourceManager.playAudio(Theme.MENU_BUTTON_CLICK_SOUND);
             activateButton(m_dumpKeysButton);
         });
 
@@ -221,6 +217,16 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
         add(m_encryptButton);
         add(m_exportButton);
         add(m_dumpKeysButton);
+
+        NodeService.getInstance().addStatusListener(state ->
+        {
+            m_overviewButton.setActive(false);
+            m_sendButton.setActive(false);
+            m_receiveButton.setActive(false);
+            m_encryptButton.setActive(false);
+            m_exportButton.setActive(false);
+            m_dumpKeysButton.setActive(false);
+        });
     }
 
     /**
@@ -242,9 +248,9 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
         graphics.setColor(Theme.MENU_OVERVIEW_FONT_COLOR);
         graphics.setFont(Theme.MENU_OVERVIEW_FONT);
 
-        String availableText = StateService.getInstance().getAvailableBalance();
-        String pendingText = StateService.getInstance().getPendingBalance();
-        String totalText = StateService.getInstance().getTotalBalance();
+        String availableText = NodeService.getInstance().getAvailableBalance();
+        String pendingText = NodeService.getInstance().getPendingBalance();
+        String totalText = NodeService.getInstance().getTotalBalance();
 
         int availableWidth = graphics.getFontMetrics().stringWidth(availableText);
         int pendingWidth = graphics.getFontMetrics().stringWidth(pendingText);

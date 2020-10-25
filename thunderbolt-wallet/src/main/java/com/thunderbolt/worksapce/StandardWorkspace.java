@@ -31,6 +31,8 @@ import com.thunderbolt.components.MenuComponent;
 import com.thunderbolt.resources.ResourceManager;
 import com.thunderbolt.screens.MessageScreen;
 import com.thunderbolt.screens.ScreenBase;
+import com.thunderbolt.state.IDataChangeListener;
+import com.thunderbolt.state.NodeService;
 import com.thunderbolt.theme.Theme;
 
 import javax.swing.*;
@@ -85,6 +87,12 @@ public class StandardWorkspace extends JPanel implements IWorkspace, ActionListe
         add(m_menu);
         m_frame.getContentPane().add(this);
         add(m_currentScreen);
+
+        NodeService.getInstance().addDataListener(() ->
+        {
+            revalidate();
+            repaint();
+        });
     }
 
     /**

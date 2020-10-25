@@ -27,8 +27,7 @@ package com.thunderbolt.components;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.resources.ResourceManager;
-import com.thunderbolt.screens.ScreenManager;
-import com.thunderbolt.state.StateService;
+import com.thunderbolt.state.NodeService;
 import com.thunderbolt.theme.Theme;
 
 import javax.swing.*;
@@ -93,7 +92,7 @@ public class TitleComponent extends JComponent
 
         graphics.setFont(Theme.STATUS_FONT);
 
-        switch (StateService.getInstance().getNodeState())
+        switch (NodeService.getInstance().getNodeState())
         {
             case Ready:
                 graphics.drawImage(m_nodeReady, getWidth() - 150, getHeight() / 2 - m_nodeReady.getHeight() / 2,null);

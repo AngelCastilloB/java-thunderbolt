@@ -80,8 +80,10 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
     private final List<Transaction>                   m_transactions        = new ArrayList<>();
     private final List<Transaction>                   m_pendingTransactions = new ArrayList<>();
     private Map<Sha256Hash, UnspentTransactionOutput> m_unspentOutputs      = new HashMap<>();
+    private Set<Sha256Hash>                           m_inUseOutputs        = new HashSet<>();
     private Sha256Hash                                m_syncedUpTo          = new Sha256Hash();
     private String                                    m_walletPath          = "";
+    private IPersistenceService                       m_service             = null;
 
     /**
      * Initializes a new instance of the Wallet class.
@@ -292,6 +294,8 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
     {
         try
         {
+            m_service = service;
+
             List<UnspentTransactionOutput> outputs = service.getUnspentOutputsForAddress(getAddress());
 
             for (UnspentTransactionOutput output: outputs)
@@ -430,9 +434,16 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
 
             UnspentTransactionOutput value = entry.getValue();
 
+            // We do not use outputs we already have in pending transactions.
+            if (m_inUseOutputs.contains(value.getHash()))
+                continue;
+
             outputs.add(value);
             total = total.add(value.getOutput().getAmount());
         }
+
+        if (total.compareTo(amount) < 0)
+            throw new IllegalArgumentException(String.format("The wallet does not have enough funds. Available funds '%s', given amount '%s'", total, amount));
 
         BigInteger remainder = amount.subtract(total).abs(); // We give ourselves change.
 
@@ -581,7 +592,16 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
     synchronized public void onTransactionAdded(Transaction transaction)
     {
         if (!m_pendingTransactions.contains(transaction))
+        {
+            // Add to outputs in use.
+            for (TransactionInput input: transaction.getInputs())
+            {
+                UnspentTransactionOutput output = m_service.getUnspentOutput(input.getReferenceHash(), input.getIndex());
+                m_inUseOutputs.add(output.getHash());
+            }
+
             m_pendingTransactions.add(transaction);
+        }
     }
 
     /**
@@ -592,7 +612,17 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
     @Override
     synchronized public void onTransactionRemoved(Transaction transaction)
     {
-        m_pendingTransactions.remove(transaction);
+        if (m_pendingTransactions.contains(transaction))
+        {
+            m_pendingTransactions.remove(transaction);
+
+            // Remove from outputs in use.
+            for (TransactionInput input: transaction.getInputs())
+            {
+                UnspentTransactionOutput output = m_service.getUnspentOutput(input.getReferenceHash(), input.getIndex());
+                m_inUseOutputs.remove(output.getHash());
+            }
+        }
     }
 
     /**

@@ -26,7 +26,6 @@ package com.thunderbolt.screens;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.state.StateService;
 import com.thunderbolt.theme.Theme;
 
 import java.awt.*;

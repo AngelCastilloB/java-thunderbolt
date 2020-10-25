@@ -28,6 +28,7 @@ package com.thunderbolt.transaction.contracts;
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.Transaction;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
@@ -139,4 +140,11 @@ public interface ITransactionsPool
      * Performs basic cleanup on the mempool; this method can be call periodically to evict old transactions.
      */
     void cleanup();
+
+    /**
+     * Gets the time stamp on the last update of the mempool.
+     *
+     * @return The timestamp of the last update.
+     */
+    LocalDateTime getLastUpdateTime();
 }
