@@ -31,50 +31,149 @@ import com.google.zxing.WriterException;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
+import com.thunderbolt.resources.ResourceManager;
 import com.thunderbolt.state.NodeService;
 import com.thunderbolt.theme.Theme;
+import com.thunderbolt.worksapce.NotificationButtons;
+import com.thunderbolt.worksapce.NotificationResult;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 
 /* IMPLEMENTATION ************************************************************/
 
+/**
+ * Displays the receive screen. This screen displays the necessary information to be able to receive coins.
+ */
 public class ReceiveScreen extends ScreenBase
 {
+    private static final int QR_WIDTH               = 300;
+    private static final int QR_HEIGHT              = 300;
+    private static final int DOWNLOAD_BUTTON_HEIGHT = 30;
+    private static final int DOWNLOAD_BUTTON_WIDTH  = 40;
+
     private BufferedImage m_qrCode = null;
 
-    public ReceiveScreen() throws WriterException, IOException
+    /**
+     * Initializes a new instance of the ReceiveScreen class.
+     */
+    public ReceiveScreen() throws WriterException
     {
         setTitle("RECEIVE");
-
         setLayout(null);
 
         QRCodeWriter qrCodeWriter = new QRCodeWriter();
 
         BitMatrix bitMatrix = qrCodeWriter.encode(NodeService.getInstance().getAddress(),
-                BarcodeFormat.QR_CODE, 300, 300);
+                BarcodeFormat.QR_CODE, QR_WIDTH, QR_HEIGHT);
 
         m_qrCode = MatrixToImageWriter.toBufferedImage(bitMatrix);
 
-        setBackground(Theme.FOREGROUND_COLOR);
-        JTextField label = new JTextField();
-        label.setSize(getWidth() - 20, 50);
-        label.setText(NodeService.getInstance().getAddress());
-        label.setFont(Theme.TITLE_FONT);
-        label.setLocation(10, getHeight() - 150);
-        label.setHorizontalAlignment(0);
-        label.setEditable(false);
-        label.setBorder(BorderFactory.createEmptyBorder());
-        label.setBackground(Theme.FOREGROUND_COLOR);
 
-        final JFileChooser fc = new JFileChooser();
-        int returnVal = fc.showSaveDialog(this);
+        JTextField textField = new JTextField();
+        textField.setSize(getWidth() - 20, 50);
+        textField.setText(NodeService.getInstance().getAddress());
+        textField.setFont(Theme.TITLE_FONT);
+        textField.setLocation(10, getHeight() - 150);
+        textField.setHorizontalAlignment(0);
+        textField.setEditable(false);
+        textField.setBorder(BorderFactory.createEmptyBorder());
+        textField.setBackground(Theme.FOREGROUND_COLOR);
 
-        add(label);
+        JButton button = new JButton();
+        button.setBorder(BorderFactory.createEmptyBorder());
+        button.setBorder(BorderFactory.createEmptyBorder());
+        button.setContentAreaFilled(false);
+        button.setIcon(new ImageIcon(ResourceManager.loadImage("images/download.png")));
+        button.setSize(DOWNLOAD_BUTTON_WIDTH, DOWNLOAD_BUTTON_HEIGHT);
+        button.setLocation(getWidth() / 2 + m_qrCode.getWidth() / 2, m_qrCode.getHeight() + 15 - button.getHeight());
+        button.setFocusable(false);
+
+        button.addMouseListener(new MouseListener()
+        {
+            @Override
+            public void mouseClicked(MouseEvent e)
+            {
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e)
+            {
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e)
+            {
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e)
+            {
+                setCursor(new Cursor(Cursor.HAND_CURSOR));
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e)
+            {
+                setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+            }
+        });
+
+        button.addActionListener(new AbstractAction()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                try
+                {
+                    while (true)
+                    {
+                        final JFileChooser chooser = new JFileChooser();
+                        chooser.setDialogType(JFileChooser.SAVE_DIALOG);
+                        chooser.setSelectedFile(new File("address.png"));
+                        chooser.setFileFilter(new FileNameExtensionFilter("png file","png"));
+
+                        if (chooser.showSaveDialog(button) == JFileChooser.APPROVE_OPTION)
+                        {
+                            File file = new File(chooser.getSelectedFile().toString());
+
+                            if (file.exists())
+                            {
+                                JOptionPane.showMessageDialog(null, "File already exists.");
+                            }
+                            else
+                            {
+                                ImageIO.write(m_qrCode, "PNG", file);
+
+                                ScreenManager.getInstance().showNotification("QR Saved",
+                                        "Your address was saved as a QR image.",
+                                        NotificationButtons.GotIt, result -> {});
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
+                catch (IOException exception)
+                {
+                    exception.printStackTrace();
+                }
+            }
+        });
+
+        add(button);
+        add(textField);
     }
 
     /**

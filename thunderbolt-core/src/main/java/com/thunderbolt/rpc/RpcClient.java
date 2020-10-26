@@ -414,7 +414,7 @@ public class RpcClient
         return m_client.createRequest()
                 .method("backupWallet")
                 .id(m_currentNonce++)
-                .param(path, path)
+                .param("path", path)
                 .returnAs(boolean.class)
                 .execute();
     }

@@ -178,7 +178,7 @@ public class NodeService
      */
     public boolean isNodeAlive()
     {
-        return true;
+        return m_currentState != NodeState.Offline;
     }
 
     /**
@@ -188,7 +188,7 @@ public class NodeService
      */
     public boolean isSyncing()
     {
-        return true;
+        return m_currentState == NodeState.Syncing;
     }
 
     /**
@@ -228,6 +228,17 @@ public class NodeService
             return "Out of Sync";
 
         return Double.toString(m_availableBalance + m_pendingBalance) + " THB";
+    }
+
+    /**
+     * Exports the wallet.
+     */
+    public boolean exportWallet(String path)
+    {
+        if (isNodeAlive())
+            return m_client.backupWallet(path);
+
+        return false;
     }
 
     /**

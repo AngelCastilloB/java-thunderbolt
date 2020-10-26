@@ -33,10 +33,13 @@ import com.thunderbolt.state.INodeStatusChangeListener;
 import com.thunderbolt.state.NodeState;
 import com.thunderbolt.state.NodeService;
 import com.thunderbolt.theme.Theme;
+import com.thunderbolt.worksapce.NotificationButtons;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
+import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
 
@@ -150,7 +153,7 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
                 ScreenManager.getInstance().replaceTopScreen(new ReceiveScreen());
                 activateButton(m_receiveButton);
             }
-            catch (WriterException | IOException e)
+            catch (WriterException e)
             {
                 e.printStackTrace();
             }
@@ -190,14 +193,46 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
                 return;
             }
 
-            if (NodeService.getInstance().getNodeState().equals(NodeState.Syncing))
+            while (true)
             {
-                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
-                return;
-            }
+                final JFileChooser chooser = new JFileChooser();
+                chooser.setDialogType(JFileChooser.SAVE_DIALOG);
+                chooser.setSelectedFile(new File("wallet.dat"));
+                chooser.setFileFilter(new FileNameExtensionFilter("dat file","dat"));
 
-            ScreenManager.getInstance().replaceTopScreen(new ExportWalletScreen());
-            activateButton(m_exportButton);
+                if (chooser.showSaveDialog(m_exportButton) == JFileChooser.APPROVE_OPTION)
+                {
+                    File file = new File(chooser.getSelectedFile().toString());
+
+                    if (file.exists())
+                    {
+                        JOptionPane.showMessageDialog(null, "File already exists.");
+                    }
+                    else
+                    {
+                        boolean exported = NodeService.getInstance().exportWallet(chooser.getSelectedFile().toString());
+
+                        if (exported)
+                        {
+                            ScreenManager.getInstance().showNotification("Wallet Saved",
+                                    "Your wallet was exported.",
+                                    NotificationButtons.GotIt, result -> {});
+                        }
+                        else
+                        {
+                            ScreenManager.getInstance().showNotification("Error",
+                                    "There was an error exporting the wallet.",
+                                    NotificationButtons.GotIt, result -> {});
+                        }
+
+                        break;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
         });
 
         m_dumpKeysButton.setSize(BUTTON_WIDTH, BUTTON_HEIGHT);
@@ -217,7 +252,7 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
                 return;
             }
 
-            ScreenManager.getInstance().replaceTopScreen(new DumpKeysScreen());
+            ScreenManager.getInstance().replaceTopScreen(new DumpKeyScreen());
             activateButton(m_dumpKeysButton);
         });
 

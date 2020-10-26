@@ -23,18 +23,10 @@
  */
 
 package com.thunderbolt.screens;
-
 /* IMPORTS *******************************************************************/
-
-import com.thunderbolt.theme.Theme;
 
 /* IMPLEMENTATION ************************************************************/
 
-public class DumpKeysScreen extends ScreenBase
+public class AuthenticationScreen extends ScreenBase
 {
-    public DumpKeysScreen()
-    {
-        setTitle("DUMP KEYS");
-        setBackground(Theme.FOREGROUND_COLOR);
-    }
 }
