@@ -23,29 +23,16 @@
  */
 
 package com.thunderbolt.screens;
-/* IMPORTS *******************************************************************/
 
 /* IMPLEMENTATION ************************************************************/
 
-import com.thunderbolt.theme.Theme;
-
-import javax.swing.*;
-
-public class AuthenticationScreen extends ScreenBase
+/**
+ * Handler for when the an action succeed.
+ */
+public interface ISuccessHandler
 {
-    private ISuccessHandler m_handler;
-
-    public AuthenticationScreen(ISuccessHandler handler)
-    {
-        m_handler = handler;
-        setTitle("UNLOCK WALLET");
-
-        JTextField label = new JPasswordField();
-
-        label.setSize(getWidth() - 20, 50);
-        label.setFont(Theme.TITLE_FONT);
-        label.setLocation(10, getHeight() - 150);
-
-        add(label);
-    }
+    /**
+     * Event handler for when an action succeed.
+     */
+    void onSuccess();
 }

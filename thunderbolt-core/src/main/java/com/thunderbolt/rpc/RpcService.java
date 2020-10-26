@@ -364,9 +364,9 @@ public class RpcService
      * @return The timestamp of the last update.
      */
     @JsonRpcMethod("getMemPoolLastUpdateTime")
-    public LocalDateTime getMemPoolLastUpdateTime()
+    public String getMemPoolLastUpdateTime()
     {
-        return m_node.getTransactionsPool().getLastUpdateTime();
+        return m_node.getTransactionsPool().getLastUpdateTime().toString();
     }
 
     /**

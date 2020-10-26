@@ -39,7 +39,6 @@ public class MessageScreen extends ScreenBase
     public MessageScreen(String message)
     {
         m_message = message;
-        //setBackground(Theme.FOREGROUND_COLOR);
     }
 
     /**
@@ -52,6 +51,8 @@ public class MessageScreen extends ScreenBase
     @Override
     public void paintComponent(Graphics graphics)
     {
+        super.paintComponent(graphics);
+
         Graphics2D graphics2d = (Graphics2D)graphics;
         graphics2d.setRenderingHint(
                 RenderingHints.KEY_TEXT_ANTIALIASING,

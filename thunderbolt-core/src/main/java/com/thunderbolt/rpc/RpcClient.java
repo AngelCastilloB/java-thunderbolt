@@ -512,12 +512,12 @@ public class RpcClient
      *
      * @return The timestamp of the last update.
      */
-    public LocalDateTime getMemPoolLastUpdateTime()
+    public String getMemPoolLastUpdateTime()
     {
         return m_client.createRequest()
                 .method("getMemPoolLastUpdateTime")
                 .id(m_currentNonce++)
-                .returnAs(LocalDateTime.class)
+                .returnAs(String.class)
                 .execute();
     }
 

@@ -31,12 +31,14 @@ import com.thunderbolt.configuration.Configuration;
 import com.thunderbolt.resources.ResourceManager;
 import com.thunderbolt.rpc.RpcClient;
 import com.thunderbolt.screens.ScreenManager;
+import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.theme.Theme;
 import com.thunderbolt.transaction.Transaction;
 import com.thunderbolt.worksapce.NotificationButtons;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,13 +53,17 @@ public class NodeService
     private static NodeService  s_instance = null;
     private static final Logger s_logger   = LoggerFactory.getLogger(NodeService.class);
 
-    private final List<INodeStatusChangeListener> m_listeners        = new ArrayList<>();
-    private final List<IDataChangeListener>       m_dataListeners    = new ArrayList<>();
-    private NodeState                             m_currentState     = NodeState.Offline;
-    private RpcClient                             m_client           = null;
-    private double                                m_availableBalance = 0.0;
-    private double                                m_pendingBalance   = 0.0;
-    private String                                m_address          = "";
+    private final List<INodeStatusChangeListener> m_listeners         = new ArrayList<>();
+    private final List<IDataChangeListener>       m_dataListeners     = new ArrayList<>();
+    private NodeState                             m_currentState      = NodeState.Offline;
+    private RpcClient                             m_client            = null;
+    private double                                m_availableBalance  = 0.0;
+    private double                                m_pendingBalance    = 0.0;
+    private String                                m_address           = "";
+    private Sha256Hash                            m_currentBlock      = new Sha256Hash();
+    private String                                m_lastMempoolUpdate = "";
+    private List<Transaction>                     m_transactions      = new ArrayList<>();
+    private List<Transaction>                     m_pending           = new ArrayList<>();
 
     /**
      * Prevents a default instance of the StateService class from being created.
@@ -89,14 +95,52 @@ public class NodeService
                 {
                     changeState(NodeState.Ready);
 
+                    boolean updateState = false;
+
                     if (m_address.isEmpty())
                         m_address = m_client.getAddress();
 
-                    m_availableBalance = m_client.getBalance(null);
-                    m_pendingBalance   = m_client.getPendingBalance(m_address);
+                    double availableBalance = m_client.getBalance(null);
+                    double pendingBalance   = m_client.getPendingBalance(m_address);
 
-                    for (IDataChangeListener listener: m_dataListeners)
-                        listener.onNodeDataChange();
+                    if (availableBalance != m_availableBalance)
+                    {
+                        m_availableBalance = availableBalance;
+                        updateState = true;
+                    }
+
+                    if (pendingBalance != m_pendingBalance)
+                    {
+                        m_pendingBalance   = pendingBalance;
+                        updateState = true;
+                    }
+
+                    Sha256Hash currentBlock = m_client.getBestBlockHash();
+
+                    if (!currentBlock.equals(m_currentBlock))
+                    {
+                        m_currentBlock = currentBlock;
+                        m_transactions = m_client.getConfirmedTransactions();
+                        m_pending      = m_client.getPendingTransactions();
+                        m_lastMempoolUpdate = m_client.getMemPoolLastUpdateTime();
+                        updateState = true;
+                    }
+
+                    String lastUpdate = m_client.getMemPoolLastUpdateTime();
+
+                    if (!lastUpdate.equals(m_lastMempoolUpdate))
+                    {
+                        m_pending      = m_client.getPendingTransactions();
+                        m_lastMempoolUpdate = m_client.getMemPoolLastUpdateTime();
+                        updateState = true;
+
+                    }
+
+                    if (updateState)
+                    {
+                        for (IDataChangeListener listener: m_dataListeners)
+                            listener.onNodeDataChange();
+                    }
                 }
 
                 try
@@ -268,7 +312,7 @@ public class NodeService
      */
     public String getPrivateKey()
     {
-        return Convert.toHexString(new byte[32]);
+        return Convert.toHexString(m_client.getPrivateKey());
     }
 
     /**
@@ -278,7 +322,7 @@ public class NodeService
      */
     public List<Transaction> getTransactions()
     {
-        return new ArrayList<>();
+        return m_transactions;
     }
 
     /**
@@ -288,7 +332,7 @@ public class NodeService
      */
     public List<Transaction> getPendingTransactions()
     {
-        return new ArrayList<>();
+        return m_pending;
     }
 
     /**
@@ -301,7 +345,7 @@ public class NodeService
      */
     public boolean sendToAddress(String address, double amount)
     {
-        return true;
+        return m_client.sendToAddress(address, amount);
     }
 
     /**
@@ -309,8 +353,9 @@ public class NodeService
      *
      * @param backupPath The destination path of the backup.
      */
-    public void backupWallet(String backupPath)
+    public boolean backupWallet(String backupPath)
     {
+        return m_client.backupWallet(backupPath);
     }
 
     /**
@@ -322,16 +367,25 @@ public class NodeService
      */
     public boolean encryptWallet(String password)
     {
-        return true;
+        return m_client.encryptWallet(password);
     }
 
     /**
-     * Gets whether the wallet was locked or not.
+     * Gets whether the wallet in encrypted or not.
+     * @return true if the wallet is encrypted; otherwise; false.
+     */
+    public boolean isWalletEncrypted()
+    {
+        return m_client.isWalletEncrypted();
+    }
+
+    /**
+     * Gets whether the wallet was unlocked or not.
      * @return true if the wallet is locked; otherwise; false.
      */
-    public boolean isWalletLocked()
+    public boolean isWalletUnlocked()
     {
-        return true;
+        return m_client.isWalletUnlocked();
     }
 
     /**
@@ -343,7 +397,7 @@ public class NodeService
      */
     public boolean unlockWallet(String passphrase)
     {
-        return true;
+        return m_client.unlockWallet(passphrase);
     }
 
     /**
@@ -351,6 +405,7 @@ public class NodeService
      */
     public void lockWallet()
     {
+        m_client.lockWallet();
     }
 
     /**

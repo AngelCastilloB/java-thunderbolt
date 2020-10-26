@@ -172,13 +172,19 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
                 return;
             }
 
-            if (NodeService.getInstance().getNodeState().equals(NodeState.Syncing))
+            if (NodeService.getInstance().isWalletEncrypted())
             {
-                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
+                ScreenManager.getInstance().showNotification("Information",
+                        "Your wallet is already encrypted.",
+                        NotificationButtons.GotIt, result -> {});
+
                 return;
             }
 
-            ScreenManager.getInstance().replaceTopScreen(new EncryptWalletScreen());
+            ScreenManager.getInstance().replaceTopScreen(new EncryptWalletScreen(() -> {
+                ScreenManager.getInstance().replaceTopScreen(new OverviewScreen());
+                activateButton(m_overviewButton);
+            }));
             activateButton(m_encryptButton);
         });
 
@@ -246,9 +252,12 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
                 return;
             }
 
-            if (NodeService.getInstance().getNodeState().equals(NodeState.Syncing))
+            if (!NodeService.getInstance().isWalletUnlocked())
             {
-                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
+                ScreenManager.getInstance().replaceTopScreen(new AuthenticationScreen(() -> {
+                    ScreenManager.getInstance().replaceTopScreen(new DumpKeyScreen());
+                    activateButton(m_dumpKeysButton);
+                }));
                 return;
             }
 
