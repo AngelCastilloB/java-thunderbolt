@@ -119,6 +119,18 @@ public class Address
     }
 
     /**
+     * Gets the public hash portion of an string.
+     *
+     * @param address The address.
+     *
+     * @return The public hash.
+     */
+    public static byte[] getPublicHash(String address)
+    {
+        return new Address(address).getPublicHash();
+    }
+
+    /**
      * Computes the checksum of the given data.
      *
      * @param data The data to get checksum of.

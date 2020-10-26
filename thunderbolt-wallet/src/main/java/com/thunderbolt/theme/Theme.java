@@ -86,4 +86,9 @@ public class Theme
     public static final Font  ENCRYPT_INPUT_FIELD_FONT          = ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 32f);
 
     public static final Color RECEIVE_SCREEN_BUTTON_COLOR = Color.BLACK;
+
+
+    public static final Color TRANSACTION_COMPONENT_ID_COLOR = Color.BLUE;
+    public static final Font TRANSACTION_COMPONENT_ID_FONT =  ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 10f);
+
 }

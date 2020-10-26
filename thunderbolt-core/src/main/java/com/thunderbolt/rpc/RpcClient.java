@@ -33,9 +33,11 @@ import com.github.arteam.simplejsonrpc.client.JsonRpcClient;
 import com.github.arteam.simplejsonrpc.client.Transport;
 import com.github.arteam.simplejsonrpc.client.builder.RequestBuilder;
 import com.github.arteam.simplejsonrpc.core.annotation.JsonRpcMethod;
+import com.github.arteam.simplejsonrpc.core.annotation.JsonRpcParam;
 import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.blockchain.BlockHeader;
 import com.thunderbolt.common.TimeSpan;
+import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.Transaction;
 import org.apache.commons.codec.Charsets;
@@ -359,6 +361,26 @@ public class RpcClient
                 .method("getPendingTransactions")
                 .id(m_currentNonce++)
                 .returnAsList(Transaction.class)
+                .execute();
+    }
+
+
+    /**
+     * Gets the unspent output that matches the given transaction id and index inside that transaction.
+     *
+     * @param transactionId The transaction ID that contains the output.
+     * @param index The index inside the transaction.
+     *
+     * @return The transaction output, or null if the output is not available or was already spent.
+     */
+    public UnspentTransactionOutput getUnspentOutput(String transactionId, int index)
+    {
+        return m_client.createRequest()
+                .method("getUnspentOutput")
+                .id(m_currentNonce++)
+                .param("transactionId", transactionId)
+                .param("index", index)
+                .returnAs(UnspentTransactionOutput.class)
                 .execute();
     }
 

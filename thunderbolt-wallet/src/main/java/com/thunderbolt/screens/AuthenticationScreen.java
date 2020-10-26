@@ -54,7 +54,7 @@ public class AuthenticationScreen extends ScreenBase
         m_passphrase.setFont(Theme.ENCRYPT_INPUT_FIELD_FONT);
         m_passphrase.setLocation(getWidth() / 2 - m_passphrase.getWidth() / 2, 250);
         m_passphrase.requestFocusInWindow();
-        
+
         ButtonComponent buttonComponent = new ButtonComponent(Theme.NOTIFICATION_BUTTON_BACKGROUND,
                 Theme.NOTIFICATION_BUTTON_BACKGROUND,
                 Theme.NOTIFICATION_BUTTON_TEXT,

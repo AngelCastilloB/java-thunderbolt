@@ -44,6 +44,7 @@ import com.thunderbolt.network.peers.Peer;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.BlockMetadata;
 import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
+import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.OutputLockType;
@@ -571,6 +572,22 @@ public class RpcService
             return null;
 
         return m_node.getPersistenceService().getBlock(metadata.getHash());
+    }
+
+    /**
+     * Gets the unspent output that matches the given transaction id and index inside that transaction.
+     *
+     * @param transactionId The transaction ID that contains the output.
+     * @param index The index inside the transaction.
+     *
+     * @return The transaction output, or null if the output is not available or was already spent.
+     */
+    @JsonRpcMethod("getUnspentOutput")
+    public UnspentTransactionOutput getUnspentOutput(
+            @JsonRpcParam("transactionId") String transactionId,
+            @JsonRpcParam("index") int index)
+    {
+        return m_node.getPersistenceService().getUnspentOutput(new Sha256Hash(transactionId), index);
     }
 
     /**

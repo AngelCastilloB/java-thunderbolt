@@ -32,12 +32,13 @@ import com.thunderbolt.security.Sha256Hash;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.time.LocalDateTime;
 
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Represents metadata about a transaction in a block persisted in the disk. In which file is stored, at what position and several other
- * details.
+ * Represents metadata about a transaction in a block persisted in the disk. In which file is stored, at what position
+ * and several other details.
  */
 public class TransactionMetadata implements ISerializable
 {

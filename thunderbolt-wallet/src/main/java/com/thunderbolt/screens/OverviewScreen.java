@@ -26,7 +26,10 @@ package com.thunderbolt.screens;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.components.TransactionComponent;
+import com.thunderbolt.state.NodeService;
 import com.thunderbolt.theme.Theme;
+import com.thunderbolt.transaction.Transaction;
 
 import javax.swing.*;
 import java.awt.*;
@@ -39,5 +42,20 @@ public class OverviewScreen extends ScreenBase
     {
         setLayout(null);
         setTitle("PENDING TRANSACTIONS");
+
+        int index = 0;
+        for (Transaction xt : NodeService.getInstance().getTransactions())
+        {
+            if (index >= 10)
+                break;
+
+            TransactionComponent component = new TransactionComponent(xt);
+
+            component.setSize(getWidth(), 40);
+            component.setLocation(10, 40 * index);
+
+            add(component);
+            ++index;
+        }
     }
 }

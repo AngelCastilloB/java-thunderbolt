@@ -257,6 +257,18 @@ public class StandardPersistenceService implements IPersistenceService
     }
 
     /**
+     * Gets the metadata transaction with the given hash.
+     *
+     * @param sha256Hash The transaction id.
+     *
+     * @return The transaction metadata.
+     */
+    public TransactionMetadata getTransactionMetadata(Sha256Hash sha256Hash) throws StorageException
+    {
+        return m_metadataProvider.getTransactionMetadata(sha256Hash);
+    }
+
+    /**
      * Gets all the transactions incoming or outgoing from this address.
      *
      * @param address The address of the wallet to get the transactions for.

@@ -28,12 +28,14 @@ package com.thunderbolt.state;
 
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.configuration.Configuration;
+import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.resources.ResourceManager;
 import com.thunderbolt.rpc.RpcClient;
 import com.thunderbolt.screens.ScreenManager;
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.theme.Theme;
 import com.thunderbolt.transaction.Transaction;
+import com.thunderbolt.wallet.Address;
 import com.thunderbolt.worksapce.NotificationButtons;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -306,6 +308,16 @@ public class NodeService
     }
 
     /**
+     * Gets the public hash.
+     *
+     * @return the public hash.
+     */
+    public byte[] getPublicHash()
+    {
+        return Address.getPublicHash(m_address);
+    }
+
+    /**
      * Gets the private key.
      *
      * @return The private key.
@@ -333,6 +345,19 @@ public class NodeService
     public List<Transaction> getPendingTransactions()
     {
         return m_pending;
+    }
+
+    /**
+     * Gets the unspent output.
+     *
+     * @param id The transaction id.
+     * @param index the index of the output inside the transaction.
+     *
+     * @return the unspent output.
+     */
+    public UnspentTransactionOutput getUnspentOutput(Sha256Hash id, int index)
+    {
+        return m_client.getUnspentOutput(id.toString(), index);
     }
 
     /**

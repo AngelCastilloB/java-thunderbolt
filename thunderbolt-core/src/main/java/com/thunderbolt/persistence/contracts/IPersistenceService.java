@@ -29,6 +29,7 @@ import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.BlockMetadata;
 import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
+import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.Transaction;
@@ -121,6 +122,15 @@ public interface IPersistenceService
      * @return The transaction.
      */
     Transaction getTransaction(Sha256Hash sha256Hash) throws StorageException;
+
+    /**
+     * Gets the metadata transaction with the given hash.
+     *
+     * @param sha256Hash The transaction id.
+     *
+     * @return The transaction metadata.
+     */
+    TransactionMetadata getTransactionMetadata(Sha256Hash sha256Hash) throws StorageException;
 
     /**
      * Gets all the transactions incoming or outgoing from this address.
