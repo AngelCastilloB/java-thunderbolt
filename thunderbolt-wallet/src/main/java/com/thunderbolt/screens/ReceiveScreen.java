@@ -31,6 +31,8 @@ import com.google.zxing.WriterException;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
+import com.thunderbolt.components.ButtonComponent;
+import com.thunderbolt.components.IButtonClickHandler;
 import com.thunderbolt.resources.ResourceManager;
 import com.thunderbolt.state.NodeService;
 import com.thunderbolt.theme.Theme;
@@ -60,7 +62,8 @@ public class ReceiveScreen extends ScreenBase
     private static final int DOWNLOAD_BUTTON_HEIGHT = 30;
     private static final int DOWNLOAD_BUTTON_WIDTH  = 40;
 
-    private BufferedImage m_qrCode = null;
+    private BufferedImage m_qrCode  = null;
+    private BufferedImage m_address = null;
 
     /**
      * Initializes a new instance of the ReceiveScreen class.
@@ -77,7 +80,6 @@ public class ReceiveScreen extends ScreenBase
 
         m_qrCode = MatrixToImageWriter.toBufferedImage(bitMatrix);
 
-
         JTextField textField = new JTextField();
         textField.setSize(getWidth() - 20, 50);
         textField.setText(NodeService.getInstance().getAddress());
@@ -88,87 +90,52 @@ public class ReceiveScreen extends ScreenBase
         textField.setBorder(BorderFactory.createEmptyBorder());
         textField.setBackground(Theme.FOREGROUND_COLOR);
 
-        JButton button = new JButton();
-        button.setBorder(BorderFactory.createEmptyBorder());
-        button.setBorder(BorderFactory.createEmptyBorder());
-        button.setContentAreaFilled(false);
-        button.setIcon(new ImageIcon(ResourceManager.loadImage("images/download.png")));
+        ButtonComponent button = new ButtonComponent(
+                ResourceManager.loadImage("images/download.png"),
+                Theme.FOREGROUND_COLOR,
+                Theme.RECEIVE_SCREEN_BUTTON_COLOR
+        );
+
         button.setSize(DOWNLOAD_BUTTON_WIDTH, DOWNLOAD_BUTTON_HEIGHT);
         button.setLocation(getWidth() / 2 + m_qrCode.getWidth() / 2, m_qrCode.getHeight() + 15 - button.getHeight());
-        button.setFocusable(false);
 
-        button.addMouseListener(new MouseListener()
-        {
-            @Override
-            public void mouseClicked(MouseEvent e)
+        button.addButtonClickListener(() -> {
+            try
             {
-            }
-
-            @Override
-            public void mousePressed(MouseEvent e)
-            {
-            }
-
-            @Override
-            public void mouseReleased(MouseEvent e)
-            {
-            }
-
-            @Override
-            public void mouseEntered(MouseEvent e)
-            {
-                setCursor(new Cursor(Cursor.HAND_CURSOR));
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e)
-            {
-                setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-            }
-        });
-
-        button.addActionListener(new AbstractAction()
-        {
-            @Override
-            public void actionPerformed(ActionEvent e)
-            {
-                try
+                while (true)
                 {
-                    while (true)
+                    final JFileChooser chooser = new JFileChooser();
+                    chooser.setDialogType(JFileChooser.SAVE_DIALOG);
+                    chooser.setSelectedFile(new File("address.png"));
+                    chooser.setFileFilter(new FileNameExtensionFilter("png file","png"));
+
+                    if (chooser.showSaveDialog(button) == JFileChooser.APPROVE_OPTION)
                     {
-                        final JFileChooser chooser = new JFileChooser();
-                        chooser.setDialogType(JFileChooser.SAVE_DIALOG);
-                        chooser.setSelectedFile(new File("address.png"));
-                        chooser.setFileFilter(new FileNameExtensionFilter("png file","png"));
+                        File file = new File(chooser.getSelectedFile().toString());
 
-                        if (chooser.showSaveDialog(button) == JFileChooser.APPROVE_OPTION)
+                        if (file.exists())
                         {
-                            File file = new File(chooser.getSelectedFile().toString());
-
-                            if (file.exists())
-                            {
-                                JOptionPane.showMessageDialog(null, "File already exists.");
-                            }
-                            else
-                            {
-                                ImageIO.write(m_qrCode, "PNG", file);
-
-                                ScreenManager.getInstance().showNotification("QR Saved",
-                                        "Your address was saved as a QR image.",
-                                        NotificationButtons.GotIt, result -> {});
-                                break;
-                            }
+                            JOptionPane.showMessageDialog(null, "File already exists.");
                         }
                         else
                         {
+                            ImageIO.write(m_address, "PNG", file);
+
+                            ScreenManager.getInstance().showNotification("QR Saved",
+                                    "Your address was saved as a QR image.",
+                                    NotificationButtons.GotIt, result -> {});
                             break;
                         }
                     }
+                    else
+                    {
+                        break;
+                    }
                 }
-                catch (IOException exception)
-                {
-                    exception.printStackTrace();
-                }
+            }
+            catch (IOException exception)
+            {
+                exception.printStackTrace();
             }
         });
 
@@ -201,5 +168,23 @@ public class ReceiveScreen extends ScreenBase
         graphics.drawString(message, getWidth() / 2 - width / 2, 40);
 
         graphics.drawImage(m_qrCode, getWidth() / 2 - m_qrCode.getWidth() / 2, 50, null);
+    }
+
+    /**
+     * Paints this component's children. If shouldUseBuffer is true, no component ancestor has a buffer and the component
+     * children can use a buffer if they have one. Otherwise, one ancestor has a buffer currently in use and children
+     * should not use a buffer to paint.
+     *
+     * @param graphics the Graphics context in which to paint
+     */
+    public void paintChildren(Graphics graphics)
+    {
+        super.paintChildren(graphics);
+
+        if (m_address == null)
+        {
+            m_address = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_RGB);
+            printAll(m_address.getGraphics());
+        }
     }
 }

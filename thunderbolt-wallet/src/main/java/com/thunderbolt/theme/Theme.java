@@ -84,4 +84,6 @@ public class Theme
     public static final Font    ENCRYPT_SCREEN_FONT              = ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 18f);
     public static final Color   ENCRYPT_SCREEN_TEXT_COLOR        = new Color(26, 37, 57);
     public static final Font  ENCRYPT_INPUT_FIELD_FONT          = ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 32f);
+
+    public static final Color RECEIVE_SCREEN_BUTTON_COLOR = Color.BLACK;
 }

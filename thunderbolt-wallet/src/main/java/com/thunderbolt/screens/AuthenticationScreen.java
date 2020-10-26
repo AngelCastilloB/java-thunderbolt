@@ -23,18 +23,18 @@
  */
 
 package com.thunderbolt.screens;
+
 /* IMPORTS *******************************************************************/
 
-/* IMPLEMENTATION ************************************************************/
-
 import com.thunderbolt.components.ButtonComponent;
-import com.thunderbolt.components.IButtonClickHandler;
 import com.thunderbolt.state.NodeService;
 import com.thunderbolt.theme.Theme;
 import com.thunderbolt.worksapce.NotificationButtons;
 
 import javax.swing.*;
 import java.awt.*;
+
+/* IMPLEMENTATION ************************************************************/
 
 public class AuthenticationScreen extends ScreenBase
 {
@@ -53,7 +53,8 @@ public class AuthenticationScreen extends ScreenBase
         m_passphrase.setSize(500, 50);
         m_passphrase.setFont(Theme.ENCRYPT_INPUT_FIELD_FONT);
         m_passphrase.setLocation(getWidth() / 2 - m_passphrase.getWidth() / 2, 250);
-
+        m_passphrase.requestFocusInWindow();
+        
         ButtonComponent buttonComponent = new ButtonComponent(Theme.NOTIFICATION_BUTTON_BACKGROUND,
                 Theme.NOTIFICATION_BUTTON_BACKGROUND,
                 Theme.NOTIFICATION_BUTTON_TEXT,

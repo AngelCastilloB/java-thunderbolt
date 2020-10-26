@@ -255,13 +255,21 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
             if (!NodeService.getInstance().isWalletUnlocked())
             {
                 ScreenManager.getInstance().replaceTopScreen(new AuthenticationScreen(() -> {
-                    ScreenManager.getInstance().replaceTopScreen(new DumpKeyScreen());
+                    try {
+                        ScreenManager.getInstance().replaceTopScreen(new DumpKeyScreen());
+                    } catch (WriterException e) {
+                        e.printStackTrace();
+                    }
                     activateButton(m_dumpKeysButton);
                 }));
                 return;
             }
 
-            ScreenManager.getInstance().replaceTopScreen(new DumpKeyScreen());
+            try {
+                ScreenManager.getInstance().replaceTopScreen(new DumpKeyScreen());
+            } catch (WriterException e) {
+                e.printStackTrace();
+            }
             activateButton(m_dumpKeysButton);
         });
 

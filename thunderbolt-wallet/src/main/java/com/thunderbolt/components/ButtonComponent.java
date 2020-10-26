@@ -52,7 +52,7 @@ public class ButtonComponent extends JComponent implements MouseListener
     private BufferedImage                   m_unpressedImage = null;
     private boolean                         m_isActive       = false;
     private final List<IButtonClickHandler> m_handlers       = new ArrayList<>();
-    private String                          m_text;
+    private String                          m_text           = "";
 
     private Color m_activeBackgroundColor   = Theme.MENU_BUTTON_ACTIVE;
     private Color m_inactiveBackgroundColor = Theme.MENU_BUTTON_BACKGROUND;
@@ -82,6 +82,22 @@ public class ButtonComponent extends JComponent implements MouseListener
         tint(m_unpressedImage, m_inactiveFontColor);
 
         setText(text);
+        addMouseListener(this);
+    }
+
+    /**
+     * Initializes a new instance of the CustomButton class.
+     *
+     * @param image The image to be displayed in the button.
+     */
+    public ButtonComponent(BufferedImage image)
+    {
+        m_pressedImage = deepCopy(image);
+        m_unpressedImage = deepCopy(image);
+
+        tint(m_pressedImage, m_activeFontColor);
+        tint(m_unpressedImage, m_inactiveFontColor);
+
         addMouseListener(this);
     }
 
@@ -133,6 +149,55 @@ public class ButtonComponent extends JComponent implements MouseListener
     }
 
     /**
+     * Initializes a new instance of the CustomButton class.
+     *
+     * @param image The image to be displayed in the button.
+     * @param activeBackgroundColor the active background color.
+     * @param inactiveBackgroundColor the inactive background color.
+     * @param activeFontColor the active font color.
+     * @param inactiveFontColor the inactive font color.
+     */
+    public ButtonComponent(BufferedImage image, Color activeBackgroundColor, Color inactiveBackgroundColor,
+                           Color activeFontColor, Color inactiveFontColor)
+    {
+        m_activeBackgroundColor   = activeBackgroundColor;
+        m_inactiveBackgroundColor = inactiveBackgroundColor;
+        m_activeFontColor         = activeFontColor;
+        m_inactiveFontColor       = inactiveFontColor;
+
+        m_pressedImage = deepCopy(image);
+        m_unpressedImage = deepCopy(image);
+
+        tint(m_pressedImage, m_activeFontColor);
+        tint(m_unpressedImage, m_inactiveFontColor);
+
+        addMouseListener(this);
+    }
+
+    /**
+     * Initializes a new instance of the CustomButton class.
+     *
+     * @param image The image to be displayed in the button.
+     * @param backgroundColor the active background color.
+     * @param fontColor the active font color.
+     */
+    public ButtonComponent(BufferedImage image, Color backgroundColor, Color fontColor)
+    {
+        m_activeBackgroundColor   = backgroundColor;
+        m_inactiveBackgroundColor = backgroundColor;
+        m_activeFontColor         = fontColor;
+        m_inactiveFontColor       = fontColor;
+
+        m_pressedImage = deepCopy(image);
+        m_unpressedImage = deepCopy(image);
+
+        tint(m_pressedImage, m_activeFontColor);
+        tint(m_unpressedImage, m_inactiveFontColor);
+
+        addMouseListener(this);
+    }
+
+    /**
      * Adds a button click handler.
      *
      * @param handler The button click handler.
@@ -177,12 +242,20 @@ public class ButtonComponent extends JComponent implements MouseListener
 
         if (m_pressedImage != null)
         {
-            graphics.drawImage(m_isActive ? m_pressedImage : m_unpressedImage, 10, getHeight() / 2 - 12,null);
+            if (getText().isEmpty())
+            {
+                graphics.drawImage(m_isActive ? m_pressedImage : m_unpressedImage, getWidth() / 2 - m_pressedImage.getWidth() / 2,
+                        getHeight() / 2 - m_pressedImage.getHeight() / 2,null);
+            }
+            else
+            {
+                graphics.drawImage(m_isActive ? m_pressedImage : m_unpressedImage, 10, getHeight() / 2 - 12,null);
 
-            graphics.setColor(m_isActive ? m_activeFontColor : m_inactiveFontColor);
-            graphics.setFont(Theme.MENU_BUTTON_FONT);
+                graphics.setColor(m_isActive ? m_activeFontColor : m_inactiveFontColor);
+                graphics.setFont(Theme.MENU_BUTTON_FONT);
 
-            graphics.drawString(getText(), 55, 22);
+                graphics.drawString(getText(), 55, 22);
+            }
         }
         else
         {
@@ -322,7 +395,7 @@ public class ButtonComponent extends JComponent implements MouseListener
     @Override
     public void mouseExited(MouseEvent e)
     {
-        setCursor(new Cursor(Cursor.HAND_CURSOR));
+        setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
     }
 
     /**

@@ -292,7 +292,7 @@ public class NodeService
      */
     public String getPublicKey()
     {
-        return Convert.toHexString(new byte[32]);
+        return Convert.toHexString(m_client.getPublicKey());
     }
 
     /**
