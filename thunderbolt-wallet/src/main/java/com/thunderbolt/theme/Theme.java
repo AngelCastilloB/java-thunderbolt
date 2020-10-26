@@ -83,12 +83,13 @@ public class Theme
 
     public static final Font    ENCRYPT_SCREEN_FONT              = ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 18f);
     public static final Color   ENCRYPT_SCREEN_TEXT_COLOR        = new Color(26, 37, 57);
-    public static final Font  ENCRYPT_INPUT_FIELD_FONT          = ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 32f);
+    public static final Font    ENCRYPT_INPUT_FIELD_FONT          = ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 32f);
 
     public static final Color RECEIVE_SCREEN_BUTTON_COLOR = Color.BLACK;
 
-
-    public static final Color TRANSACTION_COMPONENT_ID_COLOR = Color.BLUE;
-    public static final Font TRANSACTION_COMPONENT_ID_FONT =  ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 10f);
-
+    public static final Color TRANSACTION_COMPONENT_OUTGOING_COLOR = new Color(210, 27, 3);
+    public static final Color TRANSACTION_COMPONENT_INCOMING_COLOR  = new Color(2, 33, 94);
+    public static final Color TRANSACTION_COMPONENT_SUBTEXT_COLOR  = new Color(0x75, 0x75, 0x75);
+    public static final Font  TRANSACTION_COMPONENT_TITLE_FONT     =  ResourceManager.loadFont("fonts/Roboto-Bold.ttf", 14f);
+    public static final Font  TRANSACTION_COMPONENT_SUBTEXT_FONT  =  ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 12f);
 }

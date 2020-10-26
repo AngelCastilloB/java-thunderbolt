@@ -39,7 +39,11 @@ import com.thunderbolt.wallet.Address;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.WritableRaster;
 import java.math.BigInteger;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.ResourceBundle;
 
@@ -54,11 +58,12 @@ public class TransactionComponent extends JComponent
     private static final double FRACTIONAL_COIN_FACTOR = 0.00000001;
 
     private Transaction   m_transaction   = null;
-    private String        m_transactionId = "";
+    private String        m_address       = "";
     private double        m_amount        = 0.0;
-    private BufferedImage m_incoming      = ResourceManager.loadImage("images/incoming.png");
-    private BufferedImage m_outgoing      = ResourceManager.loadImage("images/outgoing.png");
+    private BufferedImage m_incoming      = null;
+    private BufferedImage m_outgoing      = null;
     private boolean       m_isOutgoing    = false;
+    private String        m_date          = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd  -  hh:mm a"));
 
     /**
      * Initializes a new instance of a TransactionComponent component.
@@ -68,17 +73,26 @@ public class TransactionComponent extends JComponent
     public TransactionComponent(Transaction transaction)
     {
         setLayout(null);
+
+        m_incoming = deepCopy(ResourceManager.loadImage("images/incoming.png"));
+        m_outgoing = deepCopy(ResourceManager.loadImage("images/outgoing.png"));
+
+        tint(m_incoming, Theme.TRANSACTION_COMPONENT_INCOMING_COLOR);
+        tint(m_outgoing, Theme.TRANSACTION_COMPONENT_OUTGOING_COLOR);
+
         m_transaction = transaction;
-        m_amount = getNetAmount();
-        m_transactionId = m_transaction.getTransactionId().toString();
+        m_amount = getAmount();
     }
 
     /**
-     * Gets the net amount for this transaction. We will subtract all the inputs and add all the outputs.
+     * We will determine the amount og the transactions as follow. If the transactions is using our outputs, we are
+     * the ones sending, so we will pick the output that does not belong to us (to ignore the change). If there is only
+     * one output and it belong to us, then we will display that (we transferred to ourselves). If the unspent outputs
+     * used are not ours, we show the transaction as incoming.
      *
      * @return The net amount.
      */
-    private double getNetAmount()
+    private double getAmount()
     {
         BigInteger total = BigInteger.ZERO;
 
@@ -87,18 +101,49 @@ public class TransactionComponent extends JComponent
             if (input.isCoinBase())
                 continue;
 
-            UnspentTransactionOutput output =
-                    NodeService.getInstance().getUnspentOutput(input.getReferenceHash(), input.getIndex());
+            Transaction transaction = NodeService.getInstance().getTransaction(input.getReferenceHash());
+            TransactionOutput output = transaction.getOutputs().get(input.getIndex());
 
-            if (Arrays.equals(output.getOutput().getLockingParameters(), NodeService.getInstance().getPublicHash()))
+            if (Arrays.equals(output.getLockingParameters(), NodeService.getInstance().getAddress().getPublicHash()))
             {
                 m_isOutgoing = true;
-                total = total.subtract(output.getOutput().getAmount());
+                break;
             }
         }
 
-        for (TransactionOutput input: m_transaction.getOutputs())
-            total = total.add(input.getAmount());
+        if (m_isOutgoing)
+        {
+            for (TransactionOutput input: m_transaction.getOutputs())
+            {
+                // Since this transaction is outgoing this is change.
+                if (Arrays.equals(input.getLockingParameters(), NodeService.getInstance().getAddress().getPublicHash()))
+                    continue;
+
+                // To
+                m_address = new Address(NodeService.getInstance().getAddress().getPrefix(),
+                        input.getLockingParameters()).toString();
+
+                total = total.add(input.getAmount());
+            }
+        }
+        else
+        {
+            for (TransactionOutput output: m_transaction.getOutputs())
+            {
+                // Since this transaction is incoming this is the output we want.
+                if (Arrays.equals(output.getLockingParameters(), NodeService.getInstance().getAddress().getPublicHash()))
+                {
+                    // from
+                    m_address = new Address(NodeService.getInstance().getAddress().getPrefix(),
+                            output.getLockingParameters()).toString();
+
+                    total = total.add(output.getAmount());
+                }
+            }
+        }
+
+        if (m_transaction.isCoinbase())
+            m_address = "coinbase";
 
         return total.longValue() * FRACTIONAL_COIN_FACTOR;
     }
@@ -118,21 +163,67 @@ public class TransactionComponent extends JComponent
                 RenderingHints.KEY_TEXT_ANTIALIASING,
                 RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        graphics.setFont(Theme.TRANSACTION_COMPONENT_ID_FONT);
-        graphics.setColor(Theme.TRANSACTION_COMPONENT_ID_COLOR);
+        graphics.setFont(Theme.TRANSACTION_COMPONENT_TITLE_FONT);
 
         if (m_isOutgoing)
         {
-            graphics.drawImage(m_outgoing,0, 0,null);
-            graphics.drawString("THB Sent", m_outgoing.getWidth(), 15);
+            graphics.setColor(Theme.TRANSACTION_COMPONENT_OUTGOING_COLOR);
+            graphics.drawImage(m_outgoing,20, 0,null);
+            graphics.drawString("THB Sent", m_outgoing.getWidth() + 30, 15);
         }
         else
         {
-            graphics.drawImage(m_incoming,0, 0,null);
-            graphics.drawString("THB Received", m_outgoing.getWidth(), 15);
+            graphics.setColor(Theme.TRANSACTION_COMPONENT_INCOMING_COLOR);
+            graphics.drawImage(m_incoming,20, 0,null);
+            graphics.drawString("THB Received", m_outgoing.getWidth() + 30, 15);
         }
 
-        graphics.drawString(m_transactionId, m_outgoing.getWidth(), 30);
-        graphics.drawString(Convert.stripTrailingZeros(m_amount) + " THB", getWidth() - 100, 20);
+        String amount = (m_isOutgoing ? "-" : "+") + m_amount + " THB";
+        int width = graphics2d.getFontMetrics().stringWidth(amount);
+        graphics.drawString(amount, getWidth() - width - 50, 15);
+
+        graphics.setFont(Theme.TRANSACTION_COMPONENT_SUBTEXT_FONT);
+        graphics.setColor(Theme.TRANSACTION_COMPONENT_SUBTEXT_COLOR);
+        graphics.drawString(m_address, m_outgoing.getWidth() + 30, 30);
+
+        graphics.drawString(m_date, getWidth() - 195, 30);
+    }
+
+    /**
+     * Tints the image with the given color.
+     *
+     * @param image The image.
+     * @param color The color to be tinted with.
+     */
+    static private void tint(BufferedImage image, Color color)
+    {
+        for (int x = 0; x < image.getWidth(); x++)
+        {
+            for (int y = 0; y < image.getHeight(); y++)
+            {
+                Color pixelColor = new Color(image.getRGB(x, y), true);
+                int r = (pixelColor.getRed() + color.getRed());
+                int g = (pixelColor.getGreen() + color.getGreen());
+                int b = (pixelColor.getBlue() + color.getBlue());
+                int a = pixelColor.getAlpha();
+                int rgba = (a << 24) | (r << 16) | (g << 8) | b;
+                image.setRGB(x, y, rgba);
+            }
+        }
+    }
+
+    /**
+     * Deep copy a buffered image.
+     *
+     * @param bi The image to be copied.
+     *
+     * @return the new image.
+     */
+    static BufferedImage deepCopy(BufferedImage bi)
+    {
+        ColorModel cm = bi.getColorModel();
+        boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
+        WritableRaster raster = bi.copyData(null);
+        return new BufferedImage(cm, raster, isAlphaPremultiplied, null);
     }
 }

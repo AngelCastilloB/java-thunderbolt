@@ -75,14 +75,14 @@ public class ReceiveScreen extends ScreenBase
 
         QRCodeWriter qrCodeWriter = new QRCodeWriter();
 
-        BitMatrix bitMatrix = qrCodeWriter.encode(NodeService.getInstance().getAddress(),
+        BitMatrix bitMatrix = qrCodeWriter.encode(NodeService.getInstance().getAddress().toString(),
                 BarcodeFormat.QR_CODE, QR_WIDTH, QR_HEIGHT);
 
         m_qrCode = MatrixToImageWriter.toBufferedImage(bitMatrix);
 
         JTextField textField = new JTextField();
         textField.setSize(getWidth() - 20, 50);
-        textField.setText(NodeService.getInstance().getAddress());
+        textField.setText(NodeService.getInstance().getAddress().toString());
         textField.setFont(Theme.TITLE_FONT);
         textField.setLocation(10, getHeight() - 150);
         textField.setHorizontalAlignment(0);

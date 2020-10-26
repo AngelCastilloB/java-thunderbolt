@@ -52,7 +52,7 @@ public class Address
      * @param data The actual data of the key, it can be either the public key of a wallet or the hash of the multi
      *             signature public keys.
      */
-    Address(byte prefix, byte[] data)
+    public Address(byte prefix, byte[] data)
     {
         byte[] publicHash = Ripemd160Digester.digest(data);
         byte[] checksum   = computeCheckSum(prefix, publicHash);

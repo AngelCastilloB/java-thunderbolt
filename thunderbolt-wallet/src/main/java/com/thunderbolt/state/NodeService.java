@@ -39,10 +39,10 @@ import com.thunderbolt.wallet.Address;
 import com.thunderbolt.worksapce.NotificationButtons;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -66,6 +66,7 @@ public class NodeService
     private String                                m_lastMempoolUpdate = "";
     private List<Transaction>                     m_transactions      = new ArrayList<>();
     private List<Transaction>                     m_pending           = new ArrayList<>();
+    private Map<Sha256Hash, Transaction>          m_transactionCache  = new HashMap<>();
 
     /**
      * Prevents a default instance of the StateService class from being created.
@@ -121,9 +122,9 @@ public class NodeService
 
                     if (!currentBlock.equals(m_currentBlock))
                     {
-                        m_currentBlock = currentBlock;
-                        m_transactions = m_client.getConfirmedTransactions();
-                        m_pending      = m_client.getPendingTransactions();
+                        m_currentBlock      = currentBlock;
+                        m_transactions      = m_client.getConfirmedTransactions();
+                        m_pending           = m_client.getPendingTransactions();
                         m_lastMempoolUpdate = m_client.getMemPoolLastUpdateTime();
                         updateState = true;
                     }
@@ -132,7 +133,7 @@ public class NodeService
 
                     if (!lastUpdate.equals(m_lastMempoolUpdate))
                     {
-                        m_pending      = m_client.getPendingTransactions();
+                        m_pending           = m_client.getPendingTransactions();
                         m_lastMempoolUpdate = m_client.getMemPoolLastUpdateTime();
                         updateState = true;
 
@@ -147,7 +148,7 @@ public class NodeService
 
                 try
                 {
-                    Thread.sleep(1000);
+                    Thread.sleep(2000);
                 }
                 catch (InterruptedException e)
                 {
@@ -298,23 +299,13 @@ public class NodeService
     }
 
     /**
-     * Gets the address.
-     *
-     * @return the address.
-     */
-    public String getAddress()
-    {
-        return m_address;
-    }
-
-    /**
      * Gets the public hash.
      *
      * @return the public hash.
      */
-    public byte[] getPublicHash()
+    public Address getAddress()
     {
-        return Address.getPublicHash(m_address);
+        return new Address(m_address);
     }
 
     /**
@@ -358,6 +349,26 @@ public class NodeService
     public UnspentTransactionOutput getUnspentOutput(Sha256Hash id, int index)
     {
         return m_client.getUnspentOutput(id.toString(), index);
+    }
+
+    /**
+     * Gets the transaction.
+     *
+     * @param id The transaction id.
+     *
+     * @return the transaction.
+     */
+    public Transaction getTransaction(Sha256Hash id)
+    {
+        // Since retrieving transactions is a bit expensive, we are going to cache them.
+        if (m_transactionCache.containsKey(id))
+            return m_transactionCache.get(id);
+
+        Transaction xt = m_client.getTransaction(id.toString());
+
+        m_transactionCache.put(id, xt);
+
+        return xt;
     }
 
     /**
@@ -446,7 +457,9 @@ public class NodeService
         m_currentState = state;
 
         if (m_currentState ==  NodeState.Ready)
+        {
             ResourceManager.playAudio(Theme.STATUS_READY_SOUND);
+        }
 
         for (INodeStatusChangeListener listener: m_listeners)
             listener.onNodeStatusChange(m_currentState);

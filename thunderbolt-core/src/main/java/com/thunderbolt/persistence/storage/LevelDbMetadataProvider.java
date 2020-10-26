@@ -267,8 +267,8 @@ public class LevelDbMetadataProvider implements IMetadataProvider
         try
         {
             ByteArrayOutputStream key = new ByteArrayOutputStream();
-            key.write(id.serialize());
-            key.write(NumberSerializer.serialize(index));
+            key.writeBytes(id.serialize());
+            key.writeBytes(NumberSerializer.serialize(index));
 
             output = m_utxoCache.get(Convert.toHexString(key.toByteArray()));
         }
