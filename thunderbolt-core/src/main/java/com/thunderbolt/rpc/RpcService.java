@@ -180,9 +180,19 @@ public class RpcService
      * @return true if it could be added successfully.
      */
     @JsonRpcMethod("unlockWallet")
-    public boolean unlockWallet(@JsonRpcParam("password") final String password) throws GeneralSecurityException
+    public boolean unlockWallet(@JsonRpcParam("password") final String password)
     {
-        m_wallet.unlock(password);
+        try
+        {
+            m_wallet.unlock(password);
+        }
+        catch (GeneralSecurityException e)
+        {
+            s_logger.error("Wallet could not be unlocked.", e);
+
+            return false;
+        }
+
         return true;
     }
 

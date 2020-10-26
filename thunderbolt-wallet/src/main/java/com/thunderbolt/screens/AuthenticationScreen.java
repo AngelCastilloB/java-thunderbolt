@@ -27,25 +27,91 @@ package com.thunderbolt.screens;
 
 /* IMPLEMENTATION ************************************************************/
 
+import com.thunderbolt.components.ButtonComponent;
+import com.thunderbolt.components.IButtonClickHandler;
+import com.thunderbolt.state.NodeService;
 import com.thunderbolt.theme.Theme;
+import com.thunderbolt.worksapce.NotificationButtons;
 
 import javax.swing.*;
+import java.awt.*;
 
 public class AuthenticationScreen extends ScreenBase
 {
+    private static final int BUTTON_WIDTH  = 80;
+    private static final int BUTTON_HEIGHT = 35;
+
     private ISuccessHandler m_handler;
+
+    private JPasswordField  m_passphrase = new JPasswordField();
 
     public AuthenticationScreen(ISuccessHandler handler)
     {
         m_handler = handler;
         setTitle("UNLOCK WALLET");
 
-        JTextField label = new JPasswordField();
+        m_passphrase.setSize(500, 50);
+        m_passphrase.setFont(Theme.ENCRYPT_INPUT_FIELD_FONT);
+        m_passphrase.setLocation(getWidth() / 2 - m_passphrase.getWidth() / 2, 250);
 
-        label.setSize(getWidth() - 20, 50);
-        label.setFont(Theme.TITLE_FONT);
-        label.setLocation(10, getHeight() - 150);
+        ButtonComponent buttonComponent = new ButtonComponent(Theme.NOTIFICATION_BUTTON_BACKGROUND,
+                Theme.NOTIFICATION_BUTTON_BACKGROUND,
+                Theme.NOTIFICATION_BUTTON_TEXT,
+                Theme.NOTIFICATION_BUTTON_TEXT);
+        buttonComponent.setText("Unlock");
+        buttonComponent.setSize(BUTTON_WIDTH, BUTTON_HEIGHT);
 
-        add(label);
+        buttonComponent.setLocation(m_passphrase.getX() + m_passphrase.getWidth() - buttonComponent.getWidth(),
+                m_passphrase.getY() + m_passphrase.getHeight() + 40);
+
+        buttonComponent.addButtonClickListener(() -> {
+
+            m_passphrase.setVisible(false);
+
+            boolean unlocked = NodeService.getInstance().unlockWallet(m_passphrase.getText());
+
+            if (unlocked)
+            {
+                m_handler.onSuccess();
+                NodeService.getInstance().lockWallet();
+            }
+            else
+            {
+                ScreenManager.getInstance().showNotification("Warn",
+                        "The Wallet could not be unlocked.",
+                        NotificationButtons.GotIt, result -> {
+                            m_passphrase.setVisible(true);
+                        });
+            }
+        });
+
+        add(m_passphrase);
+        add(buttonComponent);
+    }
+
+    /**
+     * Paints this component's children. If shouldUseBuffer is true, no component ancestor has a buffer and the component
+     * children can use a buffer if they have one. Otherwise, one ancestor has a buffer currently in use and children
+     * should not use a buffer to paint.
+     *
+     * @param graphics the Graphics context in which to paint
+     */
+    public void paintComponent(Graphics graphics)
+    {
+        super.paintComponent(graphics);
+        Graphics2D graphics2d = (Graphics2D) graphics;
+        graphics2d.setRenderingHint(
+                RenderingHints.KEY_TEXT_ANTIALIASING,
+                RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        graphics.setFont(Theme.ENCRYPT_SCREEN_FONT);
+        graphics.setColor(Theme.ENCRYPT_SCREEN_TEXT_COLOR);
+
+        String message = "Please enter the wallet's passphrase";
+        int measure = graphics2d.getFontMetrics().stringWidth(message);
+
+        graphics.drawString(message, getWidth() / 2 - measure / 2, 200);
+        paintChildren(graphics);
+
     }
 }

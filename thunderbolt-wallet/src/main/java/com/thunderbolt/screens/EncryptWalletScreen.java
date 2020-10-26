@@ -96,6 +96,7 @@ public class EncryptWalletScreen extends ScreenBase
 
                 if (encrypted)
                 {
+                    NodeService.getInstance().lockWallet();
                     ScreenManager.getInstance().showNotification("Information",
                             "Your wallet is now encrypted.",
                             NotificationButtons.GotIt, result -> {
