@@ -35,6 +35,7 @@ import com.thunderbolt.state.NodeService;
 import com.thunderbolt.theme.Theme;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
 

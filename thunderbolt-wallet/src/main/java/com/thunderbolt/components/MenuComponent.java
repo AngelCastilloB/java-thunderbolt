@@ -37,9 +37,7 @@ import com.thunderbolt.worksapce.NotificationButtons;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
-import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
 
@@ -56,8 +54,8 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
     private static final int OVERVIEW_BUTTON_POSITION     = 290;
     private static final int SEND_BUTTON_POSITION         = 340;
     private static final int RECEIVE_BUTTON_POSITION      = 390;
-    private static final int ENCRYPT_KEYS_BUTTON_POSITION = 440;
-    private static final int EXPORT_BUTTON_POSITION       = 490;
+    private static final int TRANSACTIONS_BUTTON_POSITION = 440;
+    private static final int ENCRYPT_KEYS_BUTTON_POSITION = 490;
     private static final int DUMP_BUTTON_POSITION         = 540;
 
     private Image                 m_img;
@@ -65,7 +63,7 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
     private final ButtonComponent m_sendButton         = new ButtonComponent(ResourceManager.loadImage("images/send.png"), "Send");
     private final ButtonComponent m_receiveButton      = new ButtonComponent(ResourceManager.loadImage("images/receive.png"), "Receive");
     private final ButtonComponent m_encryptButton      = new ButtonComponent(ResourceManager.loadImage("images/encrypt.png"), "Encrypt Keys");
-    private final ButtonComponent m_exportButton       = new ButtonComponent(ResourceManager.loadImage("images/export.png"), "Export Wallet");
+    private final ButtonComponent m_transactionsButton = new ButtonComponent(ResourceManager.loadImage("images/transactions.png"), "Transactions");
     private final ButtonComponent m_dumpKeysButton     = new ButtonComponent(ResourceManager.loadImage("images/dump_keys.png"), "Dump Keys");
 
     /**
@@ -121,9 +119,12 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
                 return;
             }
 
-            if (NodeService.getInstance().getNodeState().equals(NodeState.Syncing))
+            if (!NodeService.getInstance().isWalletUnlocked())
             {
-                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
+                ScreenManager.getInstance().replaceTopScreen(new AuthenticationScreen(() -> {
+                        ScreenManager.getInstance().replaceTopScreen(new SendScreen());
+                    activateButton(m_sendButton);
+                }));
                 return;
             }
 
@@ -161,6 +162,30 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
             activateButton(m_receiveButton);
         });
 
+
+        m_transactionsButton.setSize(BUTTON_WIDTH, BUTTON_HEIGHT);
+        m_transactionsButton.setLocation(LEFT_MARGIN, TRANSACTIONS_BUTTON_POSITION);
+
+        m_transactionsButton.addButtonClickListener(() ->
+        {
+            if (NodeService.getInstance().getNodeState().equals(NodeState.Offline))
+            {
+                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
+                return;
+            }
+
+            if (NodeService.getInstance().getNodeState().equals(NodeState.Syncing))
+            {
+                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
+                return;
+            }
+
+            ScreenManager.getInstance().replaceTopScreen(new TransactionsScreen());
+            activateButton(m_transactionsButton);
+
+            activateButton(m_transactionsButton);
+        });
+
         m_encryptButton.setSize(BUTTON_WIDTH, BUTTON_HEIGHT);
         m_encryptButton.setLocation(LEFT_MARGIN, ENCRYPT_KEYS_BUTTON_POSITION);
 
@@ -186,59 +211,6 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
                 activateButton(m_overviewButton);
             }));
             activateButton(m_encryptButton);
-        });
-
-        m_exportButton.setSize(BUTTON_WIDTH, BUTTON_HEIGHT);
-        m_exportButton.setLocation(LEFT_MARGIN, EXPORT_BUTTON_POSITION);
-
-        m_exportButton.addButtonClickListener(() ->
-        {
-            if (NodeService.getInstance().getNodeState().equals(NodeState.Offline))
-            {
-                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
-                return;
-            }
-
-            while (true)
-            {
-                final JFileChooser chooser = new JFileChooser();
-                chooser.setDialogType(JFileChooser.SAVE_DIALOG);
-                chooser.setSelectedFile(new File("wallet.dat"));
-                chooser.setFileFilter(new FileNameExtensionFilter("dat file","dat"));
-
-                if (chooser.showSaveDialog(m_exportButton) == JFileChooser.APPROVE_OPTION)
-                {
-                    File file = new File(chooser.getSelectedFile().toString());
-
-                    if (file.exists())
-                    {
-                        JOptionPane.showMessageDialog(null, "File already exists.");
-                    }
-                    else
-                    {
-                        boolean exported = NodeService.getInstance().exportWallet(chooser.getSelectedFile().toString());
-
-                        if (exported)
-                        {
-                            ScreenManager.getInstance().showNotification("Wallet Saved",
-                                    "Your wallet was exported.",
-                                    NotificationButtons.GotIt, result -> {});
-                        }
-                        else
-                        {
-                            ScreenManager.getInstance().showNotification("Error",
-                                    "There was an error exporting the wallet.",
-                                    NotificationButtons.GotIt, result -> {});
-                        }
-
-                        break;
-                    }
-                }
-                else
-                {
-                    break;
-                }
-            }
         });
 
         m_dumpKeysButton.setSize(BUTTON_WIDTH, BUTTON_HEIGHT);
@@ -277,7 +249,7 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
         add(m_sendButton);
         add(m_receiveButton);
         add(m_encryptButton);
-        add(m_exportButton);
+        add(m_transactionsButton);
         add(m_dumpKeysButton);
 
         NodeService.getInstance().addStatusListener(state ->
@@ -286,7 +258,7 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
             m_sendButton.setActive(false);
             m_receiveButton.setActive(false);
             m_encryptButton.setActive(false);
-            m_exportButton.setActive(false);
+            m_transactionsButton.setActive(false);
             m_dumpKeysButton.setActive(false);
         });
     }
@@ -341,7 +313,7 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
         m_sendButton.setActive(m_sendButton == button);
         m_receiveButton.setActive(m_receiveButton == button);
         m_encryptButton.setActive(m_encryptButton == button);
-        m_exportButton.setActive(m_exportButton == button);
+        m_transactionsButton.setActive(m_transactionsButton == button);
         m_dumpKeysButton.setActive(m_dumpKeysButton == button);
     }
 
