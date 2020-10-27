@@ -119,7 +119,7 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
                 return;
             }
 
-            if (!NodeService.getInstance().isWalletUnlocked())
+            if (NodeService.getInstance().isLocked())
             {
                 ScreenManager.getInstance().replaceTopScreen(new AuthenticationScreen(() -> {
                         ScreenManager.getInstance().replaceTopScreen(new SendScreen());
@@ -224,7 +224,7 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
                 return;
             }
 
-            if (!NodeService.getInstance().isWalletUnlocked())
+            if (NodeService.getInstance().isLocked())
             {
                 ScreenManager.getInstance().replaceTopScreen(new AuthenticationScreen(() -> {
                     try {

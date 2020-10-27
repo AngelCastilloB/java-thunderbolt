@@ -39,6 +39,8 @@ import com.thunderbolt.wallet.Address;
 import com.thunderbolt.worksapce.NotificationButtons;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.swing.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -141,9 +143,7 @@ public class NodeService
 
                     if (updateState)
                     {
-                        ResourceManager.playAudio(Theme.TRANSACTION_STATE_CHANGE_SOUND);
-                        for (IDataChangeListener listener: m_dataListeners)
-                            listener.onNodeDataChange();
+                        notifyDataUpdate();
                     }
                 }
 
@@ -420,9 +420,9 @@ public class NodeService
      * Gets whether the wallet was unlocked or not.
      * @return true if the wallet is locked; otherwise; false.
      */
-    public boolean isWalletUnlocked()
+    public boolean isLocked()
     {
-        return m_client.isWalletUnlocked();
+        return !m_client.isWalletUnlocked();
     }
 
     /**
@@ -446,12 +446,34 @@ public class NodeService
     }
 
     /**
+     * Notifies the listeners about new data.
+     */
+    private void notifyDataUpdate()
+    {
+        if (!SwingUtilities.isEventDispatchThread())
+        {
+            SwingUtilities.invokeLater(this::notifyDataUpdate);
+            return;
+        }
+
+        ResourceManager.playAudio(Theme.TRANSACTION_STATE_CHANGE_SOUND);
+        for (IDataChangeListener listener: m_dataListeners)
+            listener.onNodeDataChange();
+    }
+
+    /**
      * Changes the state of the node.
      *
      * @param state The new state.
      */
     private void changeState(NodeState state)
     {
+        if (!SwingUtilities.isEventDispatchThread())
+        {
+            SwingUtilities.invokeLater(() -> changeState(state));
+            return;
+        }
+
         if (m_currentState == state)
             return;
 
@@ -462,7 +484,9 @@ public class NodeService
 
         if (m_currentState == NodeState.Offline)
         {
-            ScreenManager.getInstance().showNotification("Node offline", "The node service is offline. Please make sure thunderbolt-node is running.",
+            ScreenManager.getInstance().showNotification(
+                    "Node offline",
+                    "The node service is offline. Please make sure thunderbolt-node is running.",
                     NotificationButtons.GotIt, result -> System.out.println(NotificationButtons.GotIt));
         }
     }

@@ -95,4 +95,7 @@ public class Theme
     public static final Font   TRANSACTION_COMPONENT_SUBTEXT_FONT   = ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 12f);
     public static final String TRANSACTION_STATE_CHANGE_SOUND       = "audio/transaction_state_change.wav";
 
+    public static final Color INPUT_FIELD_UNDERLINE_COLOR = new Color(0x30, 0x3F, 0x9F);
+    public static final Color INPUT_FIELD_BACKGROUND_COLOR = FOREGROUND_COLOR;
+    public static final Font  INPUT_FIELD_FONT              = ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 12f);
 }

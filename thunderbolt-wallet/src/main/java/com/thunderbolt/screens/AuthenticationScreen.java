@@ -27,33 +27,58 @@ package com.thunderbolt.screens;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.components.ButtonComponent;
+import com.thunderbolt.components.InputComponent;
 import com.thunderbolt.state.NodeService;
 import com.thunderbolt.theme.Theme;
 import com.thunderbolt.worksapce.NotificationButtons;
 
-import javax.swing.*;
 import java.awt.*;
 
 /* IMPLEMENTATION ************************************************************/
 
+/**
+ * The authentication screen. Request the user the passphrase to unlock the wallet.
+ */
 public class AuthenticationScreen extends ScreenBase
 {
     private static final int BUTTON_WIDTH  = 80;
     private static final int BUTTON_HEIGHT = 35;
 
-    private ISuccessHandler m_handler;
+    private final ISuccessHandler m_handler;
+    private InputComponent        m_passphrase;
 
-    private JPasswordField  m_passphrase = new JPasswordField();
-
+    /**
+     * Initializes a new instance of the AuthenticationScreen class.
+     *
+     * @param handler The handler for when the authentication finish.
+     */
     public AuthenticationScreen(ISuccessHandler handler)
     {
-        m_handler = handler;
         setTitle("UNLOCK WALLET");
 
+        m_handler = handler;
+
+        m_passphrase = new InputComponent(true, input -> {
+            boolean unlocked = NodeService.getInstance().unlockWallet(m_passphrase.getText());
+
+            if (unlocked)
+            {
+                m_handler.onSuccess();
+                NodeService.getInstance().lockWallet();
+            }
+            else
+            {
+                ScreenManager.getInstance().showNotification("Warn",
+                        "The Wallet could not be unlocked.",
+                        NotificationButtons.GotIt, result -> {
+                        });
+            }
+        });
+
+        m_passphrase.setTile("Password");
         m_passphrase.setSize(500, 50);
         m_passphrase.setFont(Theme.ENCRYPT_INPUT_FIELD_FONT);
         m_passphrase.setLocation(getWidth() / 2 - m_passphrase.getWidth() / 2, 250);
-        m_passphrase.requestFocusInWindow();
 
         ButtonComponent buttonComponent = new ButtonComponent(Theme.NOTIFICATION_BUTTON_BACKGROUND,
                 Theme.NOTIFICATION_BUTTON_BACKGROUND,
@@ -67,8 +92,6 @@ public class AuthenticationScreen extends ScreenBase
 
         buttonComponent.addButtonClickListener(() -> {
 
-            m_passphrase.setVisible(false);
-
             boolean unlocked = NodeService.getInstance().unlockWallet(m_passphrase.getText());
 
             if (unlocked)
@@ -81,13 +104,23 @@ public class AuthenticationScreen extends ScreenBase
                 ScreenManager.getInstance().showNotification("Warn",
                         "The Wallet could not be unlocked.",
                         NotificationButtons.GotIt, result -> {
-                            m_passphrase.setVisible(true);
                         });
             }
         });
 
         add(m_passphrase);
         add(buttonComponent);
+    }
+
+    /**
+     * This method will be called by the screen manager just before adding the screen to the workspace.
+     */
+    @Override
+    public void onShow()
+    {
+        super.onShow();
+        m_passphrase.grabFocus();
+        m_passphrase.requestFocus();
     }
 
     /**
