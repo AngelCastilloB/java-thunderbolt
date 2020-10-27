@@ -98,7 +98,6 @@ public class AuthenticationScreen extends ScreenBase
             if (unlocked)
             {
                 m_handler.onSuccess();
-                NodeService.getInstance().lockWallet();
             }
             else
             {

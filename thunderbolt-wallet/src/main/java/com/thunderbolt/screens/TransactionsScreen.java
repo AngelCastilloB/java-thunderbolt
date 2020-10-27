@@ -121,6 +121,9 @@ public class TransactionsScreen extends ScreenBase
         boolean isOutgoing = false;
         String address = "";
 
+        BigInteger spend = BigInteger.ZERO;
+        BigInteger income = BigInteger.ZERO;
+
         for (TransactionInput input: transaction.getInputs())
         {
             if (input.isCoinBase())
@@ -129,53 +132,34 @@ public class TransactionsScreen extends ScreenBase
             Transaction xt = NodeService.getInstance().getTransaction(input.getReferenceHash());
             TransactionOutput output = xt.getOutputs().get(input.getIndex());
 
-            if (Arrays.equals(output.getLockingParameters(), NodeService.getInstance().getAddress().getPublicHash()))
-            {
-                isOutgoing = true;
-                break;
-            }
+            spend = spend.add(output.getAmount());
         }
 
-        if (isOutgoing)
+        for (TransactionOutput input: transaction.getOutputs())
         {
-            for (TransactionOutput input: transaction.getOutputs())
-            {
-                // Since this transaction is outgoing this is change.
-                if (Arrays.equals(input.getLockingParameters(), NodeService.getInstance().getAddress().getPublicHash()))
-                    continue;
+            // To/from
+            Address recipient = new Address(NodeService.getInstance().getAddress().getPrefix(),
+                    input.getLockingParameters());
 
-                // To
-                address = new Address(NodeService.getInstance().getAddress().getPrefix(),
-                        input.getLockingParameters()).toString();
+            if (!recipient.toString().equals(NodeService.getInstance().getAddress().toString()))
+                address = recipient.toString();
 
-                total = total.add(input.getAmount());
-            }
-        }
-        else
-        {
-            for (TransactionOutput output: transaction.getOutputs())
-            {
-                // Since this transaction is incoming this is the output we want.
-                if (Arrays.equals(output.getLockingParameters(), NodeService.getInstance().getAddress().getPublicHash()))
-                {
-                    // from
-                    address = new Address(NodeService.getInstance().getAddress().getPrefix(),
-                            output.getLockingParameters()).toString();
-
-                    total = total.add(output.getAmount());
-                }
-            }
+            income = income.add(input.getAmount());
         }
 
         if (transaction.isCoinbase())
             address = "coinbase";
 
+        if (spend.compareTo(income) > 0)
+            isOutgoing = true;
+
+        total = spend.subtract(income);
 
         String[] entry = new String[5];
         entry[0] = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm"));
         entry[1] = isPending ? "Pending" : "Confirmed";
         entry[2] = isOutgoing ? "To" : "From";
-        entry[3] = address;
+        entry[3] = isOutgoing ? address : NodeService.getInstance().getAddress().toString();
         entry[4] = Double.toString(total.longValue() * FRACTIONAL_COIN_FACTOR);
 
         return entry;
