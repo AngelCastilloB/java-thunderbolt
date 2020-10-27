@@ -337,6 +337,25 @@ public class RpcClient
     }
 
     /**
+     * Transfer funds from the current node wallet to the specified address.
+     *
+     * @param address The address to send the funds to.
+     * @param amount The amount to be transferred.
+     * @param fee The miner fee.
+     */
+    public boolean sendToAddress(String address, double amount, double fee)
+    {
+        return m_client.createRequest()
+                .method("sendToAddress")
+                .id(m_currentNonce++)
+                .param("address", address)
+                .param("amount", amount)
+                .param("fee", fee)
+                .returnAs(Boolean.class)
+                .execute();
+    }
+
+    /**
      * Gets all the transactions related to the current wallet.
      *
      * @return The list of transactions for the given wallet.

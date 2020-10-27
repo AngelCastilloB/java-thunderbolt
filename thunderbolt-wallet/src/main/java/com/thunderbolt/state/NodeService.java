@@ -386,6 +386,20 @@ public class NodeService
     }
 
     /**
+     * Transfer funds to wallet.
+     *
+     * @param address The address to transfer the funds to.
+     * @param amount The amount to be transferred.
+     * @param fee The miners fee.
+     *
+     * @return true if the funds were transferred.
+     */
+    public boolean sendToAddress(String address, double amount, double fee)
+    {
+        return m_client.sendToAddress(address, amount, fee);
+    }
+
+    /**
      * Backups the wallet.
      *
      * @param backupPath The destination path of the backup.

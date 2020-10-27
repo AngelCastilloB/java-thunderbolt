@@ -26,6 +26,7 @@ package com.thunderbolt.components;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.screens.ScreenManager;
 import com.thunderbolt.theme.Theme;
 
@@ -33,6 +34,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.text.ParseException;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -44,61 +46,73 @@ public class InputComponent extends JComponent
     private static final int MARGIN = 5;
     private static final int UNDERLINE_SIZE = 1;
 
-    private final JTextField    m_textField;
+    private final JComponent    m_field;
     private final IInputHandler m_handler;
     private String              m_title = "";
 
     /**
      * Initializes a new instance of the InputComponent class.
      *
-     * @param isPassword Gets whether this input is a password input field ir not.
+     * @param type The input type.
      * @param handler The handler for when the input is ready.
      */
-    public InputComponent(boolean isPassword, IInputHandler handler)
+    public InputComponent(InputType type, IInputHandler handler)
     {
         setLayout(null);
 
         m_handler = handler;
 
-        if (isPassword)
+        switch (type)
         {
-            m_textField = new JPasswordField();
-        }
-        else
-        {
-            m_textField = new JTextField();
-        }
+            case Password:
+                m_field = new JPasswordField();
+                break;
+            case Numbers:
+                double min = 0.00000000 ;
+                double max = 21000000.0;
+                double step = 0.00000001;
+                double i = 0.0000000;
+                SpinnerModel value = new SpinnerNumberModel(i, min, max, step);
 
-        m_textField.addKeyListener(new KeyAdapter()
+                JSpinner spinner = new JSpinner(value);
+                JSpinner.NumberEditor editor = new JSpinner.NumberEditor(spinner, "#.########");
+                spinner.setEditor(editor);
+                m_field = spinner;
+             break;
+            default:
+            case PlainText:
+                m_field = new JTextField();
+        }
+        m_field.addKeyListener(new KeyAdapter()
         {
             public void keyPressed(KeyEvent evt)
             {
                 if (evt.getKeyCode() == KeyEvent.VK_ENTER)
                 {
                     if (m_handler != null && !ScreenManager.getInstance().isNotificationShown())
-                        m_handler.onInput(m_textField.getText());
+                        m_handler.onInput(getValue());
                 }
             }
         });
 
         setBackground(Theme.INPUT_FIELD_BACKGROUND_COLOR);
-        m_textField.setFont(Theme.ENCRYPT_INPUT_FIELD_FONT);
-        m_textField.setBackground(Theme.INPUT_FIELD_BACKGROUND_COLOR);
-        m_textField.requestFocusInWindow();
-        m_textField.grabFocus();
-        m_textField.setBorder(BorderFactory.createEmptyBorder());
+        m_field.setFont(Theme.INPUT_FIELD_CONTENT_FONT);
+        m_field.setBackground(Theme.INPUT_FIELD_BACKGROUND_COLOR);
+        m_field.requestFocusInWindow();
+        m_field.grabFocus();
+        m_field.setBorder(BorderFactory.createEmptyBorder());
 
-        add(m_textField);
+        add(m_field);
     }
 
     /**
      * Initializes a new instance of the InputComponent class.
      *
-     * @param isPassword Gets whether this input is a password input field ir not.
+     * @param type The input type.
      */
-    public InputComponent(boolean isPassword)
+    public InputComponent(InputType type)
     {
-        this(isPassword, null);
+        this(type, null);
     }
 
     /**
@@ -112,13 +126,26 @@ public class InputComponent extends JComponent
     }
 
     /**
+     * Sets the text of the input field.
+     *
+     * @param value The text.
+     */
+    public void setText(String value)
+    {
+        if (m_field instanceof JTextField)
+            ((JTextField) m_field).setText(value);
+
+        ((JSpinner)m_field).setValue(Double.valueOf(value));
+    }
+
+    /**
      * Gets the text from this input field.
      *
      * @return The text.
      */
     public String getText()
     {
-        return m_textField.getText();
+        return getValue();
     }
 
     /**
@@ -128,7 +155,7 @@ public class InputComponent extends JComponent
     public void grabFocus()
     {
         super.grabFocus();
-        m_textField.grabFocus();
+        m_field.grabFocus();
     }
 
     /**
@@ -138,7 +165,7 @@ public class InputComponent extends JComponent
     public void requestFocus()
     {
         super.requestFocus();
-        m_textField.requestFocusInWindow();
+        m_field.requestFocusInWindow();
     }
 
     /**
@@ -151,7 +178,7 @@ public class InputComponent extends JComponent
     public void setSize(int width, int height)
     {
         super.setSize(width, height);
-        m_textField.setSize(width, height - (MARGIN * 2) - 10);
+        m_field.setSize(width, height - (MARGIN * 2) - 10);
     }
 
     /**
@@ -164,7 +191,7 @@ public class InputComponent extends JComponent
     public void setLocation(int x, int y)
     {
         super.setLocation(x, y);
-        m_textField.setLocation(0, MARGIN + 10);
+        m_field.setLocation(0, MARGIN + 10);
     }
 
     /**
@@ -175,7 +202,7 @@ public class InputComponent extends JComponent
     @Override
     public void setFont(Font font)
     {
-        m_textField.setFont(font);
+        m_field.setFont(font);
     }
 
     /**
@@ -208,4 +235,27 @@ public class InputComponent extends JComponent
         graphics.setColor(Theme.INPUT_FIELD_UNDERLINE_COLOR);
         graphics.drawLine(0, getHeight() - UNDERLINE_SIZE, getWidth(), getHeight() - UNDERLINE_SIZE);
     }
+
+    /**
+     * Gets the value of the underlying component.
+     *
+     * @return The value.
+     */
+    private String getValue()
+    {
+        if (m_field instanceof JTextField)
+            return ((JTextField) m_field).getText();
+
+        try
+        {
+            ((JSpinner)m_field).commitEdit();
+        }
+        catch (ParseException e)
+        {
+            return Convert.stripTrailingZeros((double)((JSpinner)m_field).getValue());
+        }
+
+        return Convert.stripTrailingZeros((double)((JSpinner)m_field).getValue());
+    }
 }
+

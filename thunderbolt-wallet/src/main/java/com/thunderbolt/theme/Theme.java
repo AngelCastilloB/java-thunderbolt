@@ -98,4 +98,9 @@ public class Theme
     public static final Color INPUT_FIELD_UNDERLINE_COLOR = new Color(0x30, 0x3F, 0x9F);
     public static final Color INPUT_FIELD_BACKGROUND_COLOR = FOREGROUND_COLOR;
     public static final Font  INPUT_FIELD_FONT              = ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 12f);
+    public static final Font  INPUT_FIELD_CONTENT_FONT      = ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 32f);
+
+    public static final Font    SEND_SCREEN_FONT       = ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 18f);
+    public static final Color   SEND_SCREEN_TEXT_COLOR = new Color(26, 37, 57);
+    public static final Font    SEND_SCREEN_FIELD_FONT      = ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 22f);
 }

@@ -30,6 +30,7 @@ import com.thunderbolt.blockchain.contracts.IBlockchainUpdateListener;
 import com.thunderbolt.blockchain.contracts.IOutputsUpdateListener;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.common.contracts.ISerializable;
+import com.thunderbolt.configuration.Configuration;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
@@ -46,7 +47,6 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
-import java.security.PublicKey;
 import java.util.*;
 
 import com.thunderbolt.transaction.OutputLockType;
@@ -66,9 +66,10 @@ import org.slf4j.LoggerFactory;
  */
 public class Wallet implements ISerializable, IOutputsUpdateListener, ITransactionsChangeListener, IBlockchainUpdateListener
 {
-    private static final int PUBLIC_KEY_SIZE            = 33;
-    private static final int PRIVATE_KEY_SIZE           = 32;
-    private static final int ENCRYPTED_PRIVATE_KEY_SIZE = 80;
+    private static final int    PUBLIC_KEY_SIZE            = 33;
+    private static final int    PRIVATE_KEY_SIZE           = 32;
+    private static final int    ENCRYPTED_PRIVATE_KEY_SIZE = 80;
+    private static final double FRACTIONAL_COIN_FACTOR     = 0.00000001;
 
     private static final Logger s_logger = LoggerFactory.getLogger(Wallet.class);
 
@@ -385,6 +386,28 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
      *
      * @param amount  The amount to be transferred.
      * @param address The address in string format where to transfer the funds to.
+     * @param fee     The fee to be paid to the miners.
+     *
+     * @return The transaction.
+     */
+    public Transaction createTransaction(long amount, String address, double fee) throws IOException
+    {
+        if (!m_isUnlocked)
+        {
+            s_logger.error("Wallet is locked. You must unlock it first.");
+            return null;
+        }
+
+        return createTransaction(
+                BigInteger.valueOf(amount), new Address(address),
+                BigInteger.valueOf((long) (fee * FRACTIONAL_COIN_FACTOR)));
+    }
+
+    /**
+     * Creates a transaction with the given amount (if the funds are enough) to the given wallet.
+     *
+     * @param amount  The amount to be transferred.
+     * @param address The address in string format where to transfer the funds to.
      *
      * @return The transaction.
      */
@@ -396,7 +419,8 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
             return null;
         }
 
-        return createTransaction(BigInteger.valueOf(amount), new Address(address));
+        long fee = (long)(Configuration.getPayTransactionFee() * FRACTIONAL_COIN_FACTOR);
+        return createTransaction(BigInteger.valueOf(amount), new Address(address), BigInteger.valueOf(fee));
     }
 
     /**
@@ -407,7 +431,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
      *
      * @return The transaction.
      */
-    public Transaction createTransaction(BigInteger amount, Address address) throws IOException
+    public Transaction createTransaction(BigInteger amount, Address address, BigInteger fee) throws IOException
     {
         if (!m_isUnlocked)
         {
@@ -418,9 +442,12 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
         Transaction transaction = new Transaction();
 
         BigInteger currentBalance = getBalance();
-        if (currentBalance.compareTo(amount) < 0)
+        BigInteger withFee        = amount.add(fee);
+        if (currentBalance.compareTo(withFee) < 0)
         {
-            throw new IllegalArgumentException(String.format("The wallet does not have enough funds. Available funds '%s', given amount '%s'", currentBalance, amount));
+            throw new IllegalArgumentException(
+                    String.format("The wallet does not have enough funds. Available funds '%s', given amount '%s' and given fee %s",
+                            currentBalance, amount, withFee));
         }
 
         BigInteger total = BigInteger.ZERO;

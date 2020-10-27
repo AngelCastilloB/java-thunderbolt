@@ -28,6 +28,7 @@ package com.thunderbolt.screens;
 
 import com.thunderbolt.components.ButtonComponent;
 import com.thunderbolt.components.InputComponent;
+import com.thunderbolt.components.InputType;
 import com.thunderbolt.state.NodeService;
 import com.thunderbolt.theme.Theme;
 import com.thunderbolt.worksapce.NotificationButtons;
@@ -58,7 +59,7 @@ public class AuthenticationScreen extends ScreenBase
 
         m_handler = handler;
 
-        m_passphrase = new InputComponent(true, input -> {
+        m_passphrase = new InputComponent(InputType.Password, input -> {
             boolean unlocked = NodeService.getInstance().unlockWallet(m_passphrase.getText());
 
             if (unlocked)

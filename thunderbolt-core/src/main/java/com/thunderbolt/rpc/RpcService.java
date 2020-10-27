@@ -324,9 +324,12 @@ public class RpcService
      *
      * @param address The address to send the funds to.
      * @param amount The amount to be transferred.
+     * @param fee The fee to be paid to the miners.
      */
     @JsonRpcMethod("sendToAddress")
-    public boolean sendToAddress(@JsonRpcParam("address") String address, @JsonRpcParam("amount") double amount)
+    public boolean sendToAddress(@JsonRpcParam("address") String address,
+                                 @JsonRpcParam("amount") double amount,
+                                 @JsonRpcOptional @JsonRpcParam("fee") @Nullable Double fee)
             throws WalletLockedException, IOException, WalletFundsInsufficientException
     {
         if (!m_wallet.isUnlocked())
@@ -336,7 +339,14 @@ public class RpcService
 
         try
         {
-            transaction = m_wallet.createTransaction((long)(amount / FRACTIONAL_COIN_FACTOR), address);
+            if (fee == null)
+            {
+                transaction = m_wallet.createTransaction((long)(amount / FRACTIONAL_COIN_FACTOR), address);
+            }
+            else
+            {
+                transaction = m_wallet.createTransaction((long)(amount / FRACTIONAL_COIN_FACTOR), address, fee);
+            }
         }
         catch(IllegalArgumentException exception)
         {
