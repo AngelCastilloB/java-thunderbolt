@@ -66,7 +66,7 @@ public class NodeService
     private String                                m_lastMempoolUpdate = "";
     private List<Transaction>                     m_transactions      = new ArrayList<>();
     private List<Transaction>                     m_pending           = new ArrayList<>();
-    private Map<Sha256Hash, Transaction>          m_transactionCache  = new HashMap<>();
+    private final Map<Sha256Hash, Transaction>    m_transactionCache  = new HashMap<>();
 
     /**
      * Prevents a default instance of the StateService class from being created.
@@ -141,6 +141,7 @@ public class NodeService
 
                     if (updateState)
                     {
+                        ResourceManager.playAudio(Theme.TRANSACTION_STATE_CHANGE_SOUND);
                         for (IDataChangeListener listener: m_dataListeners)
                             listener.onNodeDataChange();
                     }
@@ -274,7 +275,7 @@ public class NodeService
         if (getNodeState() != NodeState.Ready)
             return "Out of Sync";
 
-        return Double.toString(m_availableBalance + m_pendingBalance) + " THB";
+        return (m_availableBalance + m_pendingBalance) + " THB";
     }
 
     /**
@@ -455,11 +456,6 @@ public class NodeService
             return;
 
         m_currentState = state;
-
-        if (m_currentState ==  NodeState.Ready)
-        {
-            ResourceManager.playAudio(Theme.STATUS_READY_SOUND);
-        }
 
         for (INodeStatusChangeListener listener: m_listeners)
             listener.onNodeStatusChange(m_currentState);

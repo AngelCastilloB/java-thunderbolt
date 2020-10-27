@@ -74,17 +74,11 @@ public class EncryptWalletScreen extends ScreenBase
 
         buttonComponent.addButtonClickListener(() ->
         {
-            m_confirmPassphrase.setVisible(false);
-            m_passphrase.setVisible(false);
-
             if (m_passphrase.getText().isEmpty() || m_confirmPassphrase.getText().isEmpty())
             {
                 ScreenManager.getInstance().showNotification("Warning",
                         "The wallet password should not be empty.",
                         NotificationButtons.GotIt, result -> {
-
-                            m_confirmPassphrase.setVisible(true);
-                            m_passphrase.setVisible(true);
                         });
 
                 return;
@@ -100,9 +94,6 @@ public class EncryptWalletScreen extends ScreenBase
                     ScreenManager.getInstance().showNotification("Information",
                             "Your wallet is now encrypted.",
                             NotificationButtons.GotIt, result -> {
-                                m_confirmPassphrase.setVisible(true);
-                                m_passphrase.setVisible(true);
-
                                 m_handler.onSuccess();
                             });
                 }
@@ -111,8 +102,6 @@ public class EncryptWalletScreen extends ScreenBase
                     ScreenManager.getInstance().showNotification("Error",
                             "There was an error encrypting the wallet. Refer to the node logs.",
                             NotificationButtons.GotIt, result -> {
-                                m_confirmPassphrase.setVisible(true);
-                                m_passphrase.setVisible(true);
                             });
                 }
             }
@@ -121,8 +110,6 @@ public class EncryptWalletScreen extends ScreenBase
                 ScreenManager.getInstance().showNotification("Warning",
                         "Passwords do not match.",
                         NotificationButtons.GotIt, result -> {
-                            m_confirmPassphrase.setVisible(true);
-                            m_passphrase.setVisible(true);
                         });
             }
         });

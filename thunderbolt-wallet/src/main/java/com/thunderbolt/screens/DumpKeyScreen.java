@@ -92,7 +92,7 @@ public class DumpKeyScreen extends ScreenBase
         publicKeyTextField.setBackground(Theme.FOREGROUND_COLOR);
 
         JTextField privateKeyTextField = new JTextField();
-        privateKeyTextField.setSize(getWidth() - 124, 50);
+        privateKeyTextField.setSize(getWidth() - 100, 50);
         privateKeyTextField.setText(privateKey);
         privateKeyTextField.setFont(Theme.TITLE_FONT);
         privateKeyTextField.setLocation(getWidth() - privateKeyTextField.getWidth() - 5, getHeight() - privateKeyTextField.getHeight() - 2);

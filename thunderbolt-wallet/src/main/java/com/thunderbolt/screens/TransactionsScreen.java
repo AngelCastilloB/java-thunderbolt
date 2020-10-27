@@ -70,22 +70,32 @@ public class TransactionsScreen extends ScreenBase
     private void update()
     {
         List<Transaction> transactions = NodeService.getInstance().getTransactions();
+        List<Transaction> pending      = NodeService.getInstance().getPendingTransactions();
 
-        String[][] data = new String[transactions.size()][4];
+        String[][] data = new String[transactions.size() + pending.size()][5];
 
         int index = 0;
-        for (Transaction transaction: transactions)
+
+        for (Transaction transaction: pending)
         {
-            data[index] = getEntry(transaction);
+            data[index] = getEntry(transaction, true);
             ++index;
         }
-        String[] column = {"Date", "Type","Address", "Amount"};
+
+        for (Transaction transaction: transactions)
+        {
+            data[index] = getEntry(transaction, false);
+            ++index;
+        }
+
+        String[] column = {"Date", "Status", "Type","Address", "Amount"};
 
         m_table = new JTable(data,column);
         m_table.getColumnModel().getColumn(0).setPreferredWidth(50);
         m_table.getColumnModel().getColumn(1).setPreferredWidth(10);
-        m_table.getColumnModel().getColumn(2).setPreferredWidth(300);
-        m_table.getColumnModel().getColumn(3).setPreferredWidth(50);
+        m_table.getColumnModel().getColumn(2).setPreferredWidth(10);
+        m_table.getColumnModel().getColumn(3).setPreferredWidth(300);
+        m_table.getColumnModel().getColumn(4).setPreferredWidth(50);
 
         m_table.setBounds(10, 10, getWidth() - 20, getHeight() - 20);
         m_scroll = new JScrollPane(m_table);
@@ -104,7 +114,7 @@ public class TransactionsScreen extends ScreenBase
      *
      * @return The net amount.
      */
-    private String[] getEntry(Transaction transaction)
+    private String[] getEntry(Transaction transaction, boolean isPending)
     {
         BigInteger total = BigInteger.ZERO;
 
@@ -161,11 +171,12 @@ public class TransactionsScreen extends ScreenBase
             address = "coinbase";
 
 
-        String[] entry = new String[4];
+        String[] entry = new String[5];
         entry[0] = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm"));
-        entry[1] = isOutgoing ? "To" : "From";
-        entry[2] = address;
-        entry[3] = Double.toString(total.longValue() * FRACTIONAL_COIN_FACTOR);
+        entry[1] = isPending ? "Pending" : "Confirmed";
+        entry[2] = isOutgoing ? "To" : "From";
+        entry[3] = address;
+        entry[4] = Double.toString(total.longValue() * FRACTIONAL_COIN_FACTOR);
 
         return entry;
     }

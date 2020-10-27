@@ -27,13 +27,8 @@ package com.thunderbolt.screens;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.components.TransactionComponent;
-import com.thunderbolt.state.IDataChangeListener;
 import com.thunderbolt.state.NodeService;
-import com.thunderbolt.theme.Theme;
 import com.thunderbolt.transaction.Transaction;
-
-import javax.swing.*;
-import java.awt.*;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -56,12 +51,29 @@ public class OverviewScreen extends ScreenBase
     private void update()
     {
         int index = 0;
+
+        for (Transaction xt : NodeService.getInstance().getPendingTransactions())
+        {
+            if (index >= 7)
+                break;
+
+            TransactionComponent component = new TransactionComponent(xt, true);
+
+            component.setSize(getWidth(), 40);
+            component.setLocation(10, 40 + (70 * index));
+
+            add(component);
+            invalidate();
+            repaint();
+            ++index;
+        }
+
         for (Transaction xt : NodeService.getInstance().getTransactions())
         {
             if (index >= 7)
                 break;
 
-            TransactionComponent component = new TransactionComponent(xt);
+            TransactionComponent component = new TransactionComponent(xt, false);
 
             component.setSize(getWidth(), 40);
             component.setLocation(10, 40 + (70 * index));

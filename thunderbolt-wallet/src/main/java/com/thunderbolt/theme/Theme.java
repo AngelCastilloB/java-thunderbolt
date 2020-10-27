@@ -87,9 +87,12 @@ public class Theme
 
     public static final Color RECEIVE_SCREEN_BUTTON_COLOR = Color.BLACK;
 
-    public static final Color TRANSACTION_COMPONENT_OUTGOING_COLOR = new Color(210, 27, 3);
-    public static final Color TRANSACTION_COMPONENT_INCOMING_COLOR  = new Color(2, 33, 94);
-    public static final Color TRANSACTION_COMPONENT_SUBTEXT_COLOR  = new Color(0x75, 0x75, 0x75);
-    public static final Font  TRANSACTION_COMPONENT_TITLE_FONT     =  ResourceManager.loadFont("fonts/Roboto-Bold.ttf", 14f);
-    public static final Font  TRANSACTION_COMPONENT_SUBTEXT_FONT  =  ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 12f);
+    public static final Color  TRANSACTION_COMPONENT_OUTGOING_COLOR = new Color(210, 27, 3);
+    public static final Color  TRANSACTION_COMPONENT_PENDING_COLOR  = new Color(0x75, 0x75, 0x75);
+    public static final Color  TRANSACTION_COMPONENT_INCOMING_COLOR = new Color(2, 33, 94);
+    public static final Color  TRANSACTION_COMPONENT_SUBTEXT_COLOR  = new Color(0x75, 0x75, 0x75);
+    public static final Font   TRANSACTION_COMPONENT_TITLE_FONT     = ResourceManager.loadFont("fonts/Roboto-Bold.ttf", 14f);
+    public static final Font   TRANSACTION_COMPONENT_SUBTEXT_FONT   = ResourceManager.loadFont("fonts/Roboto-Regular.ttf", 12f);
+    public static final String TRANSACTION_STATE_CHANGE_SOUND       = "audio/transaction_state_change.wav";
+
 }

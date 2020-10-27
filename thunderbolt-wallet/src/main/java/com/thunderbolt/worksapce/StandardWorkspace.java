@@ -35,7 +35,6 @@ import com.thunderbolt.state.NodeService;
 import com.thunderbolt.theme.Theme;
 
 import javax.swing.*;
-import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
 
@@ -46,7 +45,7 @@ import static javax.swing.WindowConstants.EXIT_ON_CLOSE;
 /**
  * Application workspace.
  */
-public class StandardWorkspace extends JPanel implements IWorkspace, ActionListener
+public class StandardWorkspace extends JLayeredPane implements IWorkspace, ActionListener
 {
     private static final int    SCREEN_MARGIN       = 10;
     private static final int    TITLE_PANEL_SIZE    = 50;
@@ -223,7 +222,7 @@ public class StandardWorkspace extends JPanel implements IWorkspace, ActionListe
         m_notification = new NotificationComponent(notification, getWidth(), getHeight());
         m_notification.setLocation(0, 0);
 
-        add(m_notification, 0);
+        add(m_notification, 1,0);
         revalidate();
         repaint();
     }

@@ -62,23 +62,28 @@ public class TransactionComponent extends JComponent
     private double        m_amount        = 0.0;
     private BufferedImage m_incoming      = null;
     private BufferedImage m_outgoing      = null;
+    private BufferedImage m_pending       = null;
     private boolean       m_isOutgoing    = false;
     private String        m_date          = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd  -  hh:mm a"));
+    private boolean       m_isPending     = false;
 
     /**
      * Initializes a new instance of a TransactionComponent component.
      *
      * @param transaction The transaction.
      */
-    public TransactionComponent(Transaction transaction)
+    public TransactionComponent(Transaction transaction, boolean isPending)
     {
         setLayout(null);
 
+        m_isPending = isPending;
         m_incoming = deepCopy(ResourceManager.loadImage("images/incoming.png"));
         m_outgoing = deepCopy(ResourceManager.loadImage("images/outgoing.png"));
+        m_pending = deepCopy(ResourceManager.loadImage("images/pending.png"));
 
         tint(m_incoming, Theme.TRANSACTION_COMPONENT_INCOMING_COLOR);
         tint(m_outgoing, Theme.TRANSACTION_COMPONENT_OUTGOING_COLOR);
+        tint(m_pending, Theme.TRANSACTION_COMPONENT_PENDING_COLOR);
 
         m_transaction = transaction;
         m_amount = getAmount();
@@ -165,17 +170,35 @@ public class TransactionComponent extends JComponent
 
         graphics.setFont(Theme.TRANSACTION_COMPONENT_TITLE_FONT);
 
-        if (m_isOutgoing)
+        if (m_isPending)
         {
-            graphics.setColor(Theme.TRANSACTION_COMPONENT_OUTGOING_COLOR);
-            graphics.drawImage(m_outgoing,20, 0,null);
-            graphics.drawString("THB Sent", m_outgoing.getWidth() + 30, 15);
+            if (m_isOutgoing)
+            {
+                graphics.setColor(Theme.TRANSACTION_COMPONENT_PENDING_COLOR);
+                graphics.drawImage(m_pending,20, 0,null);
+                graphics.drawString("THB Sending", m_outgoing.getWidth() + 30, 15);
+            }
+            else
+            {
+                graphics.setColor(Theme.TRANSACTION_COMPONENT_PENDING_COLOR);
+                graphics.drawImage(m_pending,20, 0,null);
+                graphics.drawString("THB Receiving", m_outgoing.getWidth() + 30, 15);
+            }
         }
         else
         {
-            graphics.setColor(Theme.TRANSACTION_COMPONENT_INCOMING_COLOR);
-            graphics.drawImage(m_incoming,20, 0,null);
-            graphics.drawString("THB Received", m_outgoing.getWidth() + 30, 15);
+            if (m_isOutgoing)
+            {
+                graphics.setColor(Theme.TRANSACTION_COMPONENT_OUTGOING_COLOR);
+                graphics.drawImage(m_outgoing,20, 0,null);
+                graphics.drawString("THB Sent", m_outgoing.getWidth() + 30, 15);
+            }
+            else
+            {
+                graphics.setColor(Theme.TRANSACTION_COMPONENT_INCOMING_COLOR);
+                graphics.drawImage(m_incoming,20, 0,null);
+                graphics.drawString("THB Received", m_outgoing.getWidth() + 30, 15);
+            }
         }
 
         String amount = (m_isOutgoing ? "-" : "+") + m_amount + " THB";
