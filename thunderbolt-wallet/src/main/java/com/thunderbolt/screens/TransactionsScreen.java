@@ -26,9 +26,8 @@ package com.thunderbolt.screens;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.components.TransactionComponent;
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.state.NodeService;
-import com.thunderbolt.theme.Theme;
 import com.thunderbolt.transaction.Transaction;
 import com.thunderbolt.transaction.TransactionInput;
 import com.thunderbolt.transaction.TransactionOutput;
@@ -39,20 +38,24 @@ import java.awt.*;
 import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 /* IMPLEMENTATION ************************************************************/
 
+/**
+ * Screen that displays all the transactions on a data table.
+ */
 public class TransactionsScreen extends ScreenBase
 {
     // Constants
     private static final double FRACTIONAL_COIN_FACTOR = 0.00000001;
 
-    private JTable      m_table  = null;
     private JScrollPane m_scroll = null;
 
+    /**
+     * Initializes a new instance of the TransactionsScreen class.
+     */
     public TransactionsScreen()
     {
         setLayout(null);
@@ -67,6 +70,9 @@ public class TransactionsScreen extends ScreenBase
         });
     }
 
+    /**
+     * Updates the data table contents.
+     */
     private void update()
     {
         List<Transaction> transactions = NodeService.getInstance().getTransactions();
@@ -90,15 +96,15 @@ public class TransactionsScreen extends ScreenBase
 
         String[] column = {"Date", "Status", "Type","Address", "Amount"};
 
-        m_table = new JTable(data,column);
-        m_table.getColumnModel().getColumn(0).setPreferredWidth(50);
-        m_table.getColumnModel().getColumn(1).setPreferredWidth(10);
-        m_table.getColumnModel().getColumn(2).setPreferredWidth(10);
-        m_table.getColumnModel().getColumn(3).setPreferredWidth(300);
-        m_table.getColumnModel().getColumn(4).setPreferredWidth(50);
+        JTable table = new JTable(data, column);
+        table.getColumnModel().getColumn(0).setPreferredWidth(50);
+        table.getColumnModel().getColumn(1).setPreferredWidth(10);
+        table.getColumnModel().getColumn(2).setPreferredWidth(10);
+        table.getColumnModel().getColumn(3).setPreferredWidth(300);
+        table.getColumnModel().getColumn(4).setPreferredWidth(50);
 
-        m_table.setBounds(10, 10, getWidth() - 20, getHeight() - 20);
-        m_scroll = new JScrollPane(m_table);
+        table.setBounds(10, 10, getWidth() - 20, getHeight() - 20);
+        m_scroll = new JScrollPane(table);
 
         m_scroll.setLocation(10, 10);
         m_scroll.setSize(getWidth() - 20, getHeight() - 20);
@@ -116,13 +122,20 @@ public class TransactionsScreen extends ScreenBase
      */
     private String[] getEntry(Transaction transaction, boolean isPending)
     {
+        // We need to first determine if this transaction is incoming or outgoing. If we detect an input that belongs
+        // us, we mark the transaction as outgoing, if none of the inputs are ours, the transactions is incoming.
+        // To get the net value of the transaction we subtract out inputs with our outputs. Lastly, to determine
+        // the sender or receiver of the transaction:
+        // 1.- If the transaction is incoming, we pick the address of the sender from the spending outputs.
+        // 2.- If the transaction is outgoing, we pick the address of the receiver from the outputs that are not ours.
+        // 3.- If is outgoing and there are not other outputs than ourselves, it was a transaction to self.
+        // 4.- If the transaction is coinbase, sender is coinbase.
+
         BigInteger total = BigInteger.ZERO;
 
         boolean isOutgoing = false;
         String address = "";
-
-        BigInteger spend = BigInteger.ZERO;
-        BigInteger income = BigInteger.ZERO;
+        String sender  = "";
 
         for (TransactionInput input: transaction.getInputs())
         {
@@ -132,48 +145,54 @@ public class TransactionsScreen extends ScreenBase
             Transaction xt = NodeService.getInstance().getTransaction(input.getReferenceHash());
             TransactionOutput output = xt.getOutputs().get(input.getIndex());
 
-            spend = spend.add(output.getAmount());
+            if (Arrays.equals(output.getLockingParameters(), NodeService.getInstance().getAddress().getPublicHash()))
+            {
+                total = total.subtract(output.getAmount());
+                isOutgoing = true;
+            }
+            else
+            {
+                sender = new Address(NodeService.getInstance().getAddress().getPrefix(),
+                        output.getLockingParameters()).toString();
+            }
         }
 
-        for (TransactionOutput input: transaction.getOutputs())
+        for (TransactionOutput output: transaction.getOutputs())
         {
-            // To/from
-            Address recipient = new Address(NodeService.getInstance().getAddress().getPrefix(),
-                    input.getLockingParameters());
-
-            if (!recipient.toString().equals(NodeService.getInstance().getAddress().toString()))
+            if (Arrays.equals(output.getLockingParameters(), NodeService.getInstance().getAddress().getPublicHash()))
+            {
+                total = total.add(output.getAmount());
+            }
+            else
+            {
+                Address recipient = new Address(NodeService.getInstance().getAddress().getPrefix(),
+                        output.getLockingParameters());
                 address = recipient.toString();
-
-            income = income.add(input.getAmount());
+            }
         }
 
         if (transaction.isCoinbase())
+        {
             address = "coinbase";
+        }
+        else if (isOutgoing && address.isEmpty())
+        {
+            // If the transaction is outgoing and we only found our own address in the outputs, it was a transaction to self.
+            address = NodeService.getInstance().getAddress().toString();
+        }
+        else if (!isOutgoing)
+        {
+            address = sender;
+        }
 
-        if (spend.compareTo(income) > 0)
-            isOutgoing = true;
-
-        total = spend.subtract(income);
 
         String[] entry = new String[5];
         entry[0] = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm"));
         entry[1] = isPending ? "Pending" : "Confirmed";
         entry[2] = isOutgoing ? "To" : "From";
-        entry[3] = isOutgoing ? address : NodeService.getInstance().getAddress().toString();
-        entry[4] = Double.toString(total.longValue() * FRACTIONAL_COIN_FACTOR);
+        entry[3] = address;
+        entry[4] = Convert.stripTrailingZeros(total.longValue() * FRACTIONAL_COIN_FACTOR);
 
         return entry;
-    }
-
-    /**
-     * Paints this component's children. If shouldUseBuffer is true, no component ancestor has a buffer and the component
-     * children can use a buffer if they have one. Otherwise, one ancestor has a buffer currently in use and children
-     * should not use a buffer to paint.
-     *
-     * @param graphics the Graphics context in which to paint
-     */
-    public void paintChildren(Graphics graphics)
-    {
-        super.paintChildren(graphics);
     }
 }

@@ -28,6 +28,7 @@ package com.thunderbolt.components;
 
 import com.google.zxing.WriterException;
 import com.thunderbolt.resources.ResourceManager;
+import com.thunderbolt.router.IRouter;
 import com.thunderbolt.screens.*;
 import com.thunderbolt.state.INodeStatusChangeListener;
 import com.thunderbolt.state.NodeState;
@@ -46,7 +47,7 @@ import java.util.Objects;
 /**
  * Panel component that can display an image as background.
  */
-public class MenuComponent extends JComponent implements INodeStatusChangeListener
+public class MenuComponent extends JComponent implements INodeStatusChangeListener, IRouter
 {
     private static final int LEFT_MARGIN                  = 37;
     private static final int BUTTON_WIDTH                 = 215;
@@ -339,5 +340,30 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
 
         if (state == NodeState.Syncing)
             ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
+    }
+
+    /**
+     * Navigates to the specific route.
+     */
+    @Override
+    public void navigate(String route)
+    {
+        if (route.equals("overview"))
+        {
+            if (NodeService.getInstance().getNodeState().equals(NodeState.Offline))
+            {
+                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
+                return;
+            }
+
+            if (NodeService.getInstance().getNodeState().equals(NodeState.Syncing))
+            {
+                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
+                return;
+            }
+
+            ScreenManager.getInstance().replaceTopScreen(new OverviewScreen());
+            activateButton(m_overviewButton);
+        }
     }
 }

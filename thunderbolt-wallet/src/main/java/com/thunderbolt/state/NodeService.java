@@ -41,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -249,7 +250,8 @@ public class NodeService
         if (getNodeState() != NodeState.Ready)
             return "Out of Sync";
 
-        return Double.toString(m_availableBalance);
+        DecimalFormat numberFormat = new DecimalFormat("##.########");
+        return numberFormat.format(m_availableBalance);
     }
 
     /**
@@ -262,7 +264,8 @@ public class NodeService
         if (getNodeState() != NodeState.Ready)
             return "Out of Sync";
 
-        return Double.toString(m_pendingBalance);
+        DecimalFormat numberFormat = new DecimalFormat("##.########");
+        return numberFormat.format(m_pendingBalance);
     }
 
     /**
@@ -275,7 +278,8 @@ public class NodeService
         if (getNodeState() != NodeState.Ready)
             return "Out of Sync";
 
-        return (m_availableBalance + m_pendingBalance) + " THB";
+        DecimalFormat numberFormat = new DecimalFormat("##.########");
+        return numberFormat.format(m_availableBalance + m_pendingBalance) + " THB";
     }
 
     /**

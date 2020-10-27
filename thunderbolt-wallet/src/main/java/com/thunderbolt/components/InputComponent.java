@@ -68,10 +68,10 @@ public class InputComponent extends JComponent
                 m_field = new JPasswordField();
                 break;
             case Numbers:
-                double min = 0.00000000 ;
-                double max = 21000000.0;
+                double min  = 0.00000000 ;
+                double max  = 21000000.0;
                 double step = 0.00000001;
-                double i = 0.0000000;
+                double i    = 0.0000000;
                 SpinnerModel value = new SpinnerNumberModel(i, min, max, step);
 
                 JSpinner spinner = new JSpinner(value);

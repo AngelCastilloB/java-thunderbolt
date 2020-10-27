@@ -400,7 +400,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
 
         return createTransaction(
                 BigInteger.valueOf(amount), new Address(address),
-                BigInteger.valueOf((long) (fee * FRACTIONAL_COIN_FACTOR)));
+                BigInteger.valueOf((long) (fee / FRACTIONAL_COIN_FACTOR)));
     }
 
     /**
@@ -473,6 +473,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
             throw new IllegalArgumentException(String.format("The wallet does not have enough funds. Available funds '%s', given amount '%s'", total, amount));
 
         BigInteger remainder = amount.subtract(total).abs(); // We give ourselves change.
+        remainder = remainder.subtract(fee); // Subtract the fee from the change.
 
         transaction = new Transaction();
 

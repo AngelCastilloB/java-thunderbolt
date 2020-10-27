@@ -29,6 +29,7 @@ package com.thunderbolt.worksapce;
 import com.thunderbolt.components.*;
 import com.thunderbolt.components.MenuComponent;
 import com.thunderbolt.resources.ResourceManager;
+import com.thunderbolt.router.RouterManager;
 import com.thunderbolt.screens.MessageScreen;
 import com.thunderbolt.screens.ScreenBase;
 import com.thunderbolt.state.NodeService;
@@ -68,6 +69,8 @@ public class StandardWorkspace extends JLayeredPane implements IWorkspace, Actio
      */
     public StandardWorkspace(int x, int y, int width, int height) throws IOException
     {
+        RouterManager.getInstance().setRouter(m_menu);
+
         m_frame.setBounds(x, y, width, height);
 
         m_frame.setDefaultCloseOperation(EXIT_ON_CLOSE);

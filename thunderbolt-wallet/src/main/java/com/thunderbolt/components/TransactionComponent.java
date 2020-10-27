@@ -99,56 +99,66 @@ public class TransactionComponent extends JComponent
      */
     private double getAmount()
     {
+        // We need to first determine if this transaction is incoming or outgoing. If we detect an input that belongs
+        // us, we mark the transaction as outgoing, if none of the inputs are ours, the transactions is incoming.
+        // To get the net value of the transaction we subtract out inputs with our outputs. Lastly, to determine
+        // the sender or receiver of the transaction:
+        // 1.- If the transaction is incoming, we pick the address of the sender from the spending outputs.
+        // 2.- If the transaction is outgoing, we pick the address of the receiver from the outputs that are not ours.
+        // 3.- If is outgoing and there are not other outputs than ourselves, it was a transaction to self.
+        // 4.- If the transaction is coinbase, sender is coinbase.
+
         BigInteger total = BigInteger.ZERO;
+
+        String sender  = "";
 
         for (TransactionInput input: m_transaction.getInputs())
         {
             if (input.isCoinBase())
                 continue;
 
-            Transaction transaction = NodeService.getInstance().getTransaction(input.getReferenceHash());
-            TransactionOutput output = transaction.getOutputs().get(input.getIndex());
+            Transaction xt = NodeService.getInstance().getTransaction(input.getReferenceHash());
+            TransactionOutput output = xt.getOutputs().get(input.getIndex());
 
             if (Arrays.equals(output.getLockingParameters(), NodeService.getInstance().getAddress().getPublicHash()))
             {
+                total = total.subtract(output.getAmount());
                 m_isOutgoing = true;
-                break;
+            }
+            else
+            {
+                sender = new Address(NodeService.getInstance().getAddress().getPrefix(),
+                        output.getLockingParameters()).toString();
             }
         }
 
-        if (m_isOutgoing)
+        for (TransactionOutput output: m_transaction.getOutputs())
         {
-            for (TransactionOutput input: m_transaction.getOutputs())
+            if (Arrays.equals(output.getLockingParameters(), NodeService.getInstance().getAddress().getPublicHash()))
             {
-                // Since this transaction is outgoing this is change.
-                if (Arrays.equals(input.getLockingParameters(), NodeService.getInstance().getAddress().getPublicHash()))
-                    continue;
-
-                // To
-                m_address = new Address(NodeService.getInstance().getAddress().getPrefix(),
-                        input.getLockingParameters()).toString();
-
-                total = total.add(input.getAmount());
+                total = total.add(output.getAmount());
             }
-        }
-        else
-        {
-            for (TransactionOutput output: m_transaction.getOutputs())
+            else
             {
-                // Since this transaction is incoming this is the output we want.
-                if (Arrays.equals(output.getLockingParameters(), NodeService.getInstance().getAddress().getPublicHash()))
-                {
-                    // from
-                    m_address = new Address(NodeService.getInstance().getAddress().getPrefix(),
-                            output.getLockingParameters()).toString();
-
-                    total = total.add(output.getAmount());
-                }
+                Address recipient = new Address(NodeService.getInstance().getAddress().getPrefix(),
+                        output.getLockingParameters());
+                m_address = recipient.toString();
             }
         }
 
         if (m_transaction.isCoinbase())
+        {
             m_address = "coinbase";
+        }
+        else if (m_isOutgoing && m_address.isEmpty())
+        {
+            // If the transaction is outgoing and we only found our own address in the outputs, it was a transaction to self.
+            m_address = NodeService.getInstance().getAddress().toString();
+        }
+        else if (!m_isOutgoing)
+        {
+            m_address = sender;
+        }
 
         return total.longValue() * FRACTIONAL_COIN_FACTOR;
     }
@@ -201,7 +211,7 @@ public class TransactionComponent extends JComponent
             }
         }
 
-        String amount = (m_isOutgoing ? "-" : "+") + m_amount + " THB";
+        String amount = Convert.stripTrailingZeros(m_amount) + " THB";
         int width = graphics2d.getFontMetrics().stringWidth(amount);
         graphics.drawString(amount, getWidth() - width - 50, 15);
 

@@ -31,6 +31,7 @@ import com.thunderbolt.components.ButtonComponent;
 import com.thunderbolt.components.InputComponent;
 import com.thunderbolt.components.InputType;
 import com.thunderbolt.configuration.Configuration;
+import com.thunderbolt.router.RouterManager;
 import com.thunderbolt.state.NodeService;
 import com.thunderbolt.theme.Theme;
 import com.thunderbolt.wallet.Address;
@@ -53,6 +54,9 @@ public class SendScreen extends ScreenBase
     private InputComponent m_amount       = new InputComponent(InputType.Numbers);
     private InputComponent m_fee          = new InputComponent(InputType.Numbers);
 
+    /**
+     * Initializes a new instance of the SendScreen class.
+     */
     public SendScreen()
     {
         setTitle("SEND");
@@ -60,7 +64,7 @@ public class SendScreen extends ScreenBase
 
 
         m_payToAddress.setTile("To (Address):");
-        m_payToAddress.setSize(600, 50);
+        m_payToAddress.setSize(610, 50);
         m_payToAddress.setFont(Theme.SEND_SCREEN_FIELD_FONT);
         m_payToAddress.setLocation(getWidth() / 2 - m_payToAddress.getWidth() / 2, 120);
 
@@ -115,7 +119,7 @@ public class SendScreen extends ScreenBase
             }
 
             ScreenManager.getInstance().showNotification("Info",
-                    String.format("Are you sure you want to send %s THB to:\n%s\n(With %s fee THB)?",
+                    String.format("Are you sure you want to send %s THB to:%n%s%n(With %s fee THB)?",
                             m_amount.getText(),
                             m_payToAddress.getText().substring(0, 40) + "...",
                             m_fee.getText()),
@@ -127,6 +131,9 @@ public class SendScreen extends ScreenBase
                                    m_payToAddress.getText(),
                                    Double.parseDouble(m_amount.getText()),
                                    Double.parseDouble(m_fee.getText()));
+
+                           RouterManager.getInstance().navigate("overview");
+                           NodeService.getInstance().lockWallet();
                         }
                     });
         });
@@ -135,6 +142,16 @@ public class SendScreen extends ScreenBase
         add(m_amount);
         add(m_fee);
         add(buttonComponent);
+    }
+
+    /**
+     * This method will be called by the screen manager just before removing the screen from the workspace.
+     */
+    @Override
+    public void onClose()
+    {
+        super.onClose();
+        NodeService.getInstance().lockWallet();
     }
 
     /**
