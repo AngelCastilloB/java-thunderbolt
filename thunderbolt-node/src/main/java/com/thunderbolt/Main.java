@@ -117,7 +117,7 @@ public class Main
         blockchain.addOutputsUpdateListener(wallet);
 
         s_logger.info("Wallet file {}. Encrypted: {}, Unlocked: {}", walletPath, wallet.isEncrypted(), wallet.isUnlocked());
-
+        s_logger.info("Address {}.", wallet.getAddress());
         ProtocolMessageFactory.initialize(NetworkParameters.mainNet(), persistenceService);
 
         PeerManager peerManager = new PeerManager(

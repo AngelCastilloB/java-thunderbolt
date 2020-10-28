@@ -247,13 +247,6 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
             return;
         }
 
-        if (NodeService.getInstance().getNodeState().equals(NodeState.Syncing))
-        {
-            ScreenManager.getInstance().replaceTopScreen(
-                    new MessageScreen("The node is currently syncing with peers. Please wait."));
-            return;
-        }
-
         try
         {
             ScreenManager.getInstance().replaceTopScreen(new ReceiveScreen());

@@ -395,7 +395,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
      */
     public Transaction createTransaction(long amount, String address, double fee) throws IOException
     {
-        if (!m_isUnlocked)
+        if (!isUnlocked())
         {
             s_logger.error("Wallet is locked. You must unlock it first.");
             return null;
@@ -416,7 +416,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
      */
     public Transaction createTransaction(long amount, String address) throws IOException
     {
-        if (!m_isUnlocked)
+        if (!isUnlocked())
         {
             s_logger.error("Wallet is locked. You must unlock it first.");
             return null;
@@ -436,7 +436,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
      */
     public Transaction createTransaction(BigInteger amount, Address address, BigInteger fee) throws IOException
     {
-        if (!m_isUnlocked)
+        if (!isUnlocked())
         {
             s_logger.error("Wallet is locked. You must unlock it first.");
             return null;
