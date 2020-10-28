@@ -459,7 +459,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
 
         for (Map.Entry<Sha256Hash, UnspentTransactionOutput> entry : m_unspentOutputs.entrySet())
         {
-            if (total.compareTo(amount) >= 0)
+            if (total.compareTo(withFee) >= 0)
                 break;
 
             UnspentTransactionOutput value = entry.getValue();

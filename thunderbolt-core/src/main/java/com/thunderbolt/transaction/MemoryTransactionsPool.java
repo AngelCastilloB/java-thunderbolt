@@ -274,6 +274,9 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
         m_memPool.remove(id);
         m_orphanTransactions.remove(id);
 
+        for (ITransactionsChangeListener listener : m_listeners)
+            listener.onTransactionRemoved(entry.getTransaction());
+
         return true;
     }
 

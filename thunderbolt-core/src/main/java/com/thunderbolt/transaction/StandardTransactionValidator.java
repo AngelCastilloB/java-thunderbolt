@@ -87,12 +87,16 @@ public class StandardTransactionValidator implements ITransactionValidator
      * @param transaction The transaction to be validated.
      * @param height      The height of the block that contains this transaction. This is needed to perform
      *                    the coinbase maturity validation.
+     * @param fee         The added fees of all the transactions in the block.
      *
      * @return True if the transaction is valid, otherwise, false.
      */
     @Override
-    public boolean validate(Transaction transaction, long height) throws StorageException
+    public boolean validate(Transaction transaction, long height, BigInteger fee)
     {
+        if (transaction.isCoinbase())
+            return validateCoinbase(transaction, height, fee);
+
         if (!transaction.isValid())
             return false;
 
@@ -101,79 +105,49 @@ public class StandardTransactionValidator implements ITransactionValidator
 
         int inputIndex = 0;
 
-        if (transaction.isCoinbase())
+        for (TransactionInput input: transaction.getInputs())
         {
-            TransactionInput input =  transaction.getInputs().get(0);
 
-            // check first 8 bytes of locking parameters are available.
-            if (input.getUnlockingParameters().length < 8)
+            UnspentTransactionOutput unspentOutput = m_persistence.getUnspentOutput(input.getReferenceHash(), input.getIndex());
+
+            if (unspentOutput == null)
             {
                 s_logger.debug(
-                        "The coinbase does not contain the block size as its first 8 bytes in the unlocking parameters.");
-                return false;
-            }
-
-            // check that the first eight bytes are the block height.
-            ByteBuffer buffer = ByteBuffer.wrap(input.getUnlockingParameters());
-
-            long blockHeight = buffer.getLong();
-            if (blockHeight != height)
-            {
-                s_logger.debug(
-                        "The coinbase output height {} does not match the block height {}.",
-                        blockHeight, height);
+                        "The transaction {} references an output ({}) that is not present in the UTXO database.",
+                        input.getReferenceHash(), input.getIndex());
 
                 return false;
             }
 
-            totalInputValue = totalInputValue.add(NetworkParameters.mainNet().getBlockSubsidy(height));
-        }
-        else
-        {
-            for (TransactionInput input: transaction.getInputs())
+            // Check coin base maturity.
+            long coinbaseMaturity = unspentOutput.getBlockHeight() + m_params.getCoinbaseMaturiry();
+            if (unspentOutput.isIsCoinbase() && coinbaseMaturity > height)
             {
+                s_logger.debug(
+                        "The coinbase transaction {} can not be spend until height {}.",
+                        unspentOutput.getTransactionHash(), coinbaseMaturity);
 
-                UnspentTransactionOutput unspentOutput = m_persistence.getUnspentOutput(input.getReferenceHash(), input.getIndex());
-
-                if (unspentOutput == null)
-                {
-                    s_logger.debug(
-                            "The transaction {} references an output ({}) that is not present in the UTXO database.",
-                            input.getReferenceHash(), input.getIndex());
-
-                    return false;
-                }
-
-                // Check coin base maturity.
-                long coinbaseMaturity = unspentOutput.getBlockHeight() + m_params.getCoinbaseMaturiry();
-                if (unspentOutput.isIsCoinbase() && coinbaseMaturity > height)
-                {
-                    s_logger.debug(
-                            "The coinbase transaction {} can not be spend until height {}.",
-                            unspentOutput.getTransactionHash(), coinbaseMaturity);
-
-                    return false;
-                }
-
-                // Check that the provided parameters can spend the referenced output.
-                byte[] unlockingParameters = transaction.getInputs().get(inputIndex).getUnlockingParameters();
-
-                boolean canUnlock = checkUnlockingParameters(unspentOutput.getOutput(), input, unlockingParameters);
-
-                if (!canUnlock)
-                {
-                    s_logger.debug(
-                            "The input {} in transaction {} cant spent the reference output ({}).",
-                            inputIndex, transaction, input.getReferenceHash());
-
-                    return false;
-
-                }
-
-                totalInputValue = totalInputValue.add(unspentOutput.getOutput().getAmount());
-
-                ++inputIndex;
+                return false;
             }
+
+            // Check that the provided parameters can spend the referenced output.
+            byte[] unlockingParameters = transaction.getInputs().get(inputIndex).getUnlockingParameters();
+
+            boolean canUnlock = checkUnlockingParameters(unspentOutput.getOutput(), input, unlockingParameters);
+
+            if (!canUnlock)
+            {
+                s_logger.debug(
+                        "The input {} in transaction {} cant spent the reference output ({}).",
+                        inputIndex, transaction, input.getReferenceHash());
+
+                return false;
+
+            }
+
+            totalInputValue = totalInputValue.add(unspentOutput.getOutput().getAmount());
+
+            ++inputIndex;
         }
 
         for (TransactionOutput output: transaction.getOutputs())
@@ -186,6 +160,72 @@ public class StandardTransactionValidator implements ITransactionValidator
         {
             s_logger.debug(
                     "The sum of the outputs ({}) is bigger than the sum of the inputs ({}).",
+                    totalOutputValue.longValue(), totalInputValue.longValue());
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Validates a single transaction.
+     *
+     * @param transaction The transaction to be validated.
+     * @param height      The height of the block that contains this transaction. This is needed to perform
+     *                    the coinbase maturity validation.
+     * @param fee         The added fees of all the transactions in the block.
+     *
+     * @return True if the transaction is valid, otherwise, false.
+     */
+    public boolean validateCoinbase(Transaction transaction, long height, BigInteger fee)
+    {
+        if (!transaction.isValid())
+            return false;
+
+        // Coinbase transactions must be validates separately since their validation rules are different. For instance
+        // The output of a coinbase transaction can be higher then the input (block reward) due to mining fees.
+
+        BigInteger totalInputValue  = BigInteger.ZERO;
+        BigInteger totalOutputValue = BigInteger.ZERO;
+
+        if (!transaction.isCoinbase())
+            return false;
+
+        TransactionInput input =  transaction.getInputs().get(0);
+
+        // check first 8 bytes of locking parameters are available.
+        if (input.getUnlockingParameters().length < 8)
+        {
+            s_logger.debug(
+                    "The coinbase does not contain the block size as its first 8 bytes in the unlocking parameters.");
+            return false;
+        }
+
+        // check that the first eight bytes are the block height.
+        ByteBuffer buffer = ByteBuffer.wrap(input.getUnlockingParameters());
+
+        long blockHeight = buffer.getLong();
+        if (blockHeight != height)
+        {
+            s_logger.debug(
+                    "The coinbase output height {} does not match the block height {}.",
+                    blockHeight, height);
+
+            return false;
+        }
+
+        for (TransactionOutput output: transaction.getOutputs())
+            totalOutputValue = totalOutputValue.add(output.getAmount());
+
+        // Adds the fee to the allowed balance to claim.
+        totalInputValue = totalInputValue.add(fee);
+        totalInputValue = totalInputValue.add(m_params.getBlockSubsidy(height));
+
+        if (totalOutputValue.longValue() > totalInputValue.longValue())
+        {
+            s_logger.debug(
+                    "The coinbase output ({}) is bigger than the allowed input value ({}).",
                     totalOutputValue.longValue(), totalInputValue.longValue());
 
             return false;

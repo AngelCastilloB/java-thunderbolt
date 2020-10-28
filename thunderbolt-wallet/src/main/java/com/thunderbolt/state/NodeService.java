@@ -139,7 +139,6 @@ public class NodeService
                         m_pending           = m_client.getPendingTransactions();
                         m_lastMempoolUpdate = m_client.getMemPoolLastUpdateTime();
                         updateState = true;
-
                     }
 
                     if (updateState)

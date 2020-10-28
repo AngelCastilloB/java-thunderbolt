@@ -30,6 +30,7 @@ import com.thunderbolt.blockchain.contracts.IBlockchainUpdateListener;
 import com.thunderbolt.blockchain.contracts.IOutputsUpdateListener;
 import com.thunderbolt.common.Stopwatch;
 import com.thunderbolt.network.NetworkParameters;
+import com.thunderbolt.network.ProtocolException;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.transaction.*;
 import com.thunderbolt.persistence.storage.StorageException;
@@ -484,14 +485,46 @@ public class Blockchain
      *
      * @return True if all the transactions are valid; otherwise; false.
      */
-    boolean areTransactionsValid(List<Transaction> transactions, long height) throws StorageException
+    private boolean areTransactionsValid(List<Transaction> transactions, long height) throws StorageException
     {
+        BigInteger totalFees = BigInteger.ZERO;
+
+        try
+        {
+            totalFees = getTotalFees(transactions);
+        }
+        catch (ProtocolException e)
+        {
+            s_logger.error("Invalid transactions.", e);
+            return false;
+        }
+
         for (Transaction transaction: transactions)
         {
-            if (!m_transactionValidator.validate(transaction, height))
+            if (!m_transactionValidator.validate(transaction, height, totalFees))
                 return false;
         }
 
         return true;
+    }
+
+    /**
+     * Gets the total fees from all transactions in the block.
+     *
+     * @return The fees.
+     */
+    private BigInteger getTotalFees(List<Transaction> transactions) throws ProtocolException
+    {
+        BigInteger result = BigInteger.ZERO;
+
+        for (Transaction transaction: transactions)
+        {
+            if (transaction.isCoinbase())
+                continue;
+
+            result = result.add(transaction.getMinersFee(m_persistence));
+        }
+
+        return result;
     }
 }

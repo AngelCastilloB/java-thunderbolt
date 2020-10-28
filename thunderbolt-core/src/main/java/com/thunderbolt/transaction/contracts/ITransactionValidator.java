@@ -28,6 +28,8 @@ package com.thunderbolt.transaction.contracts;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.transaction.Transaction;
 
+import java.math.BigInteger;
+
 /* IMPLEMENTATION ************************************************************/
 
 /**
@@ -40,9 +42,10 @@ public interface ITransactionValidator
      *
      * @param transaction The transaction to be validated.
      * @param height      The height of the block that contains this transaction. This is needed to perform
-     *                    the coinbase maturity validation..
+     *                    the coinbase maturity validation.
+     * @param fee         The added fees of all the transactions in the block.
      *
      * @return True if the transaction is valid, otherwise, false.
      */
-    boolean validate(Transaction transaction, long height) throws StorageException;
+    boolean validate(Transaction transaction, long height, BigInteger fee) throws StorageException;
 }
