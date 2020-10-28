@@ -28,8 +28,8 @@ package com.thunderbolt.screens;
 
 import com.thunderbolt.components.TransactionComponent;
 import com.thunderbolt.state.NodeService;
+import com.thunderbolt.state.TimestampedTransaction;
 import com.thunderbolt.theme.Theme;
-import com.thunderbolt.transaction.Transaction;
 
 import java.awt.*;
 
@@ -64,7 +64,7 @@ public class OverviewScreen extends ScreenBase
     {
         int index = 0;
 
-        for (Transaction xt : NodeService.getInstance().getPendingTransactions())
+        for (TimestampedTransaction xt : NodeService.getInstance().getPendingTransactions())
         {
             if (index >= 7)
                 break;
@@ -80,7 +80,7 @@ public class OverviewScreen extends ScreenBase
             ++index;
         }
 
-        for (Transaction xt : NodeService.getInstance().getTransactions())
+        for (TimestampedTransaction xt : NodeService.getInstance().getTransactions())
         {
             if (index >= 7)
                 break;

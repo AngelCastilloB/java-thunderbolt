@@ -27,8 +27,8 @@ package com.thunderbolt.screens;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.Convert;
-import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.state.NodeService;
+import com.thunderbolt.state.TimestampedTransaction;
 import com.thunderbolt.transaction.Transaction;
 import com.thunderbolt.transaction.TransactionInput;
 import com.thunderbolt.transaction.TransactionOutput;
@@ -36,9 +36,11 @@ import com.thunderbolt.wallet.Address;
 
 import javax.swing.*;
 import java.math.BigInteger;
+import java.text.DecimalFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 
@@ -76,20 +78,20 @@ public class TransactionsScreen extends ScreenBase
      */
     private void update()
     {
-        List<Transaction> transactions = NodeService.getInstance().getTransactions();
-        List<Transaction> pending      = NodeService.getInstance().getPendingTransactions();
+        List<TimestampedTransaction> transactions = NodeService.getInstance().getTransactions();
+        List<TimestampedTransaction> pending      = NodeService.getInstance().getPendingTransactions();
 
         String[][] data = new String[transactions.size() + pending.size()][5];
 
         int index = 0;
 
-        for (Transaction transaction: pending)
+        for (TimestampedTransaction transaction: pending)
         {
             data[index] = getEntry(transaction, true);
             ++index;
         }
 
-        for (Transaction transaction: transactions)
+        for (TimestampedTransaction transaction: transactions)
         {
             data[index] = getEntry(transaction, false);
             ++index;
@@ -121,7 +123,7 @@ public class TransactionsScreen extends ScreenBase
      *
      * @return The net amount.
      */
-    private String[] getEntry(Transaction transaction, boolean isPending)
+    private String[] getEntry(TimestampedTransaction timestampedTransaction, boolean isPending)
     {
         // We need to first determine if this transaction is incoming or outgoing. If we detect an input that belongs
         // us, we mark the transaction as outgoing, if none of the inputs are ours, the transactions is incoming.
@@ -138,7 +140,7 @@ public class TransactionsScreen extends ScreenBase
         String address = "";
         String sender  = "";
 
-        for (TransactionInput input: transaction.getInputs())
+        for (TransactionInput input: timestampedTransaction.getTransaction().getInputs())
         {
             if (input.isCoinBase())
                 continue;
@@ -158,7 +160,7 @@ public class TransactionsScreen extends ScreenBase
             }
         }
 
-        for (TransactionOutput output: transaction.getOutputs())
+        for (TransactionOutput output: timestampedTransaction.getTransaction().getOutputs())
         {
             if (Arrays.equals(output.getLockingParameters(), NodeService.getInstance().getAddress().getPublicHash()))
             {
@@ -172,7 +174,7 @@ public class TransactionsScreen extends ScreenBase
             }
         }
 
-        if (transaction.isCoinbase())
+        if (timestampedTransaction.getTransaction().isCoinbase())
         {
             address = "coinbase";
         }
@@ -192,8 +194,9 @@ public class TransactionsScreen extends ScreenBase
         {
             // For the date we must get the transaction metadata. But if the transaction is pending, the metadata
             // does not exists yet, so we just write pending.
-            TransactionMetadata metadata = NodeService.getInstance().getTransactionMetadata(transaction.getTransactionId());
-            entry[0] = LocalDateTime.ofInstant(Instant.ofEpochSecond(metadata.getTimestamp()), ZoneId.systemDefault()).toString();
+            entry[0] = LocalDateTime.ofInstant(
+                    Instant.ofEpochSecond(timestampedTransaction.getTimestamp()),
+                    ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyy/MM/dd - hh:mm a"));
         }
         else
         {
@@ -203,8 +206,8 @@ public class TransactionsScreen extends ScreenBase
         entry[1] = isPending ? "Pending" : "Confirmed";
         entry[2] = isOutgoing ? "To" : "From";
         entry[3] = address;
-        entry[4] = Convert.stripTrailingZeros(total.longValue() * FRACTIONAL_COIN_FACTOR);
-
+        DecimalFormat numberFormat = new DecimalFormat("##.########");
+        entry[4] = numberFormat.format(total.longValue() * FRACTIONAL_COIN_FACTOR);
         return entry;
     }
 }

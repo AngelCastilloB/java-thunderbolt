@@ -31,6 +31,7 @@ import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.resources.ResourceManager;
 import com.thunderbolt.state.NodeService;
+import com.thunderbolt.state.TimestampedTransaction;
 import com.thunderbolt.theme.Theme;
 import com.thunderbolt.transaction.Transaction;
 import com.thunderbolt.transaction.TransactionInput;
@@ -43,6 +44,7 @@ import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
 import java.awt.image.WritableRaster;
 import java.math.BigInteger;
+import java.text.DecimalFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -73,9 +75,9 @@ public class TransactionComponent extends JComponent
     /**
      * Initializes a new instance of a TransactionComponent component.
      *
-     * @param transaction The transaction.
+     * @param timestampedTransaction The transaction.
      */
-    public TransactionComponent(Transaction transaction, boolean isPending)
+    public TransactionComponent(TimestampedTransaction timestampedTransaction, boolean isPending)
     {
         setLayout(null);
 
@@ -88,14 +90,15 @@ public class TransactionComponent extends JComponent
         tint(m_outgoing, Theme.TRANSACTION_COMPONENT_OUTGOING_COLOR);
         tint(m_pending, Theme.TRANSACTION_COMPONENT_PENDING_COLOR);
 
-        m_transaction = transaction;
+        m_transaction = timestampedTransaction.getTransaction();
 
         // For the date we must get the transaction metadata. But if the transaction is pending, the metadata
         // does not exists yet, so we just write pending.
         if (!isPending)
         {
-            TransactionMetadata metadata = NodeService.getInstance().getTransactionMetadata(transaction.getTransactionId());
-            m_date = LocalDateTime.ofInstant(Instant.ofEpochSecond(metadata.getTimestamp()), ZoneId.systemDefault()).toString();
+            m_date = LocalDateTime.ofInstant(
+                    Instant.ofEpochSecond(timestampedTransaction.getTimestamp()),
+                    ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyy/MM/dd - hh:mm a"));
         }
         else
         {
@@ -227,7 +230,8 @@ public class TransactionComponent extends JComponent
             }
         }
 
-        String amount = Convert.stripTrailingZeros(m_amount) + " THB";
+        DecimalFormat numberFormat = new DecimalFormat("##.########");
+        String amount = numberFormat.format(m_amount) + " THB";
         int width = graphics2d.getFontMetrics().stringWidth(amount);
         graphics.drawString(amount, getWidth() - width - 50, 15);
 
@@ -235,7 +239,8 @@ public class TransactionComponent extends JComponent
         graphics.setColor(Theme.TRANSACTION_COMPONENT_SUBTEXT_COLOR);
         graphics.drawString(m_address, m_outgoing.getWidth() + 30, 30);
 
-        graphics.drawString(m_date, getWidth() - 195, 30);
+        int dateWidth = graphics2d.getFontMetrics().stringWidth(m_date);
+        graphics.drawString(m_date, getWidth() - dateWidth - 50, 30);
     }
 
     /**

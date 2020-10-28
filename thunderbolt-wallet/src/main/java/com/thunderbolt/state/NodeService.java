@@ -34,6 +34,7 @@ import com.thunderbolt.rpc.RpcClient;
 import com.thunderbolt.screens.ScreenManager;
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.Transaction;
+import com.thunderbolt.transaction.TransactionPoolEntry;
 import com.thunderbolt.wallet.Address;
 import com.thunderbolt.worksapce.NotificationButtons;
 import org.slf4j.Logger;
@@ -41,10 +42,9 @@ import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.*;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -66,8 +66,8 @@ public class NodeService
     private String                                     m_address           = "";
     private Sha256Hash                                 m_currentBlock      = new Sha256Hash();
     private String                                     m_lastMempoolUpdate = "";
-    private List<Transaction>                          m_transactions      = new ArrayList<>();
-    private List<Transaction>                          m_pending           = new ArrayList<>();
+    private List<TimestampedTransaction>               m_transactions      = new ArrayList<>();
+    private List<TimestampedTransaction>               m_pending           = new ArrayList<>();
     private final Map<Sha256Hash, Transaction>         m_transactionCache  = new HashMap<>();
     private final Map<Sha256Hash, TransactionMetadata> m_metadataCache     = new HashMap<>();
 
@@ -126,9 +126,23 @@ public class NodeService
                     if (!currentBlock.equals(m_currentBlock))
                     {
                         m_currentBlock      = currentBlock;
-                        m_transactions      = m_client.getConfirmedTransactions();
-                        m_pending           = m_client.getPendingTransactions();
                         m_lastMempoolUpdate = m_client.getMemPoolLastUpdateTime();
+
+                        m_transactions.clear();
+                        m_pending.clear();
+
+                        for (Transaction transaction : m_client.getConfirmedTransactions())
+                        {
+                            TransactionMetadata metadata = getTransactionMetadata(transaction.getTransactionId());
+                            m_transactions.add(new TimestampedTransaction(transaction, metadata.getTimestamp()));
+                        }
+
+                        // Since pending transactions still dont have confirmation timestamp, we just use the current time for sorting.
+                        for (Transaction transaction : m_client.getPendingTransactions())
+                            m_pending.add(new TimestampedTransaction(transaction, LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)));
+
+                        m_transactions.sort(Comparator.comparingLong(TimestampedTransaction::getTimestamp).reversed());
+                        m_pending.sort(Comparator.comparingLong(TimestampedTransaction::getTimestamp).reversed());
                         updateState = true;
                     }
 
@@ -136,7 +150,13 @@ public class NodeService
 
                     if (!lastUpdate.equals(m_lastMempoolUpdate))
                     {
-                        m_pending           = m_client.getPendingTransactions();
+                        m_pending.clear();
+
+                        // Since pending transactions still dont have confirmation timestamp, we just use the current time for sorting.
+                        for (Transaction transaction : m_client.getPendingTransactions())
+                            m_pending.add(new TimestampedTransaction(transaction, LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)));
+
+                        m_pending.sort(Comparator.comparingLong(TimestampedTransaction::getTimestamp).reversed());
                         m_lastMempoolUpdate = m_client.getMemPoolLastUpdateTime();
                         updateState = true;
                     }
@@ -327,7 +347,7 @@ public class NodeService
      *
      * @return The list of confirmed transactions.
      */
-    public List<Transaction> getTransactions()
+    public List<TimestampedTransaction> getTransactions()
     {
         return m_transactions;
     }
@@ -337,7 +357,7 @@ public class NodeService
      *
      * @return The pending transactions.
      */
-    public List<Transaction> getPendingTransactions()
+    public List<TimestampedTransaction> getPendingTransactions()
     {
         return m_pending;
     }
