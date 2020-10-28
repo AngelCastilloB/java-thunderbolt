@@ -59,7 +59,7 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
     private static final int ENCRYPT_KEYS_BUTTON_POSITION = 490;
     private static final int DUMP_BUTTON_POSITION         = 540;
 
-    private Image                 m_img;
+    private final Image           m_image;
     private final ButtonComponent m_overviewButton     = new ButtonComponent(ResourceManager.loadImage("images/overview.png"), "Overview");
     private final ButtonComponent m_sendButton         = new ButtonComponent(ResourceManager.loadImage("images/send.png"), "Send");
     private final ButtonComponent m_receiveButton      = new ButtonComponent(ResourceManager.loadImage("images/receive.png"), "Receive");
@@ -85,166 +85,32 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
      */
     public MenuComponent(Image img)
     {
-        m_img = img;
+        m_image = img;
         setLayout(null);
 
         m_overviewButton.setSize(BUTTON_WIDTH, BUTTON_HEIGHT);
         m_overviewButton.setLocation(LEFT_MARGIN, OVERVIEW_BUTTON_POSITION);
-
-        m_overviewButton.addButtonClickListener(() ->
-        {
-            if (NodeService.getInstance().getNodeState().equals(NodeState.Offline))
-            {
-                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
-                return;
-            }
-
-            if (NodeService.getInstance().getNodeState().equals(NodeState.Syncing))
-            {
-                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
-                return;
-            }
-
-            ScreenManager.getInstance().replaceTopScreen(new OverviewScreen());
-            activateButton(m_overviewButton);
-        });
+        m_overviewButton.addButtonClickListener(this::goToOverview);
 
         m_sendButton.setSize(BUTTON_WIDTH, BUTTON_HEIGHT);
         m_sendButton.setLocation(LEFT_MARGIN, SEND_BUTTON_POSITION);
-
-        m_sendButton.addButtonClickListener(() ->
-        {
-            if (NodeService.getInstance().getNodeState().equals(NodeState.Offline))
-            {
-                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
-                return;
-            }
-
-            if (NodeService.getInstance().isLocked())
-            {
-                ScreenManager.getInstance().replaceTopScreen(new AuthenticationScreen(() -> {
-                        ScreenManager.getInstance().replaceTopScreen(new SendScreen());
-                    activateButton(m_sendButton);
-                }));
-                return;
-            }
-
-            ScreenManager.getInstance().replaceTopScreen(new SendScreen());
-            activateButton(m_sendButton);
-        });
+        m_sendButton.addButtonClickListener(this::goToSend);
 
         m_receiveButton.setSize(BUTTON_WIDTH, BUTTON_HEIGHT);
         m_receiveButton.setLocation(LEFT_MARGIN, RECEIVE_BUTTON_POSITION);
-
-        m_receiveButton.addButtonClickListener(() ->
-        {
-            if (NodeService.getInstance().getNodeState().equals(NodeState.Offline))
-            {
-                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
-                return;
-            }
-
-            if (NodeService.getInstance().getNodeState().equals(NodeState.Syncing))
-            {
-                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
-                return;
-            }
-
-            try
-            {
-                ScreenManager.getInstance().replaceTopScreen(new ReceiveScreen());
-                activateButton(m_receiveButton);
-            }
-            catch (WriterException e)
-            {
-                e.printStackTrace();
-            }
-
-            activateButton(m_receiveButton);
-        });
-
+        m_receiveButton.addButtonClickListener(this::goToReceive);
 
         m_transactionsButton.setSize(BUTTON_WIDTH, BUTTON_HEIGHT);
         m_transactionsButton.setLocation(LEFT_MARGIN, TRANSACTIONS_BUTTON_POSITION);
-
-        m_transactionsButton.addButtonClickListener(() ->
-        {
-            if (NodeService.getInstance().getNodeState().equals(NodeState.Offline))
-            {
-                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
-                return;
-            }
-
-            if (NodeService.getInstance().getNodeState().equals(NodeState.Syncing))
-            {
-                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
-                return;
-            }
-
-            ScreenManager.getInstance().replaceTopScreen(new TransactionsScreen());
-            activateButton(m_transactionsButton);
-
-            activateButton(m_transactionsButton);
-        });
+        m_transactionsButton.addButtonClickListener(this::goToTransactions);
 
         m_encryptButton.setSize(BUTTON_WIDTH, BUTTON_HEIGHT);
         m_encryptButton.setLocation(LEFT_MARGIN, ENCRYPT_KEYS_BUTTON_POSITION);
-
-        m_encryptButton.addButtonClickListener(() ->
-        {
-            if (NodeService.getInstance().getNodeState().equals(NodeState.Offline))
-            {
-                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
-                return;
-            }
-
-            if (NodeService.getInstance().isWalletEncrypted())
-            {
-                ScreenManager.getInstance().showNotification("Information",
-                        "Your wallet is already encrypted.",
-                        NotificationButtons.GotIt, result -> {});
-
-                return;
-            }
-
-            ScreenManager.getInstance().replaceTopScreen(new EncryptWalletScreen(() -> {
-                ScreenManager.getInstance().replaceTopScreen(new OverviewScreen());
-                activateButton(m_overviewButton);
-            }));
-            activateButton(m_encryptButton);
-        });
+        m_encryptButton.addButtonClickListener(this::goToEncrypt);
 
         m_dumpKeysButton.setSize(BUTTON_WIDTH, BUTTON_HEIGHT);
         m_dumpKeysButton.setLocation(LEFT_MARGIN, DUMP_BUTTON_POSITION);
-
-        m_dumpKeysButton.addButtonClickListener(() ->
-        {
-            if (NodeService.getInstance().getNodeState().equals(NodeState.Offline))
-            {
-                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
-                return;
-            }
-
-            if (NodeService.getInstance().isLocked())
-            {
-                ScreenManager.getInstance().replaceTopScreen(new AuthenticationScreen(() -> {
-                    try {
-                        ScreenManager.getInstance().replaceTopScreen(new DumpKeyScreen());
-                    } catch (WriterException e) {
-                        e.printStackTrace();
-                    }
-                    activateButton(m_dumpKeysButton);
-                }));
-                return;
-            }
-
-            try {
-                ScreenManager.getInstance().replaceTopScreen(new DumpKeyScreen());
-            } catch (WriterException e) {
-                e.printStackTrace();
-            }
-            activateButton(m_dumpKeysButton);
-        });
+        m_dumpKeysButton.addButtonClickListener(this::goToDumpKeys);
 
         add(m_overviewButton);
         add(m_sendButton);
@@ -278,7 +144,7 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
                 RenderingHints.KEY_TEXT_ANTIALIASING,
                 RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        graphics.drawImage(m_img, 0, 0, null);
+        graphics.drawImage(m_image, 0, 0, null);
 
         graphics.setColor(Theme.MENU_OVERVIEW_FONT_COLOR);
         graphics.setFont(Theme.MENU_OVERVIEW_FONT);
@@ -334,12 +200,14 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
 
         if (state == NodeState.Offline)
         {
-            ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
+            ScreenManager.getInstance().replaceTopScreen(
+                    new MessageScreen("The node is offline. Please start the Thunderbolt node."));
             return;
         }
 
         if (state == NodeState.Syncing)
-            ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
+            ScreenManager.getInstance().replaceTopScreen(
+                    new MessageScreen("The node is currently syncing with peers. Please wait."));
     }
 
     /**
@@ -349,21 +217,187 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
     public void navigate(String route)
     {
         if (route.equals("overview"))
+            goToOverview();
+
+        if (route.equals("send"))
+            goToOverview();
+
+        if (route.equals("receive"))
+            goToOverview();
+
+        if (route.equals("transactions"))
+            goToOverview();
+
+        if (route.equals("encryptKeys"))
+            goToOverview();
+
+        if (route.equals("dumpKeys"))
+            goToOverview();
+    }
+
+    /**
+     * Goes to the receive screen.
+     */
+    private void goToReceive()
+    {
+        if (NodeService.getInstance().getNodeState().equals(NodeState.Offline))
         {
-            if (NodeService.getInstance().getNodeState().equals(NodeState.Offline))
-            {
-                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is offline. Please start the Thunderbolt node."));
-                return;
-            }
+            ScreenManager.getInstance().replaceTopScreen(
+                    new MessageScreen("The node is offline. Please start the Thunderbolt node."));
+            return;
+        }
 
-            if (NodeService.getInstance().getNodeState().equals(NodeState.Syncing))
-            {
-                ScreenManager.getInstance().replaceTopScreen(new MessageScreen("The node is currently syncing with peers. Please wait."));
-                return;
-            }
+        if (NodeService.getInstance().getNodeState().equals(NodeState.Syncing))
+        {
+            ScreenManager.getInstance().replaceTopScreen(
+                    new MessageScreen("The node is currently syncing with peers. Please wait."));
+            return;
+        }
 
+        try
+        {
+            ScreenManager.getInstance().replaceTopScreen(new ReceiveScreen());
+            activateButton(m_receiveButton);
+        }
+        catch (WriterException e)
+        {
+            e.printStackTrace();
+        }
+
+        activateButton(m_receiveButton);
+    }
+
+    /**
+     * Goes to the send screen.
+     */
+    private void goToSend()
+    {
+        if (NodeService.getInstance().getNodeState().equals(NodeState.Offline))
+        {
+            ScreenManager.getInstance().replaceTopScreen(
+                    new MessageScreen("The node is offline. Please start the Thunderbolt node."));
+            return;
+        }
+
+        if (NodeService.getInstance().isLocked())
+        {
+            ScreenManager.getInstance().replaceTopScreen(new AuthenticationScreen(() -> {
+                ScreenManager.getInstance().replaceTopScreen(new SendScreen());
+                activateButton(m_sendButton);
+            }));
+            return;
+        }
+
+        ScreenManager.getInstance().replaceTopScreen(new SendScreen());
+        activateButton(m_sendButton);
+    }
+
+    /**
+     * Goes to the overview screen.
+     */
+    private void goToOverview()
+    {
+        if (NodeService.getInstance().getNodeState().equals(NodeState.Offline))
+        {
+            ScreenManager.getInstance().replaceTopScreen(
+                    new MessageScreen("The node is offline. Please start the Thunderbolt node."));
+            return;
+        }
+
+        if (NodeService.getInstance().getNodeState().equals(NodeState.Syncing))
+        {
+            ScreenManager.getInstance().replaceTopScreen(
+                    new MessageScreen("The node is currently syncing with peers. Please wait."));
+            return;
+        }
+
+        ScreenManager.getInstance().replaceTopScreen(new OverviewScreen());
+        activateButton(m_overviewButton);
+    }
+
+    /**
+     * Goes to the transactions screen.
+     */
+    private void goToTransactions()
+    {
+        if (NodeService.getInstance().getNodeState().equals(NodeState.Offline))
+        {
+            ScreenManager.getInstance().replaceTopScreen(
+                    new MessageScreen("The node is offline. Please start the Thunderbolt node."));
+            return;
+        }
+
+        if (NodeService.getInstance().getNodeState().equals(NodeState.Syncing))
+        {
+            ScreenManager.getInstance().replaceTopScreen(
+                    new MessageScreen("The node is currently syncing with peers. Please wait."));
+            return;
+        }
+
+        ScreenManager.getInstance().replaceTopScreen(new TransactionsScreen());
+        activateButton(m_transactionsButton);
+
+        activateButton(m_transactionsButton);
+    }
+
+    /**
+     * Goes to the encrypt screen.
+     */
+    private void goToEncrypt()
+    {
+        if (NodeService.getInstance().getNodeState().equals(NodeState.Offline))
+        {
+            ScreenManager.getInstance().replaceTopScreen(
+                    new MessageScreen("The node is offline. Please start the Thunderbolt node."));
+            return;
+        }
+
+        if (NodeService.getInstance().isWalletEncrypted())
+        {
+            ScreenManager.getInstance().showNotification("Information",
+                    "Your wallet is already encrypted.",
+                    NotificationButtons.GotIt, result -> {});
+
+            return;
+        }
+
+        ScreenManager.getInstance().replaceTopScreen(new EncryptWalletScreen(() -> {
             ScreenManager.getInstance().replaceTopScreen(new OverviewScreen());
             activateButton(m_overviewButton);
+        }));
+        activateButton(m_encryptButton);
+    }
+
+    /**
+     * Goes to the dump keys screen.
+     */
+    private void goToDumpKeys()
+    {
+        if (NodeService.getInstance().getNodeState().equals(NodeState.Offline))
+        {
+            ScreenManager.getInstance().replaceTopScreen(
+                    new MessageScreen("The node is offline. Please start the Thunderbolt node."));
+            return;
         }
+
+        if (NodeService.getInstance().isLocked())
+        {
+            ScreenManager.getInstance().replaceTopScreen(new AuthenticationScreen(() -> {
+                try {
+                    ScreenManager.getInstance().replaceTopScreen(new DumpKeyScreen());
+                } catch (WriterException e) {
+                    e.printStackTrace();
+                }
+                activateButton(m_dumpKeysButton);
+            }));
+            return;
+        }
+
+        try {
+            ScreenManager.getInstance().replaceTopScreen(new DumpKeyScreen());
+        } catch (WriterException e) {
+            e.printStackTrace();
+        }
+        activateButton(m_dumpKeysButton);
     }
 }

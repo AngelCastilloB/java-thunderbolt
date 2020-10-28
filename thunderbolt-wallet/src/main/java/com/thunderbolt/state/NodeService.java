@@ -474,7 +474,6 @@ public class NodeService
             return;
         }
 
-        ResourceManager.playAudio(Theme.TRANSACTION_STATE_CHANGE_SOUND);
         for (IDataChangeListener listener: m_dataListeners)
             listener.onNodeDataChange();
     }

@@ -95,19 +95,19 @@ public class TitleComponent extends JComponent
         switch (NodeService.getInstance().getNodeState())
         {
             case Ready:
-                graphics.drawImage(m_nodeReady, getWidth() - 150, getHeight() / 2 - m_nodeReady.getHeight() / 2,null);
+                graphics.drawImage(m_nodeReady, getWidth() - 100, getHeight() / 2 - m_nodeReady.getHeight() / 2,null);
                 graphics.setColor(Theme.STATUS_READY_COLOR);
-                graphics.drawString("Ready", getWidth() - 100, getHeight() / 2 + 5);
+                graphics.drawString("Ready", getWidth() - 65, getHeight() / 2 + 5);
                 break;
             case Syncing:
-                graphics.drawImage(m_nodeSyncing, getWidth() - 150, getHeight() / 2  - m_nodeSyncing.getHeight() / 2,null);
+                graphics.drawImage(m_nodeSyncing, getWidth() - 110, getHeight() / 2  - m_nodeSyncing.getHeight() / 2,null);
                 graphics.setColor(Theme.STATUS_SYNCING_COLOR);
-                graphics.drawString("Syncing...", getWidth() - 100, getHeight() / 2 + 5);
+                graphics.drawString("Syncing", getWidth() - 75, getHeight() / 2 + 7);
                 break;
             case Offline:
-                graphics.drawImage(m_nodeOffline, getWidth() - 150, getHeight() / 2  - m_nodeOffline.getHeight() / 2,null);
+                graphics.drawImage(m_nodeOffline, getWidth() - 100, getHeight() / 2  - m_nodeOffline.getHeight() / 2,null);
                 graphics.setColor(Theme.STATUS_OFFLINE_COLOR);
-                graphics.drawString("Offline", getWidth() - 100, getHeight() / 2 + 5);
+                graphics.drawString("Offline", getWidth() - 65, getHeight() / 2  + 7);
             default:
                 break;
         }
