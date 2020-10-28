@@ -32,8 +32,14 @@ import com.thunderbolt.transaction.Transaction;
 
 /* IMPLEMENTATION ************************************************************/
 
+/**
+ * Screen that displays an overview of the wallet.
+ */
 public class OverviewScreen extends ScreenBase
 {
+    /**
+     * Initializes a new instance of the OverviewScreen class.
+     */
     public OverviewScreen()
     {
         setLayout(null);
@@ -48,6 +54,9 @@ public class OverviewScreen extends ScreenBase
         });
     }
 
+    /**
+     * Updates the screen.
+     */
     private void update()
     {
         int index = 0;
@@ -82,6 +91,21 @@ public class OverviewScreen extends ScreenBase
             invalidate();
             repaint();
             ++index;
+        }
+    }
+
+    /**
+     * This method will be called by the screen manager just before adding the screen to the workspace.
+     */
+    @Override
+    public void onShow()
+    {
+        super.onShow();
+
+
+        if (getComponentCount() == 0)
+        {
+            ScreenManager.getInstance().show(new MessageScreen("No transactions found"));
         }
     }
 }

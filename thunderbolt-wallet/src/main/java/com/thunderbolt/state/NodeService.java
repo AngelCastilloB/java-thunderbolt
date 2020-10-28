@@ -28,12 +28,11 @@ package com.thunderbolt.state;
 
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.configuration.Configuration;
+import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
-import com.thunderbolt.resources.ResourceManager;
 import com.thunderbolt.rpc.RpcClient;
 import com.thunderbolt.screens.ScreenManager;
 import com.thunderbolt.security.Sha256Hash;
-import com.thunderbolt.theme.Theme;
 import com.thunderbolt.transaction.Transaction;
 import com.thunderbolt.wallet.Address;
 import com.thunderbolt.worksapce.NotificationButtons;
@@ -58,18 +57,19 @@ public class NodeService
     private static NodeService  s_instance = null;
     private static final Logger s_logger   = LoggerFactory.getLogger(NodeService.class);
 
-    private final List<INodeStatusChangeListener> m_listeners         = new ArrayList<>();
-    private final List<IDataChangeListener>       m_dataListeners     = new ArrayList<>();
-    private NodeState                             m_currentState      = NodeState.Offline;
-    private RpcClient                             m_client            = null;
-    private double                                m_availableBalance  = 0.0;
-    private double                                m_pendingBalance    = 0.0;
-    private String                                m_address           = "";
-    private Sha256Hash                            m_currentBlock      = new Sha256Hash();
-    private String                                m_lastMempoolUpdate = "";
-    private List<Transaction>                     m_transactions      = new ArrayList<>();
-    private List<Transaction>                     m_pending           = new ArrayList<>();
-    private final Map<Sha256Hash, Transaction>    m_transactionCache  = new HashMap<>();
+    private final List<INodeStatusChangeListener>      m_listeners         = new ArrayList<>();
+    private final List<IDataChangeListener>            m_dataListeners     = new ArrayList<>();
+    private NodeState                                  m_currentState      = NodeState.Offline;
+    private RpcClient                                  m_client            = null;
+    private double                                     m_availableBalance  = 0.0;
+    private double                                     m_pendingBalance    = 0.0;
+    private String                                     m_address           = "";
+    private Sha256Hash                                 m_currentBlock      = new Sha256Hash();
+    private String                                     m_lastMempoolUpdate = "";
+    private List<Transaction>                          m_transactions      = new ArrayList<>();
+    private List<Transaction>                          m_pending           = new ArrayList<>();
+    private final Map<Sha256Hash, Transaction>         m_transactionCache  = new HashMap<>();
+    private final Map<Sha256Hash, TransactionMetadata> m_metadataCache     = new HashMap<>();
 
     /**
      * Prevents a default instance of the StateService class from being created.
@@ -372,6 +372,25 @@ public class NodeService
         Transaction xt = m_client.getTransaction(id.toString());
 
         m_transactionCache.put(id, xt);
+
+        return xt;
+    }
+
+    /**
+     * Gets the transaction metadata.
+     *
+     * @param id The transaction id.
+     *
+     * @return the transaction metadata.
+     */
+    public TransactionMetadata getTransactionMetadata(Sha256Hash id)
+    {
+        if (m_metadataCache.containsKey(id))
+            return m_metadataCache.get(id);
+
+        TransactionMetadata xt = m_client.getTransactionMetadata(id.toString());
+
+        m_metadataCache.put(id, xt);
 
         return xt;
     }

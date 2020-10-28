@@ -169,4 +169,16 @@ public class Sha256Hash
 
         System.arraycopy(data, 0, m_data, 0, 32);
     }
+
+    /**
+     * Gets a SHA 256 hash from an string.
+     *
+     * @param hash The hash in string format.
+     *
+     * @return The new Sha256Hash instance.
+     */
+    public static Sha256Hash from(String hash)
+    {
+        return new Sha256Hash(hash);
+    }
 }

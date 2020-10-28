@@ -32,7 +32,9 @@ import com.thunderbolt.security.Sha256Hash;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -47,6 +49,9 @@ public class TransactionMetadata implements ISerializable
     private int        m_blockFile;
     private long       m_blockPosition;
     private int        m_transactionPosition;
+    private long       m_blockHeight;
+    private Sha256Hash m_blockHash = new Sha256Hash();
+    private long       m_timestamp;
 
     /**
      * Creates a new instance of the BlockMetadata class.
@@ -65,6 +70,9 @@ public class TransactionMetadata implements ISerializable
         m_blockFile           = buffer.getInt();
         m_blockPosition       = buffer.getLong();
         m_transactionPosition = buffer.getInt();
+        m_blockHeight         = buffer.getLong();
+        m_blockHash           = new Sha256Hash(buffer);
+        m_timestamp           = buffer.getLong();
     }
 
     /**
@@ -90,6 +98,9 @@ public class TransactionMetadata implements ISerializable
         data.writeBytes(NumberSerializer.serialize(m_blockFile));
         data.writeBytes(NumberSerializer.serialize(m_blockPosition));
         data.writeBytes(NumberSerializer.serialize(m_transactionPosition));
+        data.writeBytes(NumberSerializer.serialize(m_blockHeight));
+        data.writeBytes(m_blockHash.getData());
+        data.writeBytes(NumberSerializer.serialize(m_timestamp));
 
         return data.toByteArray();
     }
@@ -187,9 +198,75 @@ public class TransactionMetadata implements ISerializable
                 "  \"blockFile\":             %d, %n" +
                 "  \"blockPosition\":         %d, %n" +
                 "  \"transactionPosition\":   %d  %n" +
+                "  \"containerBlockHeight\":  %d  %n" +
+                "  \"containerBlockHash\":    %s  %n" +
+                "  \"timestamp\":             %s  %n" +
                 "}",
                 m_blockFile,
                 m_blockPosition,
-                m_transactionPosition);
+                m_transactionPosition,
+                m_blockHeight,
+                m_blockHash,
+                LocalDateTime.ofInstant(Instant.ofEpochMilli(m_timestamp), ZoneId.systemDefault()));
+    }
+
+    /**
+     * Gets the height of the block in which this transaction was included.
+     *
+     * @return The height of the container block.
+     */
+    public long getBlockHeight()
+    {
+        return m_blockHeight;
+    }
+
+    /**
+     * Sets the height of the containing block.
+     *
+     * @param blockHeight the block height.
+     */
+    public void setBlockHeight(long blockHeight)
+    {
+        m_blockHeight = blockHeight;
+    }
+
+    /**
+     * Gets the container block hash.
+     *
+     * @return The block hash.
+     */
+    public Sha256Hash getBlockHash()
+    {
+        return m_blockHash;
+    }
+
+    /**
+     * Sets the container block hash.
+     *
+     * @param blockHash The block hash.
+     */
+    public void setBlockHash(Sha256Hash blockHash)
+    {
+        m_blockHash = blockHash;
+    }
+
+    /**
+     * Gets the timestamp of this transaction. Its the same timestamp in the container block header.
+     *
+     * @return The timestamp.
+     */
+    public long getTimestamp()
+    {
+        return m_timestamp;
+    }
+
+    /**
+     * Sets the transaction timestamp.
+     *
+     * @param timestamp The timestamp.
+     */
+    public void setTimestamp(long timestamp)
+    {
+        m_timestamp = timestamp;
     }
 }

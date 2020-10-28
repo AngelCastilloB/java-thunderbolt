@@ -610,7 +610,18 @@ public class RpcService
     @JsonRpcMethod("getTransaction")
     public Transaction getTransaction(@JsonRpcParam("hash") String hash) throws StorageException
     {
-        return m_node.getPersistenceService().getTransaction(new Sha256Hash(hash));
+        return m_node.getPersistenceService().getTransaction(Sha256Hash.from(hash));
+    }
+
+    /**
+     * Gets the metadata for this transaction..
+     *
+     * @return the transaction metadata.
+     */
+    @JsonRpcMethod("getTransactionMetadata")
+    public TransactionMetadata getTransactionMetadata(@JsonRpcParam("hash") String hash) throws StorageException
+    {
+        return m_node.getPersistenceService().getTransactionMetadata(Sha256Hash.from(hash));
     }
 
     // Network RPC methods.

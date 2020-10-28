@@ -82,7 +82,6 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
     private final List<Transaction>                   m_pendingTransactions = new ArrayList<>();
     private Map<Sha256Hash, UnspentTransactionOutput> m_unspentOutputs      = new HashMap<>();
     private Set<Sha256Hash>                           m_inUseOutputs        = new HashSet<>();
-    private Sha256Hash                                m_syncedUpTo          = new Sha256Hash();
     private String                                    m_walletPath          = "";
     private IPersistenceService                       m_service             = null;
 
@@ -302,8 +301,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
             for (UnspentTransactionOutput output: outputs)
                 m_unspentOutputs.put(output.getHash(), output);
 
-            List<Transaction> transactions = service.getTransactionsForAddress(getAddress(), m_syncedUpTo);
-            m_syncedUpTo = service.getChainHead().getHash();
+            List<Transaction> transactions = service.getTransactionsForAddress(getAddress());
             getTransactions().addAll(transactions);
         }
         catch (Exception e)
@@ -525,14 +523,7 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
         buffer.get(privateKeyData);
 
         m_privateKey = new BigInteger(privateKeyData);
-
         buffer.get(m_publicKey);
-        m_syncedUpTo = new Sha256Hash(buffer);
-
-        int transactionsSize = buffer.getInt();
-
-        for (int i = 0; i < transactionsSize; ++i)
-            m_transactions.add(new Transaction(buffer));
     }
 
     /**
@@ -559,12 +550,6 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
         }
 
         data.writeBytes(m_publicKey);
-        data.writeBytes(m_syncedUpTo.serialize());
-        data.writeBytes(NumberSerializer.serialize(m_transactions.size()));
-
-        for (Transaction transaction: m_transactions)
-            data.writeBytes(transaction.serialize());
-
         return data.toByteArray();
     }
 

@@ -37,6 +37,8 @@ import com.github.arteam.simplejsonrpc.core.annotation.JsonRpcParam;
 import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.blockchain.BlockHeader;
 import com.thunderbolt.common.TimeSpan;
+import com.thunderbolt.persistence.storage.StorageException;
+import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.Transaction;
@@ -610,6 +612,21 @@ public class RpcClient
                 .id(m_currentNonce++)
                 .param("hash", hash)
                 .returnAs(Transaction.class)
+                .execute();
+    }
+
+    /**
+     * Gets the metadata for this transaction..
+     *
+     * @return the transaction metadata.
+     */
+    public TransactionMetadata getTransactionMetadata(String hash)
+    {
+        return m_client.createRequest()
+                .method("getTransactionMetadata")
+                .id(m_currentNonce++)
+                .param("hash", hash)
+                .returnAs(TransactionMetadata.class)
                 .execute();
     }
 

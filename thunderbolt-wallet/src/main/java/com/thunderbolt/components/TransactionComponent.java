@@ -27,6 +27,7 @@ package com.thunderbolt.components;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.Convert;
+import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.resources.ResourceManager;
 import com.thunderbolt.state.NodeService;
@@ -42,7 +43,9 @@ import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
 import java.awt.image.WritableRaster;
 import java.math.BigInteger;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.ResourceBundle;
@@ -64,7 +67,7 @@ public class TransactionComponent extends JComponent
     private BufferedImage m_outgoing      = null;
     private BufferedImage m_pending       = null;
     private boolean       m_isOutgoing    = false;
-    private String        m_date          = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd  -  hh:mm a"));
+    private String        m_date          = "";
     private boolean       m_isPending     = false;
 
     /**
@@ -86,6 +89,11 @@ public class TransactionComponent extends JComponent
         tint(m_pending, Theme.TRANSACTION_COMPONENT_PENDING_COLOR);
 
         m_transaction = transaction;
+
+        // For the date we must get the transaction metadata.
+        TransactionMetadata metadata = NodeService.getInstance().getTransactionMetadata(transaction.getTransactionId());
+        m_date = LocalDateTime.ofInstant(Instant.ofEpochMilli(metadata.getTimestamp()), ZoneId.systemDefault()).toString();
+
         m_amount = getAmount();
     }
 

@@ -129,6 +129,9 @@ public class StandardPersistenceService implements IPersistenceService
                 transactionMetadata.setBlockPosition(blockPointer.offset);
                 transactionMetadata.setTransactionPosition(i);
                 transactionMetadata.setHash(transaction.getTransactionId());
+                transactionMetadata.setBlockHash(block.getHeaderHash());
+                transactionMetadata.setBlockHeight(height);
+                transactionMetadata.setTimestamp(block.getHeader().getTimeStamp());
 
                 m_metadataProvider.addTransactionMetadata(transactionMetadata);
             }
@@ -272,18 +275,16 @@ public class StandardPersistenceService implements IPersistenceService
      * Gets all the transactions incoming or outgoing from this address.
      *
      * @param address The address of the wallet to get the transactions for.
-     * @param fromBlock from which block to start importing the transactions.
      *
      * @return An array with all the addresses related to a given public address.
      */
-    public List<Transaction> getTransactionsForAddress(Address address, Sha256Hash fromBlock) throws StorageException
+    public List<Transaction> getTransactionsForAddress(Address address) throws StorageException
     {
         List<Transaction> result = new ArrayList<>();
 
         BlockMetadata cursor = getChainHead();
 
-        // While we have not reach the block hash provided by the wallet, or have not reach genesis block.
-        while (!cursor.getHash().equals(fromBlock) && !cursor.getHeader().getParentBlockHash().equals(new Sha256Hash()))
+        while (!cursor.getHeader().getParentBlockHash().equals(new Sha256Hash()))
         {
             Block block = getBlock(cursor.getHash());
             List<Transaction> transactions = block.getTransactions();

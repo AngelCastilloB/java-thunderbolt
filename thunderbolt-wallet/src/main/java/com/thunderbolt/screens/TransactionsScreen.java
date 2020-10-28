@@ -27,6 +27,7 @@ package com.thunderbolt.screens;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.common.Convert;
+import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.state.NodeService;
 import com.thunderbolt.transaction.Transaction;
 import com.thunderbolt.transaction.TransactionInput;
@@ -36,7 +37,9 @@ import com.thunderbolt.wallet.Address;
 import javax.swing.*;
 import java.awt.*;
 import java.math.BigInteger;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
@@ -185,9 +188,11 @@ public class TransactionsScreen extends ScreenBase
             address = sender;
         }
 
+        // For the date we must get the transaction metadata.
+        TransactionMetadata metadata = NodeService.getInstance().getTransactionMetadata(transaction.getTransactionId());
 
         String[] entry = new String[5];
-        entry[0] = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm"));
+        entry[0] = LocalDateTime.ofInstant(Instant.ofEpochMilli(metadata.getTimestamp()), ZoneId.systemDefault()).toString();
         entry[1] = isPending ? "Pending" : "Confirmed";
         entry[2] = isOutgoing ? "To" : "From";
         entry[3] = address;

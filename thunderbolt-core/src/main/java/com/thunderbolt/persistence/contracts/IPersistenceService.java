@@ -136,11 +136,10 @@ public interface IPersistenceService
      * Gets all the transactions incoming or outgoing from this address.
      *
      * @param address The address of the wallet to get the transactions for.
-     * @param fromBlock from which block to start importing the transactions.
      *
      * @return An array with all the addresses related to a given public address.
      */
-    List<Transaction> getTransactionsForAddress(Address address, Sha256Hash fromBlock) throws StorageException;
+    List<Transaction> getTransactionsForAddress(Address address) throws StorageException;
 
     /**
      * Gets the unspent output that matches the given transaction id and index inside that transaction.
