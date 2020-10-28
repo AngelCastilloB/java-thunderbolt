@@ -35,12 +35,10 @@ import com.thunderbolt.transaction.TransactionOutput;
 import com.thunderbolt.wallet.Address;
 
 import javax.swing.*;
-import java.awt.*;
 import java.math.BigInteger;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 

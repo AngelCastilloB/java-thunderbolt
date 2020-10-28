@@ -32,10 +32,18 @@ import java.awt.*;
 
 /* IMPLEMENTATION ************************************************************/
 
+/**
+ * Screen that displays a simple message.
+ */
 public class MessageScreen extends ScreenBase
 {
     private String m_message;
 
+    /**
+     * Initializes a new instance of the MessageScreen screen.
+     *
+     * @param message The message to be displayed.
+     */
     public MessageScreen(String message)
     {
         m_message = message;

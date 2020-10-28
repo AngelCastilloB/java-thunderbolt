@@ -37,15 +37,23 @@ import java.awt.*;
 
 /* IMPLEMENTATION ************************************************************/
 
+/**
+ * This screen allows the user to encrypt the wallet.
+ */
 public class EncryptWalletScreen extends ScreenBase
 {
     private static final int BUTTON_WIDTH  = 80;
     private static final int BUTTON_HEIGHT = 35;
 
-    private JPasswordField  m_passphrase        = new JPasswordField();
-    private JPasswordField  m_confirmPassphrase = new JPasswordField();
-    private ISuccessHandler m_handler;
+    private final JPasswordField  m_passphrase        = new JPasswordField();
+    private final JPasswordField  m_confirmPassphrase = new JPasswordField();
+    private final ISuccessHandler m_handler;
 
+    /**
+     * Initializes a new instance of the EncryptWalletScreen class.
+     *
+     * @param handler The handler for when the action succeeds.
+     */
     public EncryptWalletScreen(ISuccessHandler handler)
     {
         setTitle("ENCRYPT WALLET");

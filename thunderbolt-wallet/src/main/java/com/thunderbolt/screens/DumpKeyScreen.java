@@ -47,6 +47,9 @@ import java.io.IOException;
 
 /* IMPLEMENTATION ************************************************************/
 
+/**
+ * Screen that displays the keys of the wallet.
+ */
 public class DumpKeyScreen extends ScreenBase
 {
     private static final int QR_WIDTH               = 200;
@@ -58,6 +61,9 @@ public class DumpKeyScreen extends ScreenBase
     private BufferedImage m_privateKeyQrCode = null;
     private BufferedImage m_dumpedKeys       = null;
 
+    /**
+     * Initializes a new instance of the DumpKeyScreen class.
+     */
     public DumpKeyScreen() throws WriterException
     {
         setTitle("DUMP KEYS");
