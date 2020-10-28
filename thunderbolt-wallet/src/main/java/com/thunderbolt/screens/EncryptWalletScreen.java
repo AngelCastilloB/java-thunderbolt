@@ -27,6 +27,8 @@ package com.thunderbolt.screens;
 /* IMPORTS *******************************************************************/
 
 import com.thunderbolt.components.ButtonComponent;
+import com.thunderbolt.components.InputComponent;
+import com.thunderbolt.components.InputType;
 import com.thunderbolt.state.NodeService;
 import com.thunderbolt.theme.Theme;
 import com.thunderbolt.worksapce.NotificationButtons;
@@ -45,8 +47,8 @@ public class EncryptWalletScreen extends ScreenBase
     private static final int BUTTON_WIDTH  = 80;
     private static final int BUTTON_HEIGHT = 35;
 
-    private final JPasswordField  m_passphrase        = new JPasswordField();
-    private final JPasswordField  m_confirmPassphrase = new JPasswordField();
+    private final InputComponent  m_passphrase;
+    private final InputComponent  m_confirmPassphrase;
     private final ISuccessHandler m_handler;
 
     /**
@@ -60,13 +62,17 @@ public class EncryptWalletScreen extends ScreenBase
 
         m_handler = handler;
 
-        m_passphrase.setSize(465, 50);
+        m_passphrase = new InputComponent(InputType.Password);
+        m_passphrase.setTile("Passphrase");
+        m_passphrase.setSize(550, 50);
         m_passphrase.setFont(Theme.ENCRYPT_INPUT_FIELD_FONT);
-        m_passphrase.setLocation(230, 230 - 30);
+        m_passphrase.setLocation(80, 260 - 40);
 
-        m_confirmPassphrase.setSize(465, 50);
+        m_confirmPassphrase = new InputComponent(InputType.Password);
+        m_confirmPassphrase.setTile("Repeat Passphrase");
+        m_confirmPassphrase.setSize(550, 50);
         m_confirmPassphrase.setFont(Theme.ENCRYPT_INPUT_FIELD_FONT);
-        m_confirmPassphrase.setLocation(230, 350 - 30);
+        m_confirmPassphrase.setLocation(80, 380 - 40);
 
         ButtonComponent buttonComponent = new ButtonComponent(Theme.NOTIFICATION_BUTTON_BACKGROUND,
                 Theme.NOTIFICATION_BUTTON_BACKGROUND,
@@ -75,8 +81,8 @@ public class EncryptWalletScreen extends ScreenBase
 
         buttonComponent.setSize(BUTTON_WIDTH, BUTTON_HEIGHT);
 
-        buttonComponent.setLocation(getWidth() - buttonComponent.getWidth() - 50,
-                getHeight() - buttonComponent.getHeight() - 100);
+        buttonComponent.setLocation(m_confirmPassphrase.getX() + m_confirmPassphrase.getWidth() - buttonComponent.getWidth(),
+                getHeight() - buttonComponent.getHeight() - 40);
 
         buttonComponent.setText("Encrypt");
 
@@ -145,10 +151,8 @@ public class EncryptWalletScreen extends ScreenBase
         graphics.setFont(Theme.ENCRYPT_SCREEN_FONT);
         graphics.setColor(Theme.ENCRYPT_SCREEN_TEXT_COLOR);
 
-        graphics.drawString("Enter the new passphrase to the wallet", 40, 80);
-        graphics.drawString("Please use a passphrase of ten or more random characters, or eight or more words:", 40, 150);
-        graphics.drawString("New passphrase:", 40, 230);
-        graphics.drawString("Repeat passphrase:", 40, 350);
+        graphics.drawString("Enter the new passphrase to the wallet.", 80, 80);
+        graphics.drawString("Please use a passphrase of ten or more random characters, or eight or more words:", 80, 150);
         paintChildren(graphics);
     }
 }
