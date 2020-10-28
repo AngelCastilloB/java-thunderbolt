@@ -28,7 +28,10 @@ package com.thunderbolt.screens;
 
 import com.thunderbolt.components.TransactionComponent;
 import com.thunderbolt.state.NodeService;
+import com.thunderbolt.theme.Theme;
 import com.thunderbolt.transaction.Transaction;
+
+import java.awt.*;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -95,17 +98,30 @@ public class OverviewScreen extends ScreenBase
     }
 
     /**
-     * This method will be called by the screen manager just before adding the screen to the workspace.
+     * Paints this component's children. If shouldUseBuffer is true, no component ancestor has a buffer and the component
+     * children can use a buffer if they have one. Otherwise, one ancestor has a buffer currently in use and children
+     * should not use a buffer to paint.
+     *
+     * @param graphics the Graphics context in which to paint
      */
     @Override
-    public void onShow()
+    public void paintComponent(Graphics graphics)
     {
-        super.onShow();
-
+        super.paintComponent(graphics);
 
         if (getComponentCount() == 0)
         {
-            ScreenManager.getInstance().show(new MessageScreen("No transactions found"));
+            final String message = "No transactions found";
+            Graphics2D graphics2d = (Graphics2D)graphics;
+            graphics2d.setRenderingHint(
+                    RenderingHints.KEY_TEXT_ANTIALIASING,
+                    RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            int width  = graphics.getFontMetrics().stringWidth(message);
+
+            graphics.setFont(Theme.MESSAGE_SCREEN_FONT);
+            graphics.setColor(Theme.MESSAGE_SCREEN_COLOR);
+            graphics.drawString(message, getWidth() / 2 - width, getHeight() / 2);
         }
     }
 }

@@ -162,7 +162,6 @@ public class Blockchain
             return false;
         }
 
-
         if (!areTransactionsValid(block.getTransactions(), newHeight))
         {
             s_logger.error("Block rejected. One or more transactions are invalid.");

@@ -191,13 +191,6 @@ public class StandardTransactionValidator implements ITransactionValidator
             return false;
         }
 
-        if (totalOutputValue.longValue() < totalInputValue.longValue())
-        {
-            s_logger.warn(
-                    "The sum of the outputs ({}) is lower than the sum of the inputs ({}).",
-                    totalOutputValue.longValue(), totalInputValue.longValue());
-        }
-
         return true;
     }
 

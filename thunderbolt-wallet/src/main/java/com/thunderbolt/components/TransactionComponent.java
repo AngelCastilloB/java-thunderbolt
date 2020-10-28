@@ -90,9 +90,17 @@ public class TransactionComponent extends JComponent
 
         m_transaction = transaction;
 
-        // For the date we must get the transaction metadata.
-        TransactionMetadata metadata = NodeService.getInstance().getTransactionMetadata(transaction.getTransactionId());
-        m_date = LocalDateTime.ofInstant(Instant.ofEpochMilli(metadata.getTimestamp()), ZoneId.systemDefault()).toString();
+        // For the date we must get the transaction metadata. But if the transaction is pending, the metadata
+        // does not exists yet, so we just write pending.
+        if (!isPending)
+        {
+            TransactionMetadata metadata = NodeService.getInstance().getTransactionMetadata(transaction.getTransactionId());
+            m_date = LocalDateTime.ofInstant(Instant.ofEpochSecond(metadata.getTimestamp()), ZoneId.systemDefault()).toString();
+        }
+        else
+        {
+            m_date = "Pending";
+        }
 
         m_amount = getAmount();
     }

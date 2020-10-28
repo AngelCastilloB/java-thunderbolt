@@ -28,6 +28,9 @@ package com.thunderbolt.transaction;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.contracts.ISerializable;
 import com.thunderbolt.common.NumberSerializer;
+import com.thunderbolt.network.ProtocolException;
+import com.thunderbolt.persistence.contracts.IPersistenceService;
+import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Sha256Digester;
 import com.thunderbolt.security.Sha256Hash;
 import org.slf4j.Logger;
@@ -37,6 +40,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -333,6 +337,41 @@ public class Transaction implements ISerializable
     public boolean isCoinbase()
     {
         return m_inputs.get(0).isCoinBase();
+    }
+
+    /**
+     * Gets the amount that will be paid by the miner as a fee for including this transaction.
+     *
+     * @param service The persistence service.
+     *
+     * @return The fee.
+     */
+    public BigInteger getMinersFee(IPersistenceService service) throws ProtocolException
+    {
+        BigInteger totalOutput = BigInteger.ZERO;
+        BigInteger totalInput  = BigInteger.ZERO;
+
+        for (TransactionOutput out : getOutputs())
+            totalOutput = totalOutput.add(out.getAmount());
+
+        for (TransactionInput input : getInputs())
+        {
+            UnspentTransactionOutput output =
+                    service.getUnspentOutput(input.getReferenceHash(), input.getIndex());
+
+            if (output == null)
+                throw new InvalidParameterException(
+                        "Invalid transaction. This transaction references an output that does not exists.");
+
+            totalInput = totalInput.add(output.getOutput().getAmount());
+        }
+
+        BigInteger fee = totalInput.subtract(totalOutput);
+
+        if (fee.longValue() < 0)
+            throw new ProtocolException("Invalid transaction fee.");
+
+        return fee;
     }
 
     /**

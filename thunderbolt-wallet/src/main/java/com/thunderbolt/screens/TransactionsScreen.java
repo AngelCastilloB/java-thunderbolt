@@ -186,11 +186,20 @@ public class TransactionsScreen extends ScreenBase
             address = sender;
         }
 
-        // For the date we must get the transaction metadata.
-        TransactionMetadata metadata = NodeService.getInstance().getTransactionMetadata(transaction.getTransactionId());
-
         String[] entry = new String[5];
-        entry[0] = LocalDateTime.ofInstant(Instant.ofEpochMilli(metadata.getTimestamp()), ZoneId.systemDefault()).toString();
+
+        if (!isPending)
+        {
+            // For the date we must get the transaction metadata. But if the transaction is pending, the metadata
+            // does not exists yet, so we just write pending.
+            TransactionMetadata metadata = NodeService.getInstance().getTransactionMetadata(transaction.getTransactionId());
+            entry[0] = LocalDateTime.ofInstant(Instant.ofEpochSecond(metadata.getTimestamp()), ZoneId.systemDefault()).toString();
+        }
+        else
+        {
+            entry[0] = "Pending";
+        }
+
         entry[1] = isPending ? "Pending" : "Confirmed";
         entry[2] = isOutgoing ? "To" : "From";
         entry[3] = address;

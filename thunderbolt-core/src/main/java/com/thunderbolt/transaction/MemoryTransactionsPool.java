@@ -230,7 +230,7 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
 
         try
         {
-            entry = new TransactionPoolEntry(transaction, getMinersFee(transaction));
+            entry = new TransactionPoolEntry(transaction, transaction.getMinersFee(m_persistenceService).longValue());
             m_memPool.put(transaction.getTransactionId(), entry);
         }
         catch (ProtocolException e)
@@ -365,7 +365,8 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
         try
         {
             m_orphanTransactions.put(
-                    transaction.getTransactionId(), new TransactionPoolEntry(transaction, getMinersFee(transaction)));
+                    transaction.getTransactionId(), new TransactionPoolEntry(transaction,
+                            transaction.getMinersFee(m_persistenceService).longValue()));
         }
         catch (ProtocolException e)
         {
@@ -423,39 +424,6 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
         }
 
         return false;
-    }
-
-    /**
-     * Gets the amount that will be paid by the miner as a fee for including this transaction.
-     *
-     * @return The fee.
-     */
-    public long getMinersFee(Transaction transaction) throws ProtocolException
-    {
-        BigInteger totalOutput = BigInteger.ZERO;
-        BigInteger totalInput  = BigInteger.ZERO;
-
-        for (TransactionOutput out : transaction.getOutputs())
-            totalOutput = totalOutput.add(out.getAmount());
-
-        for (TransactionInput input : transaction.getInputs())
-        {
-            UnspentTransactionOutput output =
-                    m_persistenceService.getUnspentOutput(input.getReferenceHash(), input.getIndex());
-
-            if (output == null)
-                throw new InvalidParameterException(
-                        "Invalid transaction. This transaction references an output that does not exists.");
-
-            totalInput = totalInput.add(output.getOutput().getAmount());
-        }
-
-        long fee = totalInput.subtract(totalOutput).longValue();
-
-        if (fee < 0)
-            throw new ProtocolException("Invalid transaction fee.");
-
-        return fee;
     }
 
     /**

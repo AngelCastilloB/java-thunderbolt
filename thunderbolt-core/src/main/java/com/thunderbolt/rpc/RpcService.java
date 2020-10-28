@@ -39,6 +39,7 @@ import com.thunderbolt.common.TimeSpan;
 import com.thunderbolt.configuration.Configuration;
 import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.Node;
+import com.thunderbolt.network.ProtocolException;
 import com.thunderbolt.network.messages.structures.NetworkAddress;
 import com.thunderbolt.network.peers.Peer;
 import com.thunderbolt.persistence.storage.StorageException;
@@ -447,7 +448,7 @@ public class RpcService
      * @return The information necessary to generate a new block.
      */
     @JsonRpcMethod("getWork")
-    public MinerWork getWork()
+    public MinerWork getWork() throws ProtocolException
     {
         MinerWork work = new MinerWork();
 
@@ -461,13 +462,19 @@ public class RpcService
 
         coinbase.getInputs().add(coinbaseInput);
 
-        coinbase.getOutputs().add(
-                new TransactionOutput(m_node.getBlockchain().getNetworkParameters().getBlockSubsidy(height),
-                        OutputLockType.SingleSignature, m_wallet.getAddress().getPublicHash()));
-
         // Get the max amount of transactions but reserve some space for the coinbase transaction.
         List<Transaction> transactions = m_node.getTransactionsPool().pickTransactions(
                 m_node.getBlockchain().getNetworkParameters().getBlockMaxSize() - coinbase.serialize().length);
+
+        BigInteger fee = BigInteger.ZERO;
+
+        for (Transaction transaction: transactions)
+            fee = fee.add(transaction.getMinersFee(m_node.getPersistenceService()));
+
+        // We add as an output of the coinbase transaction the block subsidy plus the miners fee.
+        coinbase.getOutputs().add(
+                new TransactionOutput(m_node.getBlockchain().getNetworkParameters().getBlockSubsidy(height).add(fee),
+                        OutputLockType.SingleSignature, m_wallet.getAddress().getPublicHash()));
 
         work.setHeight(height);
         work.setCoinbaseTransaction(coinbase);
