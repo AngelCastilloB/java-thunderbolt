@@ -25,13 +25,18 @@ package com.thunderbolt.transaction;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.blockchain.contracts.IOutputsUpdateListener;
 import com.thunderbolt.network.ProtocolException;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
+import com.thunderbolt.persistence.storage.StorageException;
+import com.thunderbolt.persistence.structures.BlockMetadata;
 import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.contracts.ITransactionsChangeListener;
 import com.thunderbolt.transaction.contracts.ITransactionsPool;
+import com.thunderbolt.transaction.parameters.SingleSignatureParameters;
+import com.thunderbolt.wallet.Address;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -194,19 +199,7 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
      * @param transaction The transaction to be added.
      */
     @Override
-    public boolean addTransaction(Transaction transaction)
-    {
-        return addTransaction(transaction, true);
-    }
-
-    /**
-     * Adds a transaction to the memory pool.
-     *
-     * @param transaction The transaction to be added.
-     * @param notify Whether to notify or not the listeners.
-     */
-    @Override
-    synchronized public boolean addTransaction(Transaction transaction, boolean notify)
+    synchronized public boolean addTransaction(Transaction transaction)
     {
         if (containsTransaction(transaction.getTransactionId()))
             return false;
@@ -241,11 +234,8 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
 
         m_size = m_size.add(BigInteger.valueOf(entry.getSize()));
 
-        if (notify)
-        {
-            for (ITransactionsChangeListener listener : m_listeners)
-                listener.onTransactionAdded(transaction);
-        }
+        for (ITransactionsChangeListener listener : m_listeners)
+            listener.onTransactionAdded(transaction);
 
         // We should never reach this point; however if so; removes the 10 transactions with the lowest fee per byte.
         if (m_memPool.size() > MAX_TRANSACTION_COUNT)
@@ -285,6 +275,53 @@ public class MemoryTransactionsPool implements ITransactionsPool, IOutputsUpdate
         m_orphanTransactions.remove(id);
 
         return true;
+    }
+
+    /**
+     * Gets all the transactions incoming from this address.
+     *
+     * @param address The address of the wallet to get the transactions for.
+     *
+     * @return An array with all the addresses related to a given public address.
+     */
+    @Override
+    public List<Transaction> getTransactionsForAddress(Address address)
+    {
+        List<Transaction> result = new ArrayList<>();
+
+        for (TransactionPoolEntry entry: m_memPool.values())
+        {
+            Transaction transaction = entry.getTransaction();
+            boolean detected = false;
+            for (TransactionOutput output : transaction.getOutputs())
+            {
+                if (Arrays.equals(output.getLockingParameters(), address.getPublicHash()))
+                {
+                    result.add(transaction);
+                    detected = true;
+                    break;
+                }
+            }
+
+            // We already know this transaction mention us, so we do not need to keep looking forward.
+            if (detected)
+                continue;
+
+            for (TransactionInput input : transaction.getInputs())
+            {
+                if (input.isCoinBase())
+                    continue;
+
+                SingleSignatureParameters params = new SingleSignatureParameters(input.getUnlockingParameters());
+                if (Arrays.equals(params.getPublicKeyHash(), address.getPublicHash()))
+                {
+                    result.add(transaction);
+                    break;
+                }
+            }
+        }
+
+        return result;
     }
 
     /**

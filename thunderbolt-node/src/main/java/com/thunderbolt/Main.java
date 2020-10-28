@@ -110,7 +110,7 @@ public class Main
                 WALLET_PATH : Paths.get(Configuration.getWalletPath());
 
         Wallet wallet = new Wallet(walletPath);
-        wallet.initialize(persistenceService);
+        wallet.initialize(persistenceService, memPool);
 
         memPool.addTransactionsChangedListener(wallet);
         blockchain.addBlockchainUpdateListener(wallet);

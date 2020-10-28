@@ -742,7 +742,7 @@ public class Node implements IChainHeadUpdateListener, ITransactionsChangeListen
                     {
                         if (transaction.isValid())
                         {
-                            m_memPool.addTransaction(transaction, !m_isInitialXtDownload);
+                            m_memPool.addTransaction(transaction);
                         }
                         else
                         {

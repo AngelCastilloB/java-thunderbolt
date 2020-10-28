@@ -27,6 +27,7 @@ package com.thunderbolt.transaction.contracts;
 
 import com.thunderbolt.security.Sha256Hash;
 import com.thunderbolt.transaction.Transaction;
+import com.thunderbolt.wallet.Address;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -94,16 +95,6 @@ public interface ITransactionsPool
     boolean addTransaction(Transaction transaction);
 
     /**
-     * Adds a transaction to the pool.
-     *
-     * @param transaction The transaction to be added.
-     * @param notify      whether notify all the listeners if the transaction was added correctly.
-     *
-     * @return True if the transaction was added; otherwise; false.
-     */
-    boolean addTransaction(Transaction transaction, boolean notify);
-
-    /**
      * Gets whether this transaction is already in the memory pool.
      *
      * @param id The id of the transaction..
@@ -120,6 +111,15 @@ public interface ITransactionsPool
      * @return True if the transaction was removed; otherwise; false.
      */
     boolean removeTransaction(Sha256Hash id);
+
+    /**
+     * Gets all the transactions incoming  from this address.
+     *
+     * @param address The address of the wallet to get the transactions for.
+     *
+     * @return An array with all the addresses related to a given public address.
+     */
+    List<Transaction> getTransactionsForAddress(Address address);
 
     /**
      * Adds a new listener to the list of transactions added listeners. This listener will be notified when a transaction

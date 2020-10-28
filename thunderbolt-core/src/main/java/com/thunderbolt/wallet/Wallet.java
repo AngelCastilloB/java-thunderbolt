@@ -54,6 +54,7 @@ import com.thunderbolt.transaction.Transaction;
 import com.thunderbolt.transaction.TransactionInput;
 import com.thunderbolt.transaction.TransactionOutput;
 import com.thunderbolt.transaction.contracts.ITransactionsChangeListener;
+import com.thunderbolt.transaction.contracts.ITransactionsPool;
 import com.thunderbolt.transaction.parameters.SingleSignatureParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -287,10 +288,11 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
      * Loads all the unspent output related to this wallet.
      *
      * @param service The persistence service provider.
+     * @param transactionPool The transaction pool.
      *
      * @return True if the initialization was successful; otherwise; false.
      */
-    public boolean initialize(IPersistenceService service)
+    public boolean initialize(IPersistenceService service, ITransactionsPool transactionPool)
     {
         try
         {
@@ -303,6 +305,9 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
 
             List<Transaction> transactions = service.getTransactionsForAddress(getAddress());
             getTransactions().addAll(transactions);
+
+            List<Transaction> pending = transactionPool.getTransactionsForAddress(getAddress());
+            getPendingTransactions().addAll(pending);
         }
         catch (Exception e)
         {
