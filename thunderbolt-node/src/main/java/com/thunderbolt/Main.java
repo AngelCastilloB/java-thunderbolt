@@ -52,11 +52,15 @@ import com.thunderbolt.wallet.Wallet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.InetSocketAddress;
+import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.GeneralSecurityException;
+import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -86,6 +90,7 @@ public class Main
     // Static variables
     private static final Logger s_logger     = LoggerFactory.getLogger(Main.class);
     private static HttpServer   s_httpServer = null;
+    private static Node         s_node       = null;
 
     /**
      * Application entry point.
@@ -135,10 +140,12 @@ public class Main
             return;
         }
 
-        Node node = new Node(NetworkParameters.mainNet(), blockchain, memPool, peerManager, persistenceService);
+        s_node = new Node(NetworkParameters.mainNet(), blockchain, memPool, peerManager, persistenceService);
 
-        startRpcService(node, wallet);
-        node.run();
+        addToSystemTray();
+
+        startRpcService(s_node, wallet);
+        s_node.run();
 
         s_httpServer.stop(HTTP_CLOSE_DELAY);
         s_logger.info("Node has stopped.");
@@ -197,5 +204,49 @@ public class Main
                 node.shutdown();
             }
         }).start();
+    }
+
+    /**
+     * Adds the application to the system tray.
+     */
+    private static void addToSystemTray() throws IOException
+    {
+        if (SystemTray.isSupported())
+        {
+            SystemTray tray = SystemTray.getSystemTray();
+
+            ActionListener listener = e ->
+            {
+                s_node.shutdown();
+                s_logger.info("Node has stopped.");
+                System.exit(EXIT_CODE_SUCCESS);
+            };
+
+            PopupMenu popup = new PopupMenu();
+            MenuItem defaultItem = new MenuItem("Stop");
+            defaultItem.addActionListener(listener);
+            popup.add(defaultItem);
+
+            final URL resource = Main.class.getClassLoader().getResource("thunderbolt_icon.png");
+            final TrayIcon trayIcon = new TrayIcon(
+                    Toolkit.getDefaultToolkit().getImage(resource), "Thunderbolt", popup);
+
+            trayIcon.addActionListener(listener);
+
+            try
+            {
+                tray.add(trayIcon);
+            }
+            catch (AWTException e)
+            {
+                System.err.println(e);
+            }
+        }
+        else
+        {
+            s_logger.info("System tray not supported.");
+            s_node.shutdown();
+            System.exit(EXIT_CODE_SUCCESS);
+        }
     }
 }
