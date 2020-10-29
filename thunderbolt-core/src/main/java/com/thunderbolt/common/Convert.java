@@ -23,7 +23,7 @@
  */
 package com.thunderbolt.common;
 
-/* IMPLEMENTATION ************************************************************/
+/* IMPORTS ********************************************************************/
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,7 +32,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-/* IMPORTS ********************************************************************/
+/* IMPLEMENTATION *************************************************************/
 
 /**
  * Utility class for data conventions.

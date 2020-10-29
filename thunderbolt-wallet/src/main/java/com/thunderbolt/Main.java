@@ -26,14 +26,17 @@ package com.thunderbolt;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.ApplicationInfo;
 import com.thunderbolt.configuration.Configuration;
 import com.thunderbolt.screens.ScreenManager;
 import com.thunderbolt.state.NodeService;
 import com.thunderbolt.worksapce.StandardWorkspace;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Properties;
 
 /* IMPLEMENTATION ************************************************************/
 
@@ -60,13 +63,15 @@ public class Main
      */
     public static void main(String[] args) throws IOException
     {
+        ApplicationInfo.load(Main.class.getClassLoader(), "build.properties");
         Configuration.initialize(CONFIG_FILE_PATH.toString());
 
         StandardWorkspace workspace = new StandardWorkspace(STARTING_X, STARTING_Y, WIDTH, HEIGHT);
         ScreenManager.getInstance().setWorkspaceProvider(workspace);
         NodeService.getInstance().start();
 
-        workspace.setTitle("Thunderbolt - Wallet");
+        workspace.setTitle(String.format("Thunderbolt - Wallet (v-%s)", ApplicationInfo.getVersion()));
         workspace.display();
+
     }
 }
