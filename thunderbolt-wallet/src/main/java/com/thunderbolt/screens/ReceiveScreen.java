@@ -97,7 +97,7 @@ public class ReceiveScreen extends ScreenBase
         );
 
         button.setSize(DOWNLOAD_BUTTON_WIDTH, DOWNLOAD_BUTTON_HEIGHT);
-        button.setLocation(getWidth() / 2 + m_qrCode.getWidth() / 2, m_qrCode.getHeight() + 15 - button.getHeight());
+        button.setLocation(getWidth() / 2 + m_qrCode.getWidth() / 2, 90 + m_qrCode.getHeight() - 60);
 
         button.addButtonClickListener(() -> {
             try
@@ -165,9 +165,9 @@ public class ReceiveScreen extends ScreenBase
         String message = "Your Address";
         int width = graphics2d.getFontMetrics().stringWidth(message);
 
-        graphics.drawString(message, getWidth() / 2 - width / 2, 40);
+        graphics.drawString(message, getWidth() / 2 - width / 2, 80);
 
-        graphics.drawImage(m_qrCode, getWidth() / 2 - m_qrCode.getWidth() / 2, 50, null);
+        graphics.drawImage(m_qrCode, getWidth() / 2 - m_qrCode.getWidth() / 2, 90, null);
     }
 
     /**

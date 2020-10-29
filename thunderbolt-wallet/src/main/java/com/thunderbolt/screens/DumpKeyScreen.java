@@ -92,20 +92,21 @@ public class DumpKeyScreen extends ScreenBase
         publicKeyTextField.setSize(getWidth() - 50, 50);
         publicKeyTextField.setText(publicKey);
         publicKeyTextField.setFont(Theme.TITLE_FONT);
-        publicKeyTextField.setLocation(40, 220);
+        publicKeyTextField.setLocation(getWidth() / 2 - publicKeyTextField.getWidth() / 2, 220);
         publicKeyTextField.setEditable(false);
         publicKeyTextField.setBorder(BorderFactory.createEmptyBorder());
         publicKeyTextField.setBackground(Theme.FOREGROUND_COLOR);
+        publicKeyTextField.setHorizontalAlignment(0);
 
         JTextField privateKeyTextField = new JTextField();
-        privateKeyTextField.setSize(getWidth() - 100, 50);
+        privateKeyTextField.setSize(getWidth() - 50, 50);
         privateKeyTextField.setText(privateKey);
         privateKeyTextField.setFont(Theme.TITLE_FONT);
-        privateKeyTextField.setLocation(getWidth() - privateKeyTextField.getWidth() - 5, getHeight() - privateKeyTextField.getHeight() - 2);
+        privateKeyTextField.setLocation(getWidth()  / 2 - privateKeyTextField.getWidth() / 2, getHeight() - privateKeyTextField.getHeight() - 8);
         privateKeyTextField.setEditable(false);
         privateKeyTextField.setBorder(BorderFactory.createEmptyBorder());
         privateKeyTextField.setBackground(Theme.FOREGROUND_COLOR);
-
+        privateKeyTextField.setHorizontalAlignment(0);
 
         ButtonComponent button = new ButtonComponent(
                 ResourceManager.loadImage("images/download.png"),
@@ -180,16 +181,19 @@ public class DumpKeyScreen extends ScreenBase
         graphics.setColor(Theme.PRIMARY_TEXT_COLOR);
         graphics.setFont(Theme.TITLE_FONT);
 
-        graphics.drawImage(m_publicKeyQrCode, 15, 40, null);
+        graphics.drawImage(m_publicKeyQrCode, getWidth() / 2 - m_publicKeyQrCode.getWidth() / 2, 40, null);
+
         String message = "PUBLIC KEY";
-        graphics.drawString(message, 40, 40);
+        int titleWidth = graphics2d.getFontMetrics().stringWidth(message);
+        graphics.drawString(message, getWidth() / 2 - titleWidth / 2, 40);
 
         graphics.setColor(Theme.PRIMARY_TEXT_COLOR);
         graphics.setFont(Theme.TITLE_FONT);
 
-        graphics.drawImage(m_privateKeyQrCode, getWidth() - m_privateKeyQrCode.getWidth() - 5, 300 , null);
+        graphics.drawImage(m_privateKeyQrCode, getWidth() / 2 - m_privateKeyQrCode.getWidth() / 2, 300 , null);
         message = "PRIVATE KEY";
-        graphics.drawString(message, getWidth() - 130, 300);
+        titleWidth = graphics2d.getFontMetrics().stringWidth(message);
+        graphics.drawString(message, getWidth() / 2 - titleWidth / 2, 300);
     }
 
     /**

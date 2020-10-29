@@ -56,8 +56,8 @@ public class MenuComponent extends JComponent implements INodeStatusChangeListen
     private static final int SEND_BUTTON_POSITION         = 340;
     private static final int RECEIVE_BUTTON_POSITION      = 390;
     private static final int TRANSACTIONS_BUTTON_POSITION = 440;
-    private static final int ENCRYPT_KEYS_BUTTON_POSITION = 490;
-    private static final int DUMP_BUTTON_POSITION         = 540;
+    private static final int DUMP_BUTTON_POSITION         = 490;
+    private static final int ENCRYPT_KEYS_BUTTON_POSITION = 540;
 
     private final Image           m_image;
     private final ButtonComponent m_overviewButton     = new ButtonComponent(ResourceManager.loadImage("images/overview.png"), "Overview");
