@@ -262,11 +262,7 @@ public class GekkoScienceNewpacMiner implements IMiner
                 if (m_jobQueue.size() > 0 && m_isActive)
                 {
                     Job job = m_jobQueue.take();
-                    s_logger.info("Starting Job {}:\n - Midstate: {}\n - Data:     {}\n - Target:   {}",
-                            job.getId(),
-                            Convert.toHexString(job.getMidstate()),
-                            Convert.toHexString(job.getData()),
-                            job.getTarget().toString());
+                    s_logger.info("Starting Job {}", job.getId());
 
                     byte[] data = new byte[BLOCK_TAIL_SIZE];
                     byte[] midstate = job.getMidstate();

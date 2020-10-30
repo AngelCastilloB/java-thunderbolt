@@ -100,11 +100,7 @@ public class NodeHttpHandler implements HttpHandler
 
         String request = new String(httpExchange.getRequestBody().readAllBytes());
 
-        s_logger.debug(request);
-
         String response = m_rpcServer.handle(request, m_nodeService);
-
-        s_logger.debug(response);
 
         httpExchange.sendResponseHeaders(RESPONSE_CODE_OK, response.length());
         outputStream.write(response.getBytes());

@@ -87,6 +87,12 @@ public class Main
         s_client = new RpcClient(Configuration.getRpcUser(), Configuration.getRpcPassword(),
                 String.format("http://localhost:%s", Configuration.getRpcPort()));
 
+        if (!s_client.isNodeOnline())
+        {
+            s_logger.info("Thunderbolt Node is down. Please first start the node.");
+            System.exit(0);
+        }
+
         s_currentHeight = s_client.getBlockCount();
 
         if (args.length == 0 || args[0].equals("cpu"))
@@ -110,7 +116,12 @@ public class Main
     {
         s_miner = new GekkoScienceNewpacMiner();
         s_miner.addJobFinishListener(Main::onJobFinish);
-        s_miner.start();
+        if (!s_miner.start())
+        {
+            s_logger.info("Could not start the ASIC miner.");
+            System.exit(0);
+        };
+
         s_elapsedSinceSolve.restart();
 
         while (true)

@@ -86,7 +86,7 @@ public class Main
     static private final String REVERT_PATTERN    = "revert%05d.bin";
     private static final int    RPC_THREAD_COUNT  = 2;
     private static final int    HTTP_CLOSE_DELAY  = 1000; //ms
-    private static final int    EXIT_CODE_SUCCESS = 0; //ms
+    private static final int    EXIT_CODE_SUCCESS = 0;
 
     // Static variables
     private static final Logger s_logger     = LoggerFactory.getLogger(Main.class);
