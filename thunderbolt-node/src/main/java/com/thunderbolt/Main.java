@@ -32,6 +32,7 @@ import com.sun.net.httpserver.HttpServer;
 import com.thunderbolt.blockchain.Blockchain;
 import com.thunderbolt.blockchain.StandardBlockchainCommitter;
 import com.thunderbolt.blockchain.contracts.IBlockchainCommitter;
+import com.thunderbolt.common.ApplicationInfo;
 import com.thunderbolt.configuration.Configuration;
 import com.thunderbolt.network.Node;
 import com.thunderbolt.network.NetworkParameters;
@@ -99,6 +100,9 @@ public class Main
      */
     public static void main(String[] args) throws IOException, StorageException
     {
+        ApplicationInfo.load(Main.class.getClassLoader(), "build.properties");
+        s_logger.info("Thunderbolt Node Version {} started.", ApplicationInfo.getVersion());
+
         Configuration.initialize(CONFIG_FILE_PATH.toString());
 
         IPersistenceService           persistenceService   = createPersistenceService();

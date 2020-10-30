@@ -7,6 +7,10 @@
     <packaging>jar</packaging>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <timestamp>${maven.build.timestamp}</timestamp>
+        <maven.build.timestamp.format>yyyy-MM-dd HH:mm a z
+        </maven.build.timestamp.format>
     </properties>
     <name>thunderbolt-core</name>
     <url>https://github.com/AngelCastilloB/java-thunderbolt</url>

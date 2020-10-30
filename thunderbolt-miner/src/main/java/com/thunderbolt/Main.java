@@ -20,6 +20,7 @@ package com.thunderbolt;
 
 import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.blockchain.BlockHeader;
+import com.thunderbolt.common.ApplicationInfo;
 import com.thunderbolt.common.Convert;
 import com.thunderbolt.common.NumberSerializer;
 import com.thunderbolt.common.Stopwatch;
@@ -78,6 +79,9 @@ public class Main
      */
     public static void main(String[] args) throws InterruptedException, IOException
     {
+        ApplicationInfo.load(Main.class.getClassLoader(), "build.properties");
+        s_logger.info("Thunderbolt Miner Version {} started.", ApplicationInfo.getVersion());
+
         Configuration.initialize(CONFIG_FILE_PATH.toString());
 
         s_client = new RpcClient(Configuration.getRpcUser(), Configuration.getRpcPassword(),
