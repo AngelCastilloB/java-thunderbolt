@@ -245,8 +245,6 @@ public class Main
         else
         {
             s_logger.info("System tray not supported.");
-            s_node.shutdown();
-            System.exit(EXIT_CODE_SUCCESS);
         }
     }
 }
