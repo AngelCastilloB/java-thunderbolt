@@ -48,7 +48,7 @@ public class StandardPeerDiscoverer implements IPeerDiscoverer
     {
         List<InetSocketAddress> addresses = new LinkedList<>();
 
-        addresses.add(new InetSocketAddress("192.168.0.33", Configuration.getNodePort()));
+        addresses.add(new InetSocketAddress("35.206.239.89", Configuration.getNodePort()));
 
         return addresses;
     }

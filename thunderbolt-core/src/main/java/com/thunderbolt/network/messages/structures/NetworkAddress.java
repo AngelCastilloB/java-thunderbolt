@@ -157,7 +157,7 @@ public class NetworkAddress implements ISerializable
     {
         boolean isPrivate =
             m_address[15] == 10 ||
-           /* (m_address[15] == (byte)192 && m_address[14] == (byte)168) ||*/ //TODO: Uncomment this.
+            (m_address[15] == (byte)192 && m_address[14] == (byte)168) ||
              m_address[15] == 127 ||
              m_address[15] == 0;
 
