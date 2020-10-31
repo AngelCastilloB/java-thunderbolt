@@ -155,7 +155,7 @@ public class TransactionsScreen extends ScreenBase
             }
             else
             {
-                sender = new Address(NodeService.getInstance().getAddress().getPrefix(),
+                sender = Address.fromPubKeyHash(NodeService.getInstance().getAddress().getPrefix(),
                         output.getLockingParameters()).toString();
             }
         }
@@ -168,7 +168,7 @@ public class TransactionsScreen extends ScreenBase
             }
             else
             {
-                Address recipient = new Address(NodeService.getInstance().getAddress().getPrefix(),
+                Address recipient = Address.fromPubKeyHash(NodeService.getInstance().getAddress().getPrefix(),
                         output.getLockingParameters());
                 address = recipient.toString();
             }

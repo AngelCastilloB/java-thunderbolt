@@ -146,7 +146,7 @@ public class TransactionComponent extends JComponent
             }
             else
             {
-                sender = new Address(NodeService.getInstance().getAddress().getPrefix(),
+                sender = Address.fromPubKeyHash(NodeService.getInstance().getAddress().getPrefix(),
                         output.getLockingParameters()).toString();
             }
         }
@@ -159,7 +159,7 @@ public class TransactionComponent extends JComponent
             }
             else
             {
-                Address recipient = new Address(NodeService.getInstance().getAddress().getPrefix(),
+                Address recipient = Address.fromPubKeyHash(NodeService.getInstance().getAddress().getPrefix(),
                         output.getLockingParameters());
                 m_address = recipient.toString();
             }

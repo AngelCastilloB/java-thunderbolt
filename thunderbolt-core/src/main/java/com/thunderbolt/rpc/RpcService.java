@@ -266,11 +266,20 @@ public class RpcService
      * @return The pending balance.
      */
     @JsonRpcMethod("getPendingBalance")
-    public double getPendingBalance(@JsonRpcParam("address") String address)
+    public double getPendingBalance(@JsonRpcOptional @JsonRpcParam("address") @Nullable String address)
     {
         BigInteger total = BigInteger.ZERO;
 
-        Address addrs = new Address(address);
+        Address addrs = null;
+
+        if (address == null)
+        {
+            addrs =  m_wallet.getAddress();
+        }
+        else
+        {
+            addrs =  new Address(address);
+        }
 
         for (Transaction transaction : m_node.getTransactionsPool().getAllTransactions())
         {

@@ -1,1 +1,1 @@
-start java -jar thunderbolt-node-1.0-SNAPSHOT-jar-with-dependencies.jar
+start java -jar bin/thunderbolt-node-1.0-SNAPSHOT-jar-with-dependencies.jar

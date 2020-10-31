@@ -26,7 +26,6 @@ package com.thunderbolt.screens;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.common.Convert;
 import com.thunderbolt.components.ButtonComponent;
 import com.thunderbolt.components.InputComponent;
 import com.thunderbolt.components.InputType;

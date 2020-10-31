@@ -46,6 +46,13 @@ public class Address
 
     /**
      * Initializes a new instance of the Address class.
+     */
+    public Address()
+    {
+    }
+
+    /**
+     * Initializes a new instance of the Address class.
      *
      * @param prefix The prefix of the wallet, this prefix will depend on the network the wallet belongs too and the
      *               type of wallet.
@@ -62,6 +69,28 @@ public class Address
         m_address[0] = prefix;
         System.arraycopy(publicHash, 0, m_address, PREFIX_SIZE, publicHash.length);
         System.arraycopy(checksum, 0, m_address, PREFIX_SIZE + publicHash.length, checksum.length);
+    }
+
+    /**
+     * Creates an address from a public key hash.
+     *
+     * @param prefix The network prefix.
+     * @param hash The hash.
+     *
+     * @return The address.
+     */
+    static public Address fromPubKeyHash(byte prefix, byte[] hash)
+    {
+        Address address = new Address();
+
+        byte[] checksum   = computeCheckSum(prefix, hash);
+        address.m_address = new byte[PREFIX_SIZE + hash.length + checksum.length];
+
+        address.m_address[0] = prefix;
+        System.arraycopy(hash, 0, address.m_address, PREFIX_SIZE, hash.length);
+        System.arraycopy(checksum, 0, address.m_address, PREFIX_SIZE + hash.length, checksum.length);
+
+        return address;
     }
 
     /**
