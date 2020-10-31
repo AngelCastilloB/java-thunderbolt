@@ -55,7 +55,7 @@ public class GetTransactionPoolSizeCommand implements ICommand
     public boolean execute(String[] args)
     {
         long result = s_client.getTransactionPoolSize();
-        System.out.printf("%s bytes", result);
+        System.out.printf("%s bytes%n", result);
         return true;
     }
 
