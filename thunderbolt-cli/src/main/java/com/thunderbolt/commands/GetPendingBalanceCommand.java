@@ -26,40 +26,50 @@ package com.thunderbolt.commands;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.common.Convert;
 import com.thunderbolt.contracts.ICommand;
 import com.thunderbolt.rpc.RpcClient;
-import com.thunderbolt.transaction.Transaction;
 
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Gets the transaction with the given hash.
+ * Gets the specified address pending balance. If no address is specified. The pending balance of the current active wallet
+ * is returned.
  */
-public class GetTransactionCommand implements ICommand
+public class GetPendingBalanceCommand implements ICommand
 {
     private RpcClient s_client = null;
 
     /**
-     * Initializes an instance of the GetTransactionCommand class.
+     * Initializes an instance of the GetPendingBalanceCommand class.
      */
-    public GetTransactionCommand(RpcClient client)
+    public GetPendingBalanceCommand(RpcClient client)
     {
         s_client = client;
     }
 
     /**
-     * Executes the given command.
+     * Gets the specified address balance. If no address is specified. The balance of the current active wallet
+     * is returned.
      *
-     * @return true if the command could be executed; otherwise; false.
+     * @return The balance.
      */
     @Override
     public boolean execute(String[] args)
     {
-        if (args.length != 2)
-            return false;
+        double result = 0;
 
-        Transaction result = s_client.getTransaction(args[1]);
-        System.out.printf("%s", result);
+        if (args.length == 1)
+        {
+            result = s_client.getBalance(null);
+        }
+        else
+        {
+            result = s_client.getPendingBalance(args[1]);
+        }
+
+        System.out.println(Convert.stripTrailingZeros(result));
+
         return true;
     }
 
@@ -71,7 +81,7 @@ public class GetTransactionCommand implements ICommand
     @Override
     public String getName()
     {
-        return "getTransaction";
+        return "getPendingBalance";
     }
 
     /**
@@ -82,7 +92,8 @@ public class GetTransactionCommand implements ICommand
     @Override
     public String getDescription()
     {
-        return "  Gets the transaction with the given hash.\n" +
-               "  ARGUMENTS: <TRANSACTION_HASH>";
+        return "  Gets the specified address pending balance. If no address is specified. The pending balance of the current active wallet\n" +
+               "  is returned.\n" +
+               "  ARGUMENTS: <ADDRESS optional>";
     }
 }

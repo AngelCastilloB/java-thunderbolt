@@ -26,23 +26,24 @@ package com.thunderbolt.commands;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.blockchain.BlockHeader;
 import com.thunderbolt.contracts.ICommand;
+import com.thunderbolt.persistence.structures.UnspentTransactionOutput;
 import com.thunderbolt.rpc.RpcClient;
-import com.thunderbolt.transaction.Transaction;
 
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Gets the transaction with the given hash.
+ * Gets the unspent output with the given hash.
  */
-public class GetTransactionCommand implements ICommand
+public class GetUnspentOutputCommand implements ICommand
 {
     private RpcClient s_client = null;
 
     /**
-     * Initializes an instance of the GetTransactionCommand class.
+     * Initializes an instance of the GetUnspentOutputCommand Command class.
      */
-    public GetTransactionCommand(RpcClient client)
+    public GetUnspentOutputCommand(RpcClient client)
     {
         s_client = client;
     }
@@ -55,10 +56,10 @@ public class GetTransactionCommand implements ICommand
     @Override
     public boolean execute(String[] args)
     {
-        if (args.length != 2)
+        if (args.length != 3)
             return false;
 
-        Transaction result = s_client.getTransaction(args[1]);
+        UnspentTransactionOutput result = s_client.getUnspentOutput(args[1], Integer.parseInt(args[2]));
         System.out.printf("%s", result);
         return true;
     }
@@ -71,7 +72,7 @@ public class GetTransactionCommand implements ICommand
     @Override
     public String getName()
     {
-        return "getTransaction";
+        return "getUnspentOutput";
     }
 
     /**
@@ -82,7 +83,7 @@ public class GetTransactionCommand implements ICommand
     @Override
     public String getDescription()
     {
-        return "  Gets the transaction with the given hash.\n" +
-               "  ARGUMENTS: <TRANSACTION_HASH>";
+        return "  Gets the unspent output that matches the given transaction id and index inside that transaction.\n" +
+               "  ARGUMENTS: <TRANSACTION_ID> <INDEX>";
     }
 }

@@ -228,7 +228,6 @@ public class Node implements IChainHeadUpdateListener, ITransactionsChangeListen
                 listener.onBlockchainSyncFinishFinish(m_blockchain, m_persistenceService);
         }
 
-
         m_isRunning = true;
         while (m_isRunning)
         {
@@ -242,18 +241,19 @@ public class Node implements IChainHeadUpdateListener, ITransactionsChangeListen
                     ProtocolMessage message = peer.getMessage();
                     process(message, peer);
                 }
-
-                try
-                {
-                    Thread.sleep(MAIN_LOOP_DELAY);
-                }
-                catch (InterruptedException e)
-                {
-                    e.printStackTrace();
-                }
             }
 
             sendMessages();
+
+            try
+            {
+                Thread.sleep(MAIN_LOOP_DELAY);
+            }
+            catch (InterruptedException e)
+            {
+                s_logger.error("Main Node thread as stopped.", e);
+                m_isRunning = false;
+            }
         }
     }
 

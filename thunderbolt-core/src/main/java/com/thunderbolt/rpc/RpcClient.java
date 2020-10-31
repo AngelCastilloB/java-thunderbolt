@@ -186,7 +186,7 @@ public class RpcClient
     public TimeSpan getUptime()
     {
         return m_client.createRequest()
-                .method("stop")
+                .method("getUptime")
                 .id(m_currentNonce++)
                 .returnAs(TimeSpan.class)
                 .execute();

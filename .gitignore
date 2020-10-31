@@ -51,5 +51,7 @@ crashlytics.properties
 crashlytics-build.properties
 fabric.properties
 
+# logs
+*.log
 # Editor-based Rest Client
 .idea/httpRequests

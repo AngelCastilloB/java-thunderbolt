@@ -26,23 +26,24 @@ package com.thunderbolt.commands;
 
 /* IMPORTS *******************************************************************/
 
+import com.thunderbolt.blockchain.BlockHeader;
 import com.thunderbolt.contracts.ICommand;
+import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.rpc.RpcClient;
-import com.thunderbolt.transaction.Transaction;
 
 /* IMPLEMENTATION ************************************************************/
 
 /**
- * Gets the transaction with the given hash.
+ * Gets the transaction metadata with the given hash.
  */
-public class GetTransactionCommand implements ICommand
+public class GetTransactionMetadataCommand implements ICommand
 {
     private RpcClient s_client = null;
 
     /**
-     * Initializes an instance of the GetTransactionCommand class.
+     * Initializes an instance of the GetTransactionMetadataCommand class.
      */
-    public GetTransactionCommand(RpcClient client)
+    public GetTransactionMetadataCommand(RpcClient client)
     {
         s_client = client;
     }
@@ -58,7 +59,7 @@ public class GetTransactionCommand implements ICommand
         if (args.length != 2)
             return false;
 
-        Transaction result = s_client.getTransaction(args[1]);
+        TransactionMetadata result = s_client.getTransactionMetadata(args[1]);
         System.out.printf("%s", result);
         return true;
     }
@@ -71,7 +72,7 @@ public class GetTransactionCommand implements ICommand
     @Override
     public String getName()
     {
-        return "getTransaction";
+        return "GetTransactionMetadataCommand";
     }
 
     /**
@@ -82,7 +83,7 @@ public class GetTransactionCommand implements ICommand
     @Override
     public String getDescription()
     {
-        return "  Gets the transaction with the given hash.\n" +
+        return "  Gets the metadata for this transaction.\n" +
                "  ARGUMENTS: <TRANSACTION_HASH>";
     }
 }

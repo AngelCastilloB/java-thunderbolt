@@ -272,6 +272,16 @@ public class PeerManager
             connectNewPeers();
             updatePeerAddressPool();
             sendHeartbeatTime();
+
+            try
+            {
+                Thread.sleep(100);
+            }
+            catch (InterruptedException e)
+            {
+                m_isRunning = false;
+                s_logger.error("Thread stopped", e);
+            }
         }
     }
 

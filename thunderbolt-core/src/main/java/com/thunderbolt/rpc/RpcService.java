@@ -152,7 +152,7 @@ public class RpcService
     }
 
     /**
-     * Gets the totla time this node has been running.
+     * Gets the total time this node has been running.
      *
      * @return The uptime.
      */
@@ -621,7 +621,7 @@ public class RpcService
     }
 
     /**
-     * Gets the metadata for this transaction..
+     * Gets the metadata for this transaction.
      *
      * @return the transaction metadata.
      */
