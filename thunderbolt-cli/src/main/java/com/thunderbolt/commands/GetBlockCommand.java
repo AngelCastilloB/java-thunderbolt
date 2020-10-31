@@ -26,7 +26,7 @@ package com.thunderbolt.commands;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.blockchain.BlockHeader;
+import com.thunderbolt.blockchain.Block;
 import com.thunderbolt.contracts.ICommand;
 import com.thunderbolt.rpc.RpcClient;
 
@@ -58,8 +58,8 @@ public class GetBlockCommand implements ICommand
         if (args.length != 2)
             return false;
 
-        BlockHeader result = s_client.getBlockHeader(args[1]);
-        System.out.printf("%s bytes", result);
+        Block result = s_client.getBlock(args[1]);
+        System.out.printf("%s", result);
         return true;
     }
 
