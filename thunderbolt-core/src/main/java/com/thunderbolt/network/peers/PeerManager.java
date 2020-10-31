@@ -33,6 +33,7 @@ import com.thunderbolt.network.ProtocolException;
 import com.thunderbolt.network.contracts.IPeerDiscoverer;
 import com.thunderbolt.network.messages.ProtocolMessage;
 import com.thunderbolt.network.messages.ProtocolMessageFactory;
+import com.thunderbolt.network.messages.structures.NetworkAddress;
 import com.thunderbolt.persistence.contracts.INetworkAddressPool;
 import com.thunderbolt.persistence.storage.StorageException;
 import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
@@ -559,7 +560,9 @@ public class PeerManager
         if (peerCount() == 0)
         {
             for (InetSocketAddress peerAddress: seedPeers)
+            {
                 connectToAddress(peerAddress);
+            }
         }
     }
 
@@ -612,7 +615,6 @@ public class PeerManager
                 Peer peer = add(m_params, peerSocket, false);
 
                 peer.sendMessage(ProtocolMessageFactory.createVersionMessage(peer));
-
                 s_logger.debug("Sending version message to peer {}", peer);
             }
             else

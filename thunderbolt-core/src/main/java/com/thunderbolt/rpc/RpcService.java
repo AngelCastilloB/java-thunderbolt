@@ -740,7 +740,7 @@ public class RpcService
      * @return true if the peer was banned; otherwise; false.
      */
     @JsonRpcMethod("banPeer")
-    public boolean banPeer(@JsonRpcParam("url") String url) throws UnknownHostException
+    public boolean banPeer(@JsonRpcParam("url") String url) throws UnknownHostException, StorageException
     {
         NetworkAddress address = new NetworkAddress(url);
 
@@ -756,7 +756,19 @@ public class RpcService
             }
         }
 
-        return false;
+        // If peer is not currently connected, we just update its metadata.
+        NetworkAddressMetadata metadata = m_node.getPeerManager().getAddressPool().getAddress(address.getRawAddress());
+
+        if (metadata == null)
+        {
+            s_logger.info("Address {} not found", address);
+            return false;
+        }
+
+        metadata.setIsBanned(true);
+        metadata.setBanScore((byte)100);
+        m_node.getPeerManager().getAddressPool().upsertAddress(metadata);
+        return true;
     }
 
     /**
@@ -782,7 +794,6 @@ public class RpcService
         metadata.setIsBanned(false);
         metadata.setBanScore((byte)0);
         m_node.getPeerManager().getAddressPool().upsertAddress(metadata);
-
         return true;
     }
 
@@ -872,7 +883,7 @@ public class RpcService
 
             if (peer.getNetworkAddress().equals(address))
             {
-                info = String.format("IP: %s, Port: %s, BanScore: %s, Inactive Time: %s, Best Known Block: %s",
+                info = String.format("IP: %s, Port: %s, BanScore: %s, Status: connected, Inactive Time: %s, Best Known Block: %s",
                         peer.getNetworkAddress().getAddress(),
                         peer.getNetworkAddress().getPort(),
                         Convert.padLeft(Integer.toString(peer.getBanScore()), 3, '0'),
@@ -883,6 +894,22 @@ public class RpcService
             }
         }
 
-        return String.format("Peer %s not found.", url);
+        // If peer is not currently connected, we just read its metadata.
+        NetworkAddressMetadata metadata = m_node.getPeerManager().getAddressPool().getAddress(address.getRawAddress());
+
+        if (metadata == null)
+        {
+            s_logger.info("Address {} not found", address);
+            return String.format("Peer %s not found.", url);
+        }
+
+        info = String.format("IP: %s, Port: %s, BanScore: %s, Status: disconnected, Inactive Time: %s, Best Known Block: %s",
+                metadata.getNetworkAddress().getAddress(),
+                metadata.getNetworkAddress().getPort(),
+                Convert.padLeft(Integer.toString(metadata.getBanScore()), 3, '0'),
+                "Offline",
+                "Unknown");
+
+        return info;
     }
 }

@@ -57,9 +57,9 @@ public class BanPeerCommand implements ICommand
         if (args.length != 2)
             return false;
 
-        boolean added = s_client.banPeer(args[1]);
+        boolean banned = s_client.banPeer(args[1]);
 
-        if (added)
+        if (banned)
         {
             System.out.printf("Peer at %s ban for 24 hours..", args[1]);
         }

@@ -57,9 +57,9 @@ public class UnbanPeerCommand implements ICommand
         if (args.length != 2)
             return false;
 
-        boolean added = s_client.banPeer(args[1]);
+        boolean unbanned = s_client.unbanPeer(args[1]);
 
-        if (added)
+        if (unbanned)
         {
             System.out.printf("Ban lifted for Peer at %s.", args[1]);
         }

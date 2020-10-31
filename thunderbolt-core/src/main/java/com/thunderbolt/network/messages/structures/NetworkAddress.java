@@ -79,8 +79,8 @@ public class NetworkAddress implements ISerializable
             throw new IllegalArgumentException(String.format("Network address invalid format. %s", url));
 
         InetAddress ip = InetAddress.getByName(urlParts[0]);
+        setAddress(ip);
         m_port = Integer.parseInt(urlParts[1]);
-        m_address = ip.getAddress();
 
         // TODO: In the future add services as part of the URL.
         m_services = NodeServices.Network;
@@ -171,7 +171,7 @@ public class NetworkAddress implements ISerializable
      */
     public byte[] getRawAddress()
     {
-        return m_address;
+        return getAddress().getAddress();
     }
 
     /**

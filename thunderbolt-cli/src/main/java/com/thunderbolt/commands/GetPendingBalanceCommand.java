@@ -61,7 +61,7 @@ public class GetPendingBalanceCommand implements ICommand
 
         if (args.length == 1)
         {
-            result = s_client.getBalance(null);
+            result = s_client.getPendingBalance(null);
         }
         else
         {
