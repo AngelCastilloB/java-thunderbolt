@@ -39,6 +39,7 @@ import com.thunderbolt.network.NetworkParameters;
 import com.thunderbolt.network.contracts.IPeerDiscoverer;
 import com.thunderbolt.network.discovery.StandardPeerDiscoverer;
 import com.thunderbolt.network.messages.ProtocolMessageFactory;
+import com.thunderbolt.network.messages.structures.NetworkAddress;
 import com.thunderbolt.network.peers.PeerManager;
 import com.thunderbolt.persistence.StandardPersistenceService;
 import com.thunderbolt.persistence.contracts.IContiguousStorage;
@@ -46,6 +47,7 @@ import com.thunderbolt.persistence.contracts.IMetadataProvider;
 import com.thunderbolt.persistence.contracts.INetworkAddressPool;
 import com.thunderbolt.persistence.contracts.IPersistenceService;
 import com.thunderbolt.persistence.storage.*;
+import com.thunderbolt.persistence.structures.NetworkAddressMetadata;
 import com.thunderbolt.rpc.NodeHttpHandler;
 import com.thunderbolt.transaction.*;
 import com.thunderbolt.transaction.contracts.ITransactionValidator;
@@ -61,6 +63,8 @@ import java.net.InetSocketAddress;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -112,6 +116,8 @@ public class Main
         Blockchain                    blockchain           = new Blockchain(NetworkParameters.mainNet(), transactionValidator, committer, persistenceService);
         IPeerDiscoverer               discoverer           = new StandardPeerDiscoverer();
         INetworkAddressPool           addressPool          = new LevelDbNetworkAddressPool(ADDRESS_PATH);
+
+        initializePeerPool(addressPool, discoverer);
 
         blockchain.addOutputsUpdateListener(memPool);
 
@@ -168,6 +174,21 @@ public class Main
         IMetadataProvider metadataProvider = new LevelDbMetadataProvider(METADATA_PATH);
 
         return new StandardPersistenceService(blockStorage, revertsStorage, metadataProvider);
+    }
+
+    /**
+     * Initializes the peer pool.
+     */
+    private static void initializePeerPool(INetworkAddressPool pool, IPeerDiscoverer discoverer) throws StorageException
+    {
+        if (pool.count() == 0)
+        {
+            // If there are no peers yet, let populate with seed peers.
+            List<InetSocketAddress> addresses = discoverer.getPeers();
+
+            for (InetSocketAddress address: addresses)
+                pool.upsertAddress(new NetworkAddressMetadata(LocalDateTime.now(), new NetworkAddress(address)));
+        }
     }
 
     /**

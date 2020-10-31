@@ -33,6 +33,7 @@ import com.thunderbolt.network.messages.NodeServices;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -96,6 +97,20 @@ public class NetworkAddress implements ISerializable
         m_services = NodeServices.from(buffer.getInt());
         buffer.get(m_address);
         setPort(buffer.getShort() & 0x0000ffff);
+    }
+
+    /**
+     * Creates a new instance of the NetworkAddress class.
+     *
+     * @param address A InetSocketAddress object.
+     */
+    public NetworkAddress(InetSocketAddress address)
+    {
+        setAddress(address.getAddress());
+        m_port = address.getPort();
+
+        // TODO: In the future add services as part of the URL.
+        m_services = NodeServices.Network;
     }
 
     /**
