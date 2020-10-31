@@ -61,11 +61,11 @@ public class BanPeerCommand implements ICommand
 
         if (banned)
         {
-            System.out.printf("Peer at %s ban for 24 hours..", args[1]);
+            System.out.printf("Peer at %s ban for 24 hours.%n", args[1]);
         }
         else
         {
-            System.out.printf("The Peer at %s could not be ban. Please refer to the node logs for more information.", args[1]);
+            System.out.printf("The Peer at %s could not be ban. Please refer to the node logs for more information.%n", args[1]);
         }
 
 

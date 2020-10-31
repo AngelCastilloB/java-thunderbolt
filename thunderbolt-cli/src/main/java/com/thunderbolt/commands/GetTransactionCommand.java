@@ -59,7 +59,7 @@ public class GetTransactionCommand implements ICommand
             return false;
 
         Transaction result = s_client.getTransaction(args[1]);
-        System.out.printf("%s", result);
+        System.out.printf("%s%n", result);
         return true;
     }
 

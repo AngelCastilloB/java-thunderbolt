@@ -60,7 +60,7 @@ public class GetUnspentOutputCommand implements ICommand
             return false;
 
         UnspentTransactionOutput result = s_client.getUnspentOutput(args[1], Integer.parseInt(args[2]));
-        System.out.printf("%s", result);
+        System.out.printf("%s%n", result);
         return true;
     }
 

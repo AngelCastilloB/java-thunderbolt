@@ -61,11 +61,11 @@ public class DisconnectPeerCommand implements ICommand
 
         if (added)
         {
-            System.out.printf("Peer at %s disconnected.", args[1]);
+            System.out.printf("Peer at %s disconnected.%n", args[1]);
         }
         else
         {
-            System.out.printf("The Peer at %s was not connected to the node.", args[1]);
+            System.out.printf("The Peer at %s was not connected to the node.%n", args[1]);
         }
 
         return true;

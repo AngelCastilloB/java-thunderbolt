@@ -61,11 +61,11 @@ public class UnbanPeerCommand implements ICommand
 
         if (unbanned)
         {
-            System.out.printf("Ban lifted for Peer at %s.", args[1]);
+            System.out.printf("Ban lifted for Peer at %s.%n", args[1]);
         }
         else
         {
-            System.out.printf("The ban on Peer at %s could not be lifted. Please refer to the node logs for more information.", args[1]);
+            System.out.printf("The ban on Peer at %s could not be lifted. Please refer to the node logs for more information.%n", args[1]);
         }
 
 

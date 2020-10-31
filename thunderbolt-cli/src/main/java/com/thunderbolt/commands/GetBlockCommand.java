@@ -59,7 +59,7 @@ public class GetBlockCommand implements ICommand
             return false;
 
         Block result = s_client.getBlock(args[1]);
-        System.out.printf("%s", result);
+        System.out.printf("%s%n", result);
         return true;
     }
 

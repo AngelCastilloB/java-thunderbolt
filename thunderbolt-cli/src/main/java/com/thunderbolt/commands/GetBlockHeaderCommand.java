@@ -59,7 +59,7 @@ public class GetBlockHeaderCommand implements ICommand
             return false;
 
         BlockHeader result = s_client.getBlockHeader(args[1]);
-        System.out.printf("%s bytes", result);
+        System.out.printf("%s%n", result);
         return true;
     }
 

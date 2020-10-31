@@ -61,11 +61,11 @@ public class RemovePeerCommand implements ICommand
 
         if (added)
         {
-            System.out.printf("Peer at %s removed.", args[1]);
+            System.out.printf("Peer at %s removed.%n", args[1]);
         }
         else
         {
-            System.out.printf("The Peer at %s could not be removed. Please refer to the node logs for more information.", args[1]);
+            System.out.printf("The Peer at %s could not be removed. Please refer to the node logs for more information.%n", args[1]);
         }
 
 

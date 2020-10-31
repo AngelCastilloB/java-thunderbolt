@@ -26,7 +26,6 @@ package com.thunderbolt.commands;
 
 /* IMPORTS *******************************************************************/
 
-import com.thunderbolt.blockchain.BlockHeader;
 import com.thunderbolt.contracts.ICommand;
 import com.thunderbolt.persistence.structures.TransactionMetadata;
 import com.thunderbolt.rpc.RpcClient;
@@ -60,7 +59,7 @@ public class GetTransactionMetadataCommand implements ICommand
             return false;
 
         TransactionMetadata result = s_client.getTransactionMetadata(args[1]);
-        System.out.printf("%s", result);
+        System.out.printf("%s%n", result);
         return true;
     }
 
@@ -72,7 +71,7 @@ public class GetTransactionMetadataCommand implements ICommand
     @Override
     public String getName()
     {
-        return "GetTransactionMetadataCommand";
+        return "getTransactionMetadataCommand";
     }
 
     /**

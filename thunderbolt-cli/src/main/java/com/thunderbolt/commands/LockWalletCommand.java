@@ -55,6 +55,7 @@ public class LockWalletCommand implements ICommand
     public boolean execute(String[] args)
     {
         s_client.lockWallet();
+        System.out.println("Wallet Lock");
         return true;
     }
 
