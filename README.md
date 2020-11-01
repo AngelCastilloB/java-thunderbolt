@@ -25,6 +25,14 @@ Total Supply | 21.000.000 THB
 RPC port | 9567
 P2P port | 8332
 
+## Download
+
+Download the Thunderbolt Node, CLI, Wallet and Miner for your target OS from:
+
+<a id="raw-url" href="https://github.com/AngelCastilloB/java-thunderbolt/releases/download/1.0-SNAPSHOT/thunderbolt_linux.tar.gz">Linux v1.0.SNAPSHOP</a>
+
+<a id="raw-url" href="https://github.com/AngelCastilloB/java-thunderbolt/releases/download/1.0-SNAPSHOT/thunderbolt_windows.zip">Windows v1.0.SNAPSHOP</a>
+
 ## Node
 ## CLI
 ## Wallet
