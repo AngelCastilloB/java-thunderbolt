@@ -120,8 +120,9 @@ getNetworkAddress|Gets out current public address.|NONE
 
 The wallet software allows you to keep track of transactions and transfer funds among other things:
 
-<p align="center"><img src="https://github.com/AngelCastilloB/java-thunderbolt/blob/master/assets/Sin%20t%C3%ADtulo.png" alt="Overview"></p>
+<p align="center"><img src="https://github.com/AngelCastilloB/java-thunderbolt/blob/master/assets/overview.png" alt="Overview"></p>
 <p align="center"><img src="https://github.com/AngelCastilloB/java-thunderbolt/blob/master/assets/send.png" alt="Send Coins"></p>
+<p align="center"><img src="https://github.com/AngelCastilloB/java-thunderbolt/blob/master/assets/confirm_send.png" alt="Confirm"></p>
 <p align="center"><img src="https://github.com/AngelCastilloB/java-thunderbolt/blob/master/assets/rec.png" alt="Receive"></p>
 <p align="center"><img src="https://github.com/AngelCastilloB/java-thunderbolt/blob/master/assets/transaction_list.png" alt="Transaction list"></p>
 <p align="center"><img src="https://github.com/AngelCastilloB/java-thunderbolt/blob/master/assets/dump_keys.png" alt="Dump Keys"></p>
