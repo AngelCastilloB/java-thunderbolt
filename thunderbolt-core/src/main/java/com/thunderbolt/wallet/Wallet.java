@@ -630,16 +630,13 @@ public class Wallet implements ISerializable, IOutputsUpdateListener, ITransacti
     @Override
     synchronized public void onTransactionRemoved(Transaction transaction)
     {
-        if (m_pendingTransactions.contains(transaction))
-        {
-            m_pendingTransactions.remove(transaction);
+        m_pendingTransactions.remove(transaction);
 
-            // Remove from outputs in use.
-            for (TransactionInput input: transaction.getInputs())
-            {
-                UnspentTransactionOutput output = m_service.getUnspentOutput(input.getReferenceHash(), input.getIndex());
-                m_inUseOutputs.remove(output.getHash());
-            }
+        // Remove from outputs in use.
+        for (TransactionInput input: transaction.getInputs())
+        {
+            UnspentTransactionOutput output = m_service.getUnspentOutput(input.getReferenceHash(), input.getIndex());
+            m_inUseOutputs.remove(output.getHash());
         }
     }
 
