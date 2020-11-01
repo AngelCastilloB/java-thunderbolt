@@ -15,6 +15,21 @@
 Thunderbolt is a peer-to-peer trustless digital currency implemented from scratch in Java. The project is inspired by
 [Bitcoin](https://github.com/bitcoin/bitcoin) and was created as a learning tool for understanding the blockchain technology.
 
+## Specifications
+Specification | Value
+--- | ---
+Protocol | PoW (proof of Work)
+Algorithms | SHA-256
+Blocktime | 10 minutes
+Total Supply | 21.000.000 THB
+RPC port | 9567
+P2P port | 8332
+
+## Node
+## CLI
+## Wallet
+## Miner
+
 Build
 -----
 
