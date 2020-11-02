@@ -47,7 +47,7 @@ The release includes 4 applications.
 
 The node can be stearted as a background process using the "start-node.bat/sh" script or as a simple program using the "run-node.bat/sh":
 
-<p align="center"><img src="https://github.com/AngelCastilloB/java-thunderbolt/blob/master/assets/start_node.png" alt="Start The Node"></p>
+<p align="left"><img src="https://github.com/AngelCastilloB/java-thunderbolt/blob/master/assets/start_node.png" alt="Start The Node"></p>
 
 The node application will add a system tray icon on operating systems that support it.
 
