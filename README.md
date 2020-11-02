@@ -37,11 +37,11 @@ The release includes 4 applications.
 
 - The Node Application: This application runs the P2P protocol and all the blockchain related business logic (consensus rules, persitense of block and transactions etc.). The node application also serves as an JSON-RPC service (at port 9567 by default), other application can send request to the RPC service to query data from the blockchain or make the node execute commands like sending blocks, making transactions and in general managing the peers we are connected to. This node application must be started first, as the wallet, cli and miner application all rely on the node RPC server to work.
 
-- The CLI: The command line interface application allows the user to query and execute commands no the node using the command line.
+- The CLI: The command line interface application allows the user to query and execute commands on the node using the command line.
 
 - The Wallet: The wallet allows you to keep track of your balance and transactions. You can also transfer funds to other addresses, dump your keys and encrypt your wallet.
 
-- The Miner: The miner application will mine block using the CPU or a specific ASIC miner (The GekkoScience NewPac 130Gh/s+ because is what I had at hand).
+- The Miner: The miner application will mine blocks using the CPU or a specific ASIC miner (The GekkoScience NewPac 130Gh/s+ because is what I had at hand).
 
 ## Node
 
@@ -114,7 +114,7 @@ getPrivateKey|Gets the private key of the wallet.|NONE
 getDifficulty|Returns the proof-of-work difficulty as a multiple of the minimum difficulty.|NONE
 getTotalBalance|Gets the amount of coins in circulation (spendable).|NONE
 removePeer|Removes an address from the storage.|NETWORK_ADDRESS
-getNetworkAddress|Gets out current public address.|NONE
+getNetworkAddress|Gets our current public address.|NONE
 
 ## Wallet
 
@@ -130,7 +130,7 @@ The wallet software allows you to keep track of transactions and transfer funds 
 
 ## Miner
 
-The miner software can min on the CPU or on a particular ASIC miner, if set to mine by using tthe CPU (default) it will start a mining thread for each core of the CPU and it will divide the nonce range accordingly.
+The miner software can mine on the CPU or on a particular ASIC miner, if set to mine by using tthe CPU (default) it will start a mining thread for each core of the CPU and it will divide the nonce range accordingly.
 
 The only ASIC miner that is currently supported is the GekkoScience NewPac 130Gh/s+ since it was what I had in hand.
 
