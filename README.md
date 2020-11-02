@@ -53,7 +53,7 @@ The node application will add a system tray icon on operating systems that suppo
 
 You can stop the node either by clocking on the stop option of the tray icon:
 
-<p align="center"><img src="https://github.com/AngelCastilloB/java-thunderbolt/blob/master/assets/stop_node.png" alt="Stop"></p>
+<p align="left"><img src="https://github.com/AngelCastilloB/java-thunderbolt/blob/master/assets/stop_node.png" alt="Stop"></p>
 
 or by simply calling the stop command on the CLI:
 
