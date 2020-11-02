@@ -49,7 +49,7 @@ The node can be stearted as a background process using the "start-node.bat/sh" s
 
 <p align="center"><img src="https://github.com/AngelCastilloB/java-thunderbolt/blob/master/assets/start_node.png" alt="Start The Node"></p>
 
-To node application will add a system tray icon on operating systems that support it.
+The node application will add a system tray icon on operating systems that support it.
 
 You can stop the node either by clocking on the stop option of the tray icon:
 
