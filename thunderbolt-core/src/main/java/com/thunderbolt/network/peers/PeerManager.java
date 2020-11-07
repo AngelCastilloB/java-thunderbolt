@@ -59,7 +59,7 @@ public class PeerManager
     private static final int PING_TIMEOUT       = 1000;
     private static final int CLEAN_INTERVAL     = 10; // minutes
     private static final int NEW_PEERS_INTERVAL = 1;  // minutes
-    private static final int CONNECT_TIMEOUT    = 100; //ms
+    private static final int CONNECT_TIMEOUT    = 1000; //ms
 
     private static final Logger s_logger = LoggerFactory.getLogger(PeerManager.class);
 
@@ -607,6 +607,7 @@ public class PeerManager
 
             s_logger.info("Trying to connect with peer {}", address.toString());
 
+            // Todo: check
             if (address.getAddress().isReachable(PING_TIMEOUT))
             {
                 Socket peerSocket = new Socket();
