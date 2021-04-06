@@ -15,6 +15,8 @@
 Thunderbolt is a peer-to-peer trustless digital currency implemented from scratch in Java. The project is inspired by
 [Bitcoin](https://github.com/bitcoin/bitcoin) and was created as a learning tool for understanding the blockchain technology.
 
+NOTE: Currently the cryptocurrency network is down.
+
 ## Specifications
 Specification | Value
 --- | ---
