@@ -8,7 +8,6 @@
 </p>
  
 ![Build Status](https://travis-ci.org/AngelCastilloB/java-thunderbolt.svg?branch=master) [![Build status](https://ci.appveyor.com/api/projects/status/k5qa96tmn861qffu?svg=true)](https://ci.appveyor.com/project/AngelCastilloB/java-thunderbolt)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/5fbfd0de8c044c22b25a3e5d272c429c)](https://www.codacy.com/app/AngelCastilloB/java-thunderbolt?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=AngelCastilloB/java-thunderbolt&amp;utm_campaign=Badge_Grade)
  ![license](https://img.shields.io/badge/license-MIT-blue.svg?longCache=true&style=flat) 
  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?longCache=true&style=flat)](http://makeapullrequest.com)
  
