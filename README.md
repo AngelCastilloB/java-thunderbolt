@@ -7,7 +7,7 @@
   Commons 3.0 Attributions license</a></sup></sup></sup></sup>
 </p>
  
-![Build Status](https://travis-ci.org/AngelCastilloB/java-thunderbolt.svg?branch=master) [![Build status](https://ci.appveyor.com/api/projects/status/k5qa96tmn861qffu?svg=true)](https://ci.appveyor.com/project/AngelCastilloB/java-thunderbolt)
+[![Build status](https://ci.appveyor.com/api/projects/status/k5qa96tmn861qffu?svg=true)](https://ci.appveyor.com/project/AngelCastilloB/java-thunderbolt)
  ![license](https://img.shields.io/badge/license-MIT-blue.svg?longCache=true&style=flat) 
  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?longCache=true&style=flat)](http://makeapullrequest.com)
  
